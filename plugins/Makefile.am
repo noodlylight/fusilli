@@ -111,13 +111,6 @@ libinotify_la_SOURCES = inotify.c
 libinotify_module = libinotify.la
 endif
 
-if FUSE_PLUGIN
-libfs_la_LDFLAGS = -module -avoid-version -no-undefined
-libfs_la_LIBADD = @FUSE_LIBS@
-libfs_la_SOURCES = fuse.c
-libfs_module = libfs.la
-endif
-
 INCLUDES =					\
 	@COMPIZ_CFLAGS@				\
 	@LIBPNG_CFLAGS@				\
@@ -125,8 +118,6 @@ INCLUDES =					\
 	@ANNOTATE_CFLAGS@			\
 	@DBUS_CFLAGS@				\
 	@GLIB_CFLAGS@				\
-	@FUSE_CFLAGS@				\
-	-DFUSE_USE_VERSION=26			\
 	-DALL_LINGUAS="\"@ALL_LINGUAS@\""	\
 	-DLOCALEDIR="\"@datadir@/locale\""	\
 	-DPLUGINDIR=\"$(plugindir)\"		\
