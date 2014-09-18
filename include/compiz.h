@@ -50,18 +50,18 @@ typedef struct _CompWindow   CompWindow;
 typedef CompBool (*CallBackProc) (void *closure);
 
 typedef enum {
-    CompOptionTypeBool,
-    CompOptionTypeInt,
-    CompOptionTypeFloat,
-    CompOptionTypeString,
-    CompOptionTypeColor,
-    CompOptionTypeAction,
-    CompOptionTypeKey,
-    CompOptionTypeButton,
-    CompOptionTypeEdge,
-    CompOptionTypeBell,
-    CompOptionTypeMatch,
-    CompOptionTypeList
+	CompOptionTypeBool,
+	CompOptionTypeInt,
+	CompOptionTypeFloat,
+	CompOptionTypeString,
+	CompOptionTypeColor,
+	CompOptionTypeAction,
+	CompOptionTypeKey,
+	CompOptionTypeButton,
+	CompOptionTypeEdge,
+	CompOptionTypeBell,
+	CompOptionTypeMatch,
+	CompOptionTypeList
 } CompOptionType;
 
 void
@@ -69,7 +69,7 @@ compInitOptionValue (CompOptionValue *v);
 
 void
 compFiniOptionValue (CompOptionValue *v,
-		     CompOptionType  type);
+                     CompOptionType  type);
 
 void
 compInitOption (CompOption *option);
@@ -79,60 +79,60 @@ compFiniOption (CompOption *option);
 
 CompOption *
 compFindOption (CompOption *option,
-		int	    nOption,
-		const char  *name,
-		int	    *index);
+                int        nOption,
+                const char *name,
+                int        *index);
 
 CompBool
 compSetBoolOption (CompOption      *option,
-		   CompOptionValue *value);
+                   CompOptionValue *value);
 
 CompBool
-compSetIntOption (CompOption	  *option,
-		  CompOptionValue *value);
+compSetIntOption (CompOption      *option,
+                  CompOptionValue *value);
 
 CompBool
-compSetFloatOption (CompOption	    *option,
-		    CompOptionValue *value);
+compSetFloatOption (CompOption      *option,
+                    CompOptionValue *value);
 
 CompBool
 compSetStringOption (CompOption	     *option,
-		     CompOptionValue *value);
+                     CompOptionValue *value);
 
 CompBool
-compSetColorOption (CompOption	    *option,
-		    CompOptionValue *value);
+compSetColorOption (CompOption      *option,
+                    CompOptionValue *value);
 
 CompBool
 compSetActionOption (CompOption      *option,
-		     CompOptionValue *value);
+                     CompOptionValue *value);
 
 CompBool
 compSetMatchOption (CompOption      *option,
-		    CompOptionValue *value);
+                    CompOptionValue *value);
 
 CompBool
 compSetOptionList (CompOption      *option,
-		   CompOptionValue *value);
+                   CompOptionValue *value);
 
 CompBool
 compSetOption (CompOption      *option,
-	       CompOptionValue *value);
+               CompOptionValue *value);
 
 CompTimeoutHandle
-compAddTimeout (int	     minTime,
-		int	     maxTime,
-		CallBackProc callBack,
-		void	     *closure);
+compAddTimeout (int          minTime,
+                int          maxTime,
+                CallBackProc callBack,
+                void         *closure);
 
 void *
 compRemoveTimeout (CompTimeoutHandle handle);
 
 CompWatchFdHandle
-compAddWatchFd (int	     fd,
-		short int    events,
-		CallBackProc callBack,
-		void	     *closure);
+compAddWatchFd (int          fd,
+                short int    events,
+                CallBackProc callBack,
+                void         *closure);
 
 void
 compRemoveWatchFd (CompWatchFdHandle handle);
@@ -145,34 +145,34 @@ compInitMetadata (CompMetadata *metadata);
 
 CompBool
 compInitPluginMetadata (CompMetadata *metadata,
-			const char   *plugin);
+                        const char   *plugin);
 
 void
 compFiniMetadata (CompMetadata *metadata);
 
 CompBool
 compAddMetadataFromFile (CompMetadata *metadata,
-			 const char   *file);
+                         const char   *file);
 
 CompBool
 compAddMetadataFromString (CompMetadata *metadata,
-			   const char	*string);
+                           const char   *string);
 
 CompBool
-compAddMetadataFromIO (CompMetadata	     *metadata,
-		       xmlInputReadCallback  ioread,
-		       xmlInputCloseCallback ioclose,
-		       void		     *ioctx);
+compAddMetadataFromIO (CompMetadata          *metadata,
+                       xmlInputReadCallback  ioread,
+                       xmlInputCloseCallback ioclose,
+                       void                  *ioctx);
 
 char *
 compGetStringFromMetadataPath (CompMetadata *metadata,
-			       const char   *path);
+                               const char   *path);
 
 int
 compReadXmlChunk (const char *src,
-		  int	     *offset,
-		  char	     *buffer,
-		  int	     length);
+                  int        *offset,
+                  char       *buffer,
+                  int        length);
 
 
 COMPIZ_END_DECLS

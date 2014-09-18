@@ -32,284 +32,284 @@ static CompMetadata glibMetadata;
 static int displayPrivateIndex;
 
 typedef struct _GLibWatch {
-    CompWatchFdHandle handle;
-    int		      index;
-    CompDisplay	      *display;
+	CompWatchFdHandle handle;
+	int               index;
+	CompDisplay       *display;
 } GLibWatch;
 
 typedef struct _GConfDisplay {
-    HandleEventProc   handleEvent;
-    CompTimeoutHandle timeoutHandle;
-    CompTimeoutHandle wakeupTimeoutHandle;
-    gint	      maxPriority;
-    GPollFD	      *fds;
-    gint	      fdsSize;
-    gint	      nFds;
-    GLibWatch	      *watch;
-    Atom	      notifyAtom;
+	HandleEventProc   handleEvent;
+	CompTimeoutHandle timeoutHandle;
+	CompTimeoutHandle wakeupTimeoutHandle;
+	gint              maxPriority;
+	GPollFD           *fds;
+	gint              fdsSize;
+	gint              nFds;
+	GLibWatch         *watch;
+	Atom              notifyAtom;
 } GLibDisplay;
 
-#define GET_GLIB_DISPLAY(d)					  \
-    ((GLibDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+#define GET_GLIB_DISPLAY(d) \
+        ((GLibDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
 
-#define GLIB_DISPLAY(d)			   \
-    GLibDisplay *gd = GET_GLIB_DISPLAY (d)
+#define GLIB_DISPLAY(d) \
+        GLibDisplay *gd = GET_GLIB_DISPLAY (d)
 
 static void
 glibDispatch (CompDisplay  *display,
-	      GMainContext *context)
+              GMainContext *context)
 {
-    int i;
+	int i;
 
-    GLIB_DISPLAY (display);
+	GLIB_DISPLAY (display);
 
-    g_main_context_check (context, gd->maxPriority, gd->fds, gd->nFds);
-    g_main_context_dispatch (context);
+	g_main_context_check (context, gd->maxPriority, gd->fds, gd->nFds);
+	g_main_context_dispatch (context);
 
-    for (i = 0; i < gd->nFds; i++)
-	compRemoveWatchFd (gd->watch[i].handle);
+	for (i = 0; i < gd->nFds; i++)
+		compRemoveWatchFd (gd->watch[i].handle);
 }
 
 static void
 glibPrepare (CompDisplay  *display,
-	     GMainContext *context);
+             GMainContext *context);
 
 static Bool
 glibDispatchAndPrepare (void *closure)
 {
-    CompDisplay  *display = (CompDisplay *) closure;
-    GLIB_DISPLAY (display);
-    GMainContext *context = g_main_context_default ();
+	CompDisplay  *display = (CompDisplay *) closure;
+	GLIB_DISPLAY (display);
+	GMainContext *context = g_main_context_default ();
 
-    glibDispatch (display, context);
-    glibPrepare (display, context);
+	glibDispatch (display, context);
+	glibPrepare (display, context);
 
-    gd->wakeupTimeoutHandle = 0;
+	gd->wakeupTimeoutHandle = 0;
 
-    return FALSE;
+	return FALSE;
 }
 
 static void
 glibWakeup (CompDisplay *display)
 {
-    GLIB_DISPLAY (display);
+	GLIB_DISPLAY (display);
 
-    if (gd->timeoutHandle)
-    {
-	compRemoveTimeout (gd->timeoutHandle);
-	gd->timeoutHandle = 0;
+	if (gd->timeoutHandle)
+	{
+		compRemoveTimeout (gd->timeoutHandle);
+		gd->timeoutHandle = 0;
 
-	gd->wakeupTimeoutHandle =
-	    compAddTimeout (0, 0, glibDispatchAndPrepare, (void *) display);
-    }
+		gd->wakeupTimeoutHandle =
+		    compAddTimeout (0, 0, glibDispatchAndPrepare, (void *) display);
+	}
 }
 
 static Bool
 glibCollectEvents (void *closure)
 {
-    GLibWatch   *watch = (GLibWatch *) closure;
-    CompDisplay *display = watch->display;
+	GLibWatch   *watch = (GLibWatch *) closure;
+	CompDisplay *display = watch->display;
 
-    GLIB_DISPLAY (display);
+	GLIB_DISPLAY (display);
 
-    gd->fds[watch->index].revents |= compWatchFdEvents (watch->handle);
+	gd->fds[watch->index].revents |= compWatchFdEvents (watch->handle);
 
-    glibWakeup (display);
+	glibWakeup (display);
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 glibPrepare (CompDisplay  *display,
-	     GMainContext *context)
+             GMainContext *context)
 {
-    int nFds = 0;
-    int timeout = -1;
-    int i;
+	int nFds = 0;
+	int timeout = -1;
+	int i;
 
-    GLIB_DISPLAY (display);
+	GLIB_DISPLAY (display);
 
-    g_main_context_prepare (context, &gd->maxPriority);
+	g_main_context_prepare (context, &gd->maxPriority);
 
-    do
-    {
-	if (nFds > gd->fdsSize)
+	do
 	{
-	    if (gd->fds)
-		free (gd->fds);
+		if (nFds > gd->fdsSize)
+		{
+			if (gd->fds)
+				free (gd->fds);
 
-	    gd->fds = malloc ((sizeof (GPollFD) + sizeof (GLibWatch)) * nFds);
-	    if (!gd->fds)
-	    {
-		nFds = 0;
-		break;
-	    }
+			gd->fds = malloc ((sizeof (GPollFD) + sizeof (GLibWatch)) * nFds);
+			if (!gd->fds)
+			{
+				nFds = 0;
+				break;
+			}
 
-	    gd->watch   = (GLibWatch *) (gd->fds + nFds);
-	    gd->fdsSize = nFds;
+			gd->watch   = (GLibWatch *) (gd->fds + nFds);
+			gd->fdsSize = nFds;
+		}
+
+		nFds = g_main_context_query (context,
+		                         gd->maxPriority,
+		                         &timeout,
+		                         gd->fds,
+		                         gd->fdsSize);
+	} while (nFds > gd->fdsSize);
+
+	if (timeout < 0)
+		timeout = INT_MAX;
+
+	for (i = 0; i < nFds; i++)
+	{
+		gd->watch[i].display = display;
+		gd->watch[i].index   = i;
+		gd->watch[i].handle  = compAddWatchFd (gd->fds[i].fd,
+		                               gd->fds[i].events,
+		                               glibCollectEvents,
+		                               &gd->watch[i]);
 	}
 
-	nFds = g_main_context_query (context,
-				     gd->maxPriority,
-				     &timeout,
-				     gd->fds,
-				     gd->fdsSize);
-    } while (nFds > gd->fdsSize);
-
-    if (timeout < 0)
-	timeout = INT_MAX;
-
-    for (i = 0; i < nFds; i++)
-    {
-	gd->watch[i].display = display;
-	gd->watch[i].index   = i;
-	gd->watch[i].handle  = compAddWatchFd (gd->fds[i].fd,
-					       gd->fds[i].events,
-					       glibCollectEvents,
-					       &gd->watch[i]);
-    }
-
-    gd->nFds	      = nFds;
-    gd->timeoutHandle =
-	compAddTimeout (timeout, timeout, glibDispatchAndPrepare, display);
+	gd->nFds          = nFds;
+	gd->timeoutHandle =
+	    compAddTimeout (timeout, timeout, glibDispatchAndPrepare, display);
 }
 
 static void
 glibHandleEvent (CompDisplay *d,
-		 XEvent      *event)
+                 XEvent      *event)
 {
-    GLIB_DISPLAY (d);
+	GLIB_DISPLAY (d);
 
-    if (event->type == ClientMessage)
-    {
-	if (event->xclient.message_type == gd->notifyAtom)
-	    glibWakeup (d);
-    }
+	if (event->type == ClientMessage)
+	{
+		if (event->xclient.message_type == gd->notifyAtom)
+			glibWakeup (d);
+	}
 
-    UNWRAP (gd, d, handleEvent);
-    (*d->handleEvent) (d, event);
-    WRAP (gd, d, handleEvent, glibHandleEvent);
+	UNWRAP (gd, d, handleEvent);
+	(*d->handleEvent) (d, event);
+	WRAP (gd, d, handleEvent, glibHandleEvent);
 }
 
 static Bool
 glibInitDisplay (CompPlugin  *p,
-		 CompDisplay *d)
+                 CompDisplay *d)
 {
-    GLibDisplay *gd;
+	GLibDisplay *gd;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+	if (!checkPluginABI ("core", CORE_ABIVERSION))
+		return FALSE;
 
-    gd = malloc (sizeof (GLibDisplay));
-    if (!gd)
-	return FALSE;
+	gd = malloc (sizeof (GLibDisplay));
+	if (!gd)
+		return FALSE;
 
-    gd->fds	      = NULL;
-    gd->fdsSize	      = 0;
-    gd->timeoutHandle = 0;
-    gd->wakeupTimeoutHandle = 0;
-    gd->notifyAtom    = XInternAtom (d->display, "_COMPIZ_GLIB_NOTIFY", 0);
+	gd->fds           = NULL;
+	gd->fdsSize       = 0;
+	gd->timeoutHandle = 0;
+	gd->wakeupTimeoutHandle = 0;
+	gd->notifyAtom    = XInternAtom (d->display, "_COMPIZ_GLIB_NOTIFY", 0);
 
-    WRAP (gd, d, handleEvent, glibHandleEvent);
+	WRAP (gd, d, handleEvent, glibHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = gd;
+	d->base.privates[displayPrivateIndex].ptr = gd;
 
-    glibPrepare (d, g_main_context_default ());
+	glibPrepare (d, g_main_context_default ());
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 glibFiniDisplay (CompPlugin  *p,
-		 CompDisplay *d)
+                 CompDisplay *d)
 {
-    GLIB_DISPLAY (d);
+	GLIB_DISPLAY (d);
 
-    if (gd->timeoutHandle)
-	compRemoveTimeout (gd->timeoutHandle);
+	if (gd->timeoutHandle)
+		compRemoveTimeout (gd->timeoutHandle);
 
-    if (gd->wakeupTimeoutHandle)
-	compRemoveTimeout (gd->wakeupTimeoutHandle);
+	if (gd->wakeupTimeoutHandle)
+		compRemoveTimeout (gd->wakeupTimeoutHandle);
 
-    glibDispatch (d, g_main_context_default ());
+	glibDispatch (d, g_main_context_default ());
 
-    UNWRAP (gd, d, handleEvent);
+	UNWRAP (gd, d, handleEvent);
 
-    if (gd->fds)
-	free (gd->fds);
+	if (gd->fds)
+		free (gd->fds);
 
-    free (gd);
+	free (gd);
 }
 
 static CompBool
 glibInitObject (CompPlugin *p,
-		CompObject *o)
+                CompObject *o)
 {
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) glibInitDisplay
-    };
+	static InitPluginObjectProc dispTab[] = {
+		(InitPluginObjectProc) 0, /* InitCore */
+		(InitPluginObjectProc) glibInitDisplay
+	};
 
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
 }
 
 static void
 glibFiniObject (CompPlugin *p,
-		CompObject *o)
+                CompObject *o)
 {
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) glibFiniDisplay
-    };
+	static FiniPluginObjectProc dispTab[] = {
+		(FiniPluginObjectProc) 0, /* FiniCore */
+		(FiniPluginObjectProc) glibFiniDisplay
+	};
 
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
+	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
 glibInit (CompPlugin *p)
 {
-    if (!compInitPluginMetadataFromInfo (&glibMetadata, p->vTable->name,
-					 0, 0, 0, 0))
-	return FALSE;
+	if (!compInitPluginMetadataFromInfo (&glibMetadata, p->vTable->name,
+	                                     0, 0, 0, 0))
+		return FALSE;
 
-    displayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (displayPrivateIndex < 0)
-    {
-	compFiniMetadata (&glibMetadata);
-	return FALSE;
-    }
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+	if (displayPrivateIndex < 0)
+	{
+		compFiniMetadata (&glibMetadata);
+		return FALSE;
+	}
 
-    compAddMetadataFromFile (&glibMetadata, p->vTable->name);
+	compAddMetadataFromFile (&glibMetadata, p->vTable->name);
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 glibFini (CompPlugin *p)
 {
-    freeDisplayPrivateIndex (displayPrivateIndex);
-    compFiniMetadata (&glibMetadata);
+	freeDisplayPrivateIndex (displayPrivateIndex);
+	compFiniMetadata (&glibMetadata);
 }
 
 static CompMetadata *
 glibGetMetadata (CompPlugin *plugin)
 {
-    return &glibMetadata;
+	return &glibMetadata;
 }
 
 CompPluginVTable glibVTable = {
-    "glib",
-    glibGetMetadata,
-    glibInit,
-    glibFini,
-    glibInitObject,
-    glibFiniObject,
-    0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+	"glib",
+	glibGetMetadata,
+	glibInit,
+	glibFini,
+	glibInitObject,
+	glibFiniObject,
+	0, /* GetObjectOptions */
+	0  /* SetObjectOption */
 };
 
 CompPluginVTable *
 getCompPluginInfo20070830 (void)
 {
-    return &glibVTable;
+	return &glibVTable;
 }

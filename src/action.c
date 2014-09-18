@@ -30,12 +30,12 @@
 #include <compiz.h>
 
 typedef struct _CompAction {
-    char	   *name;
-    char	   *description;
-    CompOptionType type;
-    union {
-	Bool  b;
-	int   i;
-	float f;
-    } value;
+	char       *name;
+	char       *description;
+	CompOptionType type;
+	union {
+		Bool  b;
+		int   i;
+		float f;
+	} value;
 } CompAction;

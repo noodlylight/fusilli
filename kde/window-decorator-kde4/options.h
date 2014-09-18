@@ -32,108 +32,108 @@ namespace KWD
 {
 
 class Options : public KDecorationOptions
-    {
-    public:
-	enum MouseCommand
 	{
-	    MouseRaise,
-	    MouseLower,
-	    MouseOperationsMenu,
-	    MouseToggleRaiseAndLower,
-	    MouseActivateAndRaise,
-	    MouseActivateAndLower,
-	    MouseActivate,
-	    MouseActivateRaiseAndPassClick,
-	    MouseActivateAndPassClick,
-	    MouseMove,
-	    MouseUnrestrictedMove,
-	    MouseActivateRaiseAndMove,
-	    MouseActivateRaiseAndUnrestrictedMove,
-	    MouseResize,
-	    MouseUnrestrictedResize,
-	    MouseShade,
-	    MouseSetShade,
-	    MouseUnsetShade,
-	    MouseMaximize,
-	    MouseRestore,
-	    MouseMinimize,
-	    MouseNextDesktop,
-	    MousePreviousDesktop,
-	    MouseAbove,
-	    MouseBelow,
-	    MouseOpacityMore,
-	    MouseOpacityLess,
-	    MouseNothing
+	public:
+		enum MouseCommand
+		{
+			MouseRaise,
+			MouseLower,
+			MouseOperationsMenu,
+			MouseToggleRaiseAndLower,
+			MouseActivateAndRaise,
+			MouseActivateAndLower,
+			MouseActivate,
+			MouseActivateRaiseAndPassClick,
+			MouseActivateAndPassClick,
+			MouseMove,
+			MouseUnrestrictedMove,
+			MouseActivateRaiseAndMove,
+			MouseActivateRaiseAndUnrestrictedMove,
+			MouseResize,
+			MouseUnrestrictedResize,
+			MouseShade,
+			MouseSetShade,
+			MouseUnsetShade,
+			MouseMaximize,
+			MouseRestore,
+			MouseMinimize,
+			MouseNextDesktop,
+			MousePreviousDesktop,
+			MouseAbove,
+			MouseBelow,
+			MouseOpacityMore,
+			MouseOpacityLess,
+			MouseNothing
+		};
+		enum MouseWheelCommand
+		{
+			MouseWheelRaiseLower,
+			MouseWheelShadeUnshade,
+			MouseWheelMaximizeRestore,
+			MouseWheelAboveBelow,
+			MouseWheelPreviousNextDesktop,
+			MouseWheelChangeOpacity,
+			MouseWheelNothing
+		};
+
+		Options (KConfig *config);
+
+		virtual unsigned long updateSettings (void);
+
+		WindowOperation operationTitlebarDblClick (void)
+		{
+			return OpTitlebarDblClick;
+		}
+
+		MouseCommand commandActiveTitlebar1 (void)
+		{
+			return CmdActiveTitlebar1;
+		}
+		MouseCommand commandActiveTitlebar2 (void)
+		{
+			return CmdActiveTitlebar2;
+		}
+		MouseCommand commandActiveTitlebar3 (void)
+		{
+			return CmdActiveTitlebar3;
+		}
+		MouseCommand commandInactiveTitlebar1 (void)
+		{
+			return CmdInactiveTitlebar1;
+		}
+		MouseCommand commandInactiveTitlebar2 (void)
+		{
+			return CmdInactiveTitlebar2;
+		}
+		MouseCommand commandInactiveTitlebar3 (void)
+		{
+			return CmdInactiveTitlebar3;
+		}
+
+		MouseCommand operationTitlebarMouseWheel (int delta)
+		{
+			return wheelToMouseCommand (CmdTitlebarWheel, delta);
+		}
+
+	private:
+		static KDecorationDefines::WindowOperation
+		    windowOperation (const QString &name, bool restricted);
+		MouseCommand mouseCommand (const QString &name, bool restricted);
+		MouseWheelCommand mouseWheelCommand (const QString &name);
+		MouseCommand wheelToMouseCommand (MouseWheelCommand com, int delta);
+
+	private:
+		KDecorationDefines::WindowOperation OpTitlebarDblClick;
+		MouseCommand CmdActiveTitlebar1;
+		MouseCommand CmdActiveTitlebar2;
+		MouseCommand CmdActiveTitlebar3;
+		MouseCommand CmdInactiveTitlebar1;
+		MouseCommand CmdInactiveTitlebar2;
+		MouseCommand CmdInactiveTitlebar3;
+		MouseWheelCommand CmdTitlebarWheel;
+
+		KConfig *mConfig;
 	};
-	enum MouseWheelCommand
-	{
-	    MouseWheelRaiseLower,
-	    MouseWheelShadeUnshade,
-	    MouseWheelMaximizeRestore,
-	    MouseWheelAboveBelow,
-	    MouseWheelPreviousNextDesktop,
-	    MouseWheelChangeOpacity,
-	    MouseWheelNothing
-	};
-
-	Options (KConfig *config);
-
-	virtual unsigned long updateSettings (void);
-
-	WindowOperation operationTitlebarDblClick (void)
-	{
-	    return OpTitlebarDblClick;
-	}
-
-	MouseCommand commandActiveTitlebar1 (void)
-	{
-	    return CmdActiveTitlebar1;
-	}
-	MouseCommand commandActiveTitlebar2 (void)
-	{
-	    return CmdActiveTitlebar2;
-	}
-	MouseCommand commandActiveTitlebar3 (void)
-	{
-	    return CmdActiveTitlebar3;
-	}
-	MouseCommand commandInactiveTitlebar1 (void)
-	{
-	    return CmdInactiveTitlebar1;
-	}
-	MouseCommand commandInactiveTitlebar2 (void)
-	{
-	    return CmdInactiveTitlebar2;
-	}
-	MouseCommand commandInactiveTitlebar3 (void)
-	{
-	    return CmdInactiveTitlebar3;
-	}
-
-	MouseCommand operationTitlebarMouseWheel (int delta)
-	{
-	    return wheelToMouseCommand (CmdTitlebarWheel, delta);
-	}
-
-    private:
-	static KDecorationDefines::WindowOperation
-	    windowOperation (const QString &name, bool restricted);
-	MouseCommand mouseCommand (const QString &name, bool restricted);
-	MouseWheelCommand mouseWheelCommand (const QString &name);
-	MouseCommand wheelToMouseCommand (MouseWheelCommand com, int delta);
-
-    private:
-	KDecorationDefines::WindowOperation OpTitlebarDblClick;
-	MouseCommand CmdActiveTitlebar1;
-	MouseCommand CmdActiveTitlebar2;
-	MouseCommand CmdActiveTitlebar3;
-	MouseCommand CmdInactiveTitlebar1;
-	MouseCommand CmdInactiveTitlebar2;
-	MouseCommand CmdInactiveTitlebar3;
-	MouseWheelCommand CmdTitlebarWheel;
-
-	KConfig *mConfig;
-    };
 
 }
 

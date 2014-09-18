@@ -36,1037 +36,1037 @@ static CompMetadata minMetadata;
 static int displayPrivateIndex;
 
 typedef struct _MinDisplay {
-    int		    screenPrivateIndex;
-    HandleEventProc handleEvent;
-    Atom	    winChangeStateAtom;
+	int             screenPrivateIndex;
+	HandleEventProc handleEvent;
+	Atom            winChangeStateAtom;
 } MinDisplay;
 
-#define MIN_SCREEN_OPTION_SPEED		   0
-#define MIN_SCREEN_OPTION_TIMESTEP	   1
-#define MIN_SCREEN_OPTION_WINDOW_MATCH	   2
+#define MIN_SCREEN_OPTION_SPEED            0
+#define MIN_SCREEN_OPTION_TIMESTEP         1
+#define MIN_SCREEN_OPTION_WINDOW_MATCH     2
 #define MIN_SCREEN_OPTION_SHADE_RESISTANCE 3
-#define MIN_SCREEN_OPTION_NUM		   4
+#define MIN_SCREEN_OPTION_NUM              4
 
 typedef struct _MinScreen {
-    int	windowPrivateIndex;
+	int	windowPrivateIndex;
 
-    CompOption opt[MIN_SCREEN_OPTION_NUM];
+	CompOption opt[MIN_SCREEN_OPTION_NUM];
 
-    PreparePaintScreenProc preparePaintScreen;
-    DonePaintScreenProc    donePaintScreen;
-    PaintOutputProc        paintOutput;
-    PaintWindowProc        paintWindow;
-    DamageWindowRectProc   damageWindowRect;
-    FocusWindowProc	   focusWindow;
+	PreparePaintScreenProc preparePaintScreen;
+	DonePaintScreenProc    donePaintScreen;
+	PaintOutputProc        paintOutput;
+	PaintWindowProc        paintWindow;
+	DamageWindowRectProc   damageWindowRect;
+	FocusWindowProc        focusWindow;
 
-    int shadeStep;
-    int moreAdjust;
+	int shadeStep;
+	int moreAdjust;
 } MinScreen;
 
 typedef struct _MinWindow {
-    GLfloat xVelocity, yVelocity, xScaleVelocity, yScaleVelocity;
-    GLfloat xScale, yScale;
-    GLfloat tx, ty;
+	GLfloat xVelocity, yVelocity, xScaleVelocity, yScaleVelocity;
+	GLfloat xScale, yScale;
+	GLfloat tx, ty;
 
-    Bool adjust;
+	Bool adjust;
 
-    int state, newState;
+	int state, newState;
 
-    int    shade;
-    Region region;
+	int    shade;
+	Region region;
 
-    int unmapCnt;
+	int unmapCnt;
 
-    Bool ignoreDamage;
+	Bool ignoreDamage;
 } MinWindow;
 
-#define GET_MIN_DISPLAY(d)					 \
-    ((MinDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+#define GET_MIN_DISPLAY(d) \
+        ((MinDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
 
-#define MIN_DISPLAY(d)			 \
-    MinDisplay *md = GET_MIN_DISPLAY (d)
+#define MIN_DISPLAY(d) \
+        MinDisplay *md = GET_MIN_DISPLAY (d)
 
-#define GET_MIN_SCREEN(s, md)					     \
-    ((MinScreen *) (s)->base.privates[(md)->screenPrivateIndex].ptr)
+#define GET_MIN_SCREEN(s, md) \
+        ((MinScreen *) (s)->base.privates[(md)->screenPrivateIndex].ptr)
 
-#define MIN_SCREEN(s)						     \
-    MinScreen *ms = GET_MIN_SCREEN (s, GET_MIN_DISPLAY (s->display))
+#define MIN_SCREEN(s) \
+        MinScreen *ms = GET_MIN_SCREEN (s, GET_MIN_DISPLAY (s->display))
 
-#define GET_MIN_WINDOW(w, ms)					     \
-    ((MinWindow *) (w)->base.privates[(ms)->windowPrivateIndex].ptr)
+#define GET_MIN_WINDOW(w, ms) \
+        ((MinWindow *) (w)->base.privates[(ms)->windowPrivateIndex].ptr)
 
-#define MIN_WINDOW(w)					   \
-    MinWindow *mw = GET_MIN_WINDOW  (w,			   \
-		    GET_MIN_SCREEN  (w->screen,		   \
-		    GET_MIN_DISPLAY (w->screen->display)))
+#define MIN_WINDOW(w) \
+        MinWindow *mw = GET_MIN_WINDOW  (w, \
+                        GET_MIN_SCREEN  (w->screen, \
+                        GET_MIN_DISPLAY (w->screen->display)))
 
 #define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
 
 static CompOption *
 minGetScreenOptions (CompPlugin *plugin,
-		     CompScreen *screen,
-		     int	*count)
+                     CompScreen *screen,
+                     int        *count)
 {
-    MIN_SCREEN (screen);
+	MIN_SCREEN (screen);
 
-    *count = NUM_OPTIONS (ms);
-    return ms->opt;
+	*count = NUM_OPTIONS (ms);
+	return ms->opt;
 }
 
 static Bool
 minSetScreenOption (CompPlugin      *plugin,
-		    CompScreen      *screen,
-		    const char	    *name,
-		    CompOptionValue *value)
+                    CompScreen      *screen,
+                    const char      *name,
+                    CompOptionValue *value)
 {
-    CompOption *o;
-    int	       index;
+	CompOption *o;
+	int        index;
 
-    MIN_SCREEN (screen);
+	MIN_SCREEN (screen);
 
-    o = compFindOption (ms->opt, NUM_OPTIONS (ms), name, &index);
-    if (!o)
-	return FALSE;
+	o = compFindOption (ms->opt, NUM_OPTIONS (ms), name, &index);
+	if (!o)
+		return FALSE;
 
-    switch (index) {
-    case MIN_SCREEN_OPTION_SHADE_RESISTANCE:
-	if (compSetIntOption (o, value))
-	{
-	    if (o->value.i)
-		ms->shadeStep = o->rest.i.max - o->value.i + 1;
-	    else
-		ms->shadeStep = 0;
+	switch (index) {
+	case MIN_SCREEN_OPTION_SHADE_RESISTANCE:
+		if (compSetIntOption (o, value))
+		{
+			if (o->value.i)
+				ms->shadeStep = o->rest.i.max - o->value.i + 1;
+			else
+				ms->shadeStep = 0;
 
-	    return TRUE;
+			return TRUE;
+		}
+		break;
+	default:
+		if (compSetOption (o, value))
+			return TRUE;
+		break;
 	}
-	break;
-    default:
-	if (compSetOption (o, value))
-	    return TRUE;
-	break;
-    }
 
-    return FALSE;
+	return FALSE;
 }
 
 static void
 minSetShade (CompWindow *w,
-	     int	shade)
+             int        shade)
 {
-    REGION rect;
-    int	   h = w->attrib.height + w->attrib.border_width * 2;
+	REGION rect;
+	int    h = w->attrib.height + w->attrib.border_width * 2;
 
-    MIN_WINDOW (w);
+	MIN_WINDOW (w);
 
-    EMPTY_REGION (w->region);
+	EMPTY_REGION (w->region);
 
-    rect.rects = &rect.extents;
-    rect.numRects = rect.size = 1;
+	rect.rects = &rect.extents;
+	rect.numRects = rect.size = 1;
 
-    w->height = shade;
+	w->height = shade;
 
-    rect.extents.x1 = 0;
-    rect.extents.y1 = h - shade;
-    rect.extents.x2 = w->width;
-    rect.extents.y2 = h;
+	rect.extents.x1 = 0;
+	rect.extents.y1 = h - shade;
+	rect.extents.x2 = w->width;
+	rect.extents.y2 = h;
 
-    XIntersectRegion (mw->region, &rect, w->region);
-    XOffsetRegion (w->region, w->attrib.x, w->attrib.y - (h - shade));
+	XIntersectRegion (mw->region, &rect, w->region);
+	XOffsetRegion (w->region, w->attrib.x, w->attrib.y - (h - shade));
 
-    w->matrix = w->texture->matrix;
-    w->matrix.x0 -= (w->attrib.x * w->matrix.xx);
-    w->matrix.y0 -= ((w->attrib.y - (h - shade)) * w->matrix.yy);
+	w->matrix = w->texture->matrix;
+	w->matrix.x0 -= (w->attrib.x * w->matrix.xx);
+	w->matrix.y0 -= ((w->attrib.y - (h - shade)) * w->matrix.yy);
 
-    (*w->screen->windowResizeNotify) (w, 0, 0, 0, 0);
+	(*w->screen->windowResizeNotify) (w, 0, 0, 0, 0);
 }
 
 static int
 minGetWindowState (CompWindow *w)
 {
-    Atom	  actual;
-    int		  result, format;
-    unsigned long n, left;
-    unsigned char *data;
-    int           retval = WithdrawnState;
+	Atom          actual;
+	int           result, format;
+	unsigned long n, left;
+	unsigned char *data;
+	int           retval = WithdrawnState;
 
-    result = XGetWindowProperty (w->screen->display->display, w->id,
-				 w->screen->display->wmStateAtom, 0L, 1L, FALSE,
-				 w->screen->display->wmStateAtom,
-				 &actual, &format, &n, &left, &data);
+	result = XGetWindowProperty (w->screen->display->display, w->id,
+	                             w->screen->display->wmStateAtom, 0L, 1L, FALSE,
+	                             w->screen->display->wmStateAtom,
+	                             &actual, &format, &n, &left, &data);
 
-    if (result == Success && data)
-    {
-	if (n)
-	    memcpy (&retval, data, sizeof (int));
+	if (result == Success && data)
+	{
+		if (n)
+			memcpy (&retval, data, sizeof (int));
 
-	XFree ((void *) data);
-    }
+		XFree ((void *) data);
+	}
 
-    return retval;
+	return retval;
 }
 
 static int
 adjustMinVelocity (CompWindow *w)
 {
-    float dx, dy, dxs, dys, adjust, amount;
-    float x1, y1, xScale, yScale;
+	float dx, dy, dxs, dys, adjust, amount;
+	float x1, y1, xScale, yScale;
 
-    MIN_WINDOW (w);
+	MIN_WINDOW (w);
 
-    if (mw->newState == IconicState)
-    {
-	x1 = w->iconGeometry.x;
-	y1 = w->iconGeometry.y;
-	xScale = (float) w->iconGeometry.width  / w->width;
-	yScale = (float) w->iconGeometry.height / w->height;
-    }
-    else
-    {
-	x1 = w->serverX;
-	y1 = w->serverY;
-	xScale = yScale = 1.0f;
-    }
+	if (mw->newState == IconicState)
+	{
+		x1 = w->iconGeometry.x;
+		y1 = w->iconGeometry.y;
+		xScale = (float) w->iconGeometry.width  / w->width;
+		yScale = (float) w->iconGeometry.height / w->height;
+	}
+	else
+	{
+		x1 = w->serverX;
+		y1 = w->serverY;
+		xScale = yScale = 1.0f;
+	}
 
-    dx = x1 - (w->attrib.x + mw->tx);
+	dx = x1 - (w->attrib.x + mw->tx);
 
-    adjust = dx * 0.15f;
-    amount = fabs (dx) * 1.5f;
-    if (amount < 0.5f)
-	amount = 0.5f;
-    else if (amount > 5.0f)
-	amount = 5.0f;
+	adjust = dx * 0.15f;
+	amount = fabs (dx) * 1.5f;
+	if (amount < 0.5f)
+		amount = 0.5f;
+	else if (amount > 5.0f)
+		amount = 5.0f;
 
-    mw->xVelocity = (amount * mw->xVelocity + adjust) / (amount + 1.0f);
+	mw->xVelocity = (amount * mw->xVelocity + adjust) / (amount + 1.0f);
 
-    dy = y1 - (w->attrib.y + mw->ty);
+	dy = y1 - (w->attrib.y + mw->ty);
 
-    adjust = dy * 0.15f;
-    amount = fabs (dy) * 1.5f;
-    if (amount < 0.5f)
-	amount = 0.5f;
-    else if (amount > 5.0f)
-	amount = 5.0f;
+	adjust = dy * 0.15f;
+	amount = fabs (dy) * 1.5f;
+	if (amount < 0.5f)
+		amount = 0.5f;
+	else if (amount > 5.0f)
+		amount = 5.0f;
 
-    mw->yVelocity = (amount * mw->yVelocity + adjust) / (amount + 1.0f);
+	mw->yVelocity = (amount * mw->yVelocity + adjust) / (amount + 1.0f);
 
-    dxs = xScale - mw->xScale;
+	dxs = xScale - mw->xScale;
 
-    adjust = dxs * 0.15f;
-    amount = fabs (dxs) * 10.0f;
-    if (amount < 0.01f)
-	amount = 0.01f;
-    else if (amount > 0.15f)
-	amount = 0.15f;
+	adjust = dxs * 0.15f;
+	amount = fabs (dxs) * 10.0f;
+	if (amount < 0.01f)
+		amount = 0.01f;
+	else if (amount > 0.15f)
+		amount = 0.15f;
 
-    mw->xScaleVelocity = (amount * mw->xScaleVelocity + adjust) /
-	(amount + 1.0f);
+	mw->xScaleVelocity = (amount * mw->xScaleVelocity + adjust) /
+		(amount + 1.0f);
 
-    dys = yScale - mw->yScale;
+	dys = yScale - mw->yScale;
 
-    adjust = dys * 0.15f;
-    amount = fabs (dys) * 10.0f;
-    if (amount < 0.01f)
-	amount = 0.01f;
-    else if (amount > 0.15f)
-	amount = 0.15f;
+	adjust = dys * 0.15f;
+	amount = fabs (dys) * 10.0f;
+	if (amount < 0.01f)
+		amount = 0.01f;
+	else if (amount > 0.15f)
+		amount = 0.15f;
 
-    mw->yScaleVelocity = (amount * mw->yScaleVelocity + adjust) /
-	(amount + 1.0f);
+	mw->yScaleVelocity = (amount * mw->yScaleVelocity + adjust) /
+		(amount + 1.0f);
 
-    if (fabs (dx) < 0.1f    && fabs (mw->xVelocity)      < 0.2f   &&
-	fabs (dy) < 0.1f    && fabs (mw->yVelocity)      < 0.2f   &&
-	fabs (dxs) < 0.001f && fabs (mw->xScaleVelocity) < 0.002f &&
-	fabs (dys) < 0.001f && fabs (mw->yScaleVelocity) < 0.002f)
-    {
-	mw->xVelocity = mw->yVelocity = mw->xScaleVelocity =
-	    mw->yScaleVelocity = 0.0f;
-	mw->tx = x1 - w->attrib.x;
-	mw->ty = y1 - w->attrib.y;
-	mw->xScale = xScale;
-	mw->yScale = yScale;
+	if (fabs (dx) < 0.1f    && fabs (mw->xVelocity)      < 0.2f   &&
+		fabs (dy) < 0.1f    && fabs (mw->yVelocity)      < 0.2f   &&
+		fabs (dxs) < 0.001f && fabs (mw->xScaleVelocity) < 0.002f &&
+		fabs (dys) < 0.001f && fabs (mw->yScaleVelocity) < 0.002f)
+	{
+		mw->xVelocity = mw->yVelocity = mw->xScaleVelocity =
+		    mw->yScaleVelocity = 0.0f;
+		mw->tx = x1 - w->attrib.x;
+		mw->ty = y1 - w->attrib.y;
+		mw->xScale = xScale;
+		mw->yScale = yScale;
 
-	return 0;
-    }
+		return 0;
+	}
 
-    return 1;
+	return 1;
 }
 
 static void
 minPreparePaintScreen (CompScreen *s,
-		       int	  msSinceLastPaint)
+                       int        msSinceLastPaint)
 {
-    MIN_SCREEN (s);
-
-    if (ms->moreAdjust)
-    {
-	CompWindow *w;
-	int        steps, h;
-	float      amount, chunk;
-
-	amount = msSinceLastPaint * 0.05f *
-	    ms->opt[MIN_SCREEN_OPTION_SPEED].value.f;
-	steps  = amount / (0.5f * ms->opt[MIN_SCREEN_OPTION_TIMESTEP].value.f);
-	if (!steps) steps = 1;
-	chunk  = amount / (float) steps;
-
-	while (steps--)
-	{
-	    ms->moreAdjust = 0;
-
-	    for (w = s->windows; w; w = w->next)
-	    {
-		MIN_WINDOW (w);
-
-		if (mw->adjust)
-		{
-		    mw->adjust = adjustMinVelocity (w);
-
-		    ms->moreAdjust |= mw->adjust;
-
-		    mw->tx += mw->xVelocity * chunk;
-		    mw->ty += mw->yVelocity * chunk;
-		    mw->xScale += mw->xScaleVelocity * chunk;
-		    mw->yScale += mw->yScaleVelocity * chunk;
-
-		    if (!mw->adjust)
-		    {
-			mw->state = mw->newState;
-
-			mw->ignoreDamage = TRUE;
-			while (mw->unmapCnt)
-			{
-			    unmapWindow (w);
-			    mw->unmapCnt--;
-			}
-			mw->ignoreDamage = FALSE;
-		    }
-		}
-		else if (mw->region && w->damaged)
-		{
-		    if (w->shaded)
-		    {
-			if (mw->shade > 0)
-			{
-			    mw->shade -= (chunk * ms->shadeStep) + 1;
-
-			    if (mw->shade > 0)
-			    {
-				ms->moreAdjust = TRUE;
-			    }
-			    else
-			    {
-				mw->shade = 0;
-
-				mw->ignoreDamage = TRUE;
-				while (mw->unmapCnt)
-				{
-				    unmapWindow (w);
-				    mw->unmapCnt--;
-				}
-				mw->ignoreDamage = FALSE;
-			    }
-			}
-		    }
-		    else
-		    {
-			h = w->attrib.height + w->attrib.border_width * 2;
-			if (mw->shade < h)
-			{
-			    mw->shade += (chunk * ms->shadeStep) + 1;
-
-			    if (mw->shade < h)
-			    {
-				ms->moreAdjust = TRUE;
-			    }
-			    else
-			    {
-				mw->shade = MAXSHORT;
-
-				minSetShade (w, h);
-
-				XDestroyRegion (mw->region);
-				mw->region = NULL;
-
-				addWindowDamage (w);
-			    }
-			}
-		    }
-		}
-	    }
-
-	    if (!ms->moreAdjust)
-		break;
-	}
+	MIN_SCREEN (s);
 
 	if (ms->moreAdjust)
 	{
-	    for (w = s->windows; w; w = w->next)
-	    {
-		MIN_WINDOW (w);
+		CompWindow *w;
+		int        steps, h;
+		float      amount, chunk;
 
-		if (mw->adjust)
+		amount = msSinceLastPaint * 0.05f *
+			ms->opt[MIN_SCREEN_OPTION_SPEED].value.f;
+		steps  = amount / (0.5f * ms->opt[MIN_SCREEN_OPTION_TIMESTEP].value.f);
+		if (!steps) steps = 1;
+		chunk  = amount / (float) steps;
+
+		while (steps--)
 		{
-		    addWindowDamage (w);
+			ms->moreAdjust = 0;
+
+			for (w = s->windows; w; w = w->next)
+			{
+				MIN_WINDOW (w);
+
+				if (mw->adjust)
+				{
+					mw->adjust = adjustMinVelocity (w);
+
+					ms->moreAdjust |= mw->adjust;
+
+					mw->tx += mw->xVelocity * chunk;
+					mw->ty += mw->yVelocity * chunk;
+					mw->xScale += mw->xScaleVelocity * chunk;
+					mw->yScale += mw->yScaleVelocity * chunk;
+
+					if (!mw->adjust)
+					{
+						mw->state = mw->newState;
+
+						mw->ignoreDamage = TRUE;
+						while (mw->unmapCnt)
+						{
+							unmapWindow (w);
+							mw->unmapCnt--;
+						}
+						mw->ignoreDamage = FALSE;
+					}
+				}
+				else if (mw->region && w->damaged)
+				{
+					if (w->shaded)
+					{
+						if (mw->shade > 0)
+						{
+							mw->shade -= (chunk * ms->shadeStep) + 1;
+
+							if (mw->shade > 0)
+							{
+								ms->moreAdjust = TRUE;
+							}
+							else
+							{
+								mw->shade = 0;
+
+								mw->ignoreDamage = TRUE;
+								while (mw->unmapCnt)
+								{
+									unmapWindow (w);
+									mw->unmapCnt--;
+								}
+								mw->ignoreDamage = FALSE;
+							}
+						}
+					}
+					else
+					{
+						h = w->attrib.height + w->attrib.border_width * 2;
+						if (mw->shade < h)
+						{
+							mw->shade += (chunk * ms->shadeStep) + 1;
+
+							if (mw->shade < h)
+							{
+								ms->moreAdjust = TRUE;
+							}
+							else
+							{
+								mw->shade = MAXSHORT;
+
+								minSetShade (w, h);
+
+								XDestroyRegion (mw->region);
+								mw->region = NULL;
+
+								addWindowDamage (w);
+							}
+						}
+					}
+				}
+			}
+
+			if (!ms->moreAdjust)
+				break;
 		}
-		else if (mw->region && w->damaged)
+
+		if (ms->moreAdjust)
 		{
-		    h = w->attrib.height + w->attrib.border_width * 2;
-		    if (mw->shade && mw->shade < h)
-		    {
-			minSetShade (w, mw->shade);
-			addWindowDamage (w);
-		    }
+			for (w = s->windows; w; w = w->next)
+			{
+				MIN_WINDOW (w);
+
+				if (mw->adjust)
+				{
+					addWindowDamage (w);
+				}
+				else if (mw->region && w->damaged)
+				{
+					h = w->attrib.height + w->attrib.border_width * 2;
+					if (mw->shade && mw->shade < h)
+					{
+						minSetShade (w, mw->shade);
+						addWindowDamage (w);
+					}
+				}
+			}
 		}
-	    }
 	}
-    }
 
-    UNWRAP (ms, s, preparePaintScreen);
-    (*s->preparePaintScreen) (s, msSinceLastPaint);
-    WRAP (ms, s, preparePaintScreen, minPreparePaintScreen);
+	UNWRAP (ms, s, preparePaintScreen);
+	(*s->preparePaintScreen) (s, msSinceLastPaint);
+	WRAP (ms, s, preparePaintScreen, minPreparePaintScreen);
 }
 
 static void
 minDonePaintScreen (CompScreen *s)
 {
-    MIN_SCREEN (s);
+	MIN_SCREEN (s);
 
-    if (ms->moreAdjust)
-    {
-	CompWindow *w;
-	int	   h;
-
-	for (w = s->windows; w; w = w->next)
+	if (ms->moreAdjust)
 	{
-	    MIN_WINDOW (w);
+		CompWindow *w;
+		int        h;
 
-	    if (mw->adjust)
-	    {
-		addWindowDamage (w);
-	    }
-	    else if (mw->region)
-	    {
-		h = w->attrib.height + w->attrib.border_width * 2;
-		if (mw->shade && mw->shade < h)
-		    addWindowDamage (w);
-	    }
+		for (w = s->windows; w; w = w->next)
+		{
+			MIN_WINDOW (w);
+
+			if (mw->adjust)
+			{
+				addWindowDamage (w);
+			}
+			else if (mw->region)
+			{
+				h = w->attrib.height + w->attrib.border_width * 2;
+				if (mw->shade && mw->shade < h)
+					addWindowDamage (w);
+			}
+		}
 	}
-    }
 
-    UNWRAP (ms, s, donePaintScreen);
-    (*s->donePaintScreen) (s);
-    WRAP (ms, s, donePaintScreen, minDonePaintScreen);
+	UNWRAP (ms, s, donePaintScreen);
+	(*s->donePaintScreen) (s);
+	WRAP (ms, s, donePaintScreen, minDonePaintScreen);
 }
 
 static Bool
-minPaintOutput (CompScreen		*s,
-		const ScreenPaintAttrib *sAttrib,
-		const CompTransform	*transform,
-		Region		        region,
-		CompOutput		*output,
-		unsigned int		mask)
+minPaintOutput (CompScreen              *s,
+                const ScreenPaintAttrib *sAttrib,
+                const CompTransform     *transform,
+                Region                  region,
+                CompOutput              *output,
+                unsigned int            mask)
 {
-    Bool status;
+	Bool status;
 
-    MIN_SCREEN (s);
+	MIN_SCREEN (s);
 
-    if (ms->moreAdjust)
-	mask |= PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS_MASK;
+	if (ms->moreAdjust)
+		mask |= PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS_MASK;
 
-    UNWRAP (ms, s, paintOutput);
-    status = (*s->paintOutput) (s, sAttrib, transform, region, output, mask);
-    WRAP (ms, s, paintOutput, minPaintOutput);
+	UNWRAP (ms, s, paintOutput);
+	status = (*s->paintOutput) (s, sAttrib, transform, region, output, mask);
+	WRAP (ms, s, paintOutput, minPaintOutput);
 
-    return status;
+	return status;
 }
 
 static Bool
-minPaintWindow (CompWindow		*w,
-		const WindowPaintAttrib *attrib,
-		const CompTransform	*transform,
-		Region			region,
-		unsigned int		mask)
+minPaintWindow (CompWindow              *w,
+                const WindowPaintAttrib *attrib,
+                const CompTransform     *transform,
+                Region                  region,
+                unsigned int            mask)
 {
-    CompScreen *s = w->screen;
-    Bool       status;
+	CompScreen *s = w->screen;
+	Bool       status;
 
-    MIN_SCREEN (s);
-    MIN_WINDOW (w);
+	MIN_SCREEN (s);
+	MIN_WINDOW (w);
 
-    if (mw->adjust)
-    {
-	FragmentAttrib fragment;
-	CompTransform  wTransform = *transform;
+	if (mw->adjust)
+	{
+		FragmentAttrib fragment;
+		CompTransform  wTransform = *transform;
 
-	if (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK)
-	    return FALSE;
+		if (mask & PAINT_WINDOW_OCCLUSION_DETECTION_MASK)
+			return FALSE;
 
-	UNWRAP (ms, s, paintWindow);
-	status = (*s->paintWindow) (w, attrib, transform, region,
-				    mask | PAINT_WINDOW_NO_CORE_INSTANCE_MASK);
-	WRAP (ms, s, paintWindow, minPaintWindow);
+		UNWRAP (ms, s, paintWindow);
+		status = (*s->paintWindow) (w, attrib, transform, region,
+		                       mask | PAINT_WINDOW_NO_CORE_INSTANCE_MASK);
+		WRAP (ms, s, paintWindow, minPaintWindow);
 
-	initFragmentAttrib (&fragment, &w->lastPaint);
+		initFragmentAttrib (&fragment, &w->lastPaint);
 
-	if (w->alpha || fragment.opacity != OPAQUE)
-	    mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
+		if (w->alpha || fragment.opacity != OPAQUE)
+			mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
 
-	matrixTranslate (&wTransform, w->attrib.x, w->attrib.y, 0.0f);
-	matrixScale (&wTransform, mw->xScale, mw->yScale, 1.0f);
-	matrixTranslate (&wTransform,
-			 mw->tx / mw->xScale - w->attrib.x,
-			 mw->ty / mw->yScale - w->attrib.y,
-			 0.0f);
+		matrixTranslate (&wTransform, w->attrib.x, w->attrib.y, 0.0f);
+		matrixScale (&wTransform, mw->xScale, mw->yScale, 1.0f);
+		matrixTranslate (&wTransform,
+		                 mw->tx / mw->xScale - w->attrib.x,
+		                 mw->ty / mw->yScale - w->attrib.y,
+		                 0.0f);
 
-	glPushMatrix ();
-	glLoadMatrixf (wTransform.m);
+		glPushMatrix ();
+		glLoadMatrixf (wTransform.m);
 
-	(*s->drawWindow) (w, &wTransform, &fragment, region,
-			  mask | PAINT_WINDOW_TRANSFORMED_MASK);
+		(*s->drawWindow) (w, &wTransform, &fragment, region,
+		                  mask | PAINT_WINDOW_TRANSFORMED_MASK);
 
-	glPopMatrix ();
-    }
-    else
-    {
-	/* no core instance from windows that have been animated */
-	if (mw->state == IconicState)
-	    mask |= PAINT_WINDOW_NO_CORE_INSTANCE_MASK;
+		glPopMatrix ();
+	}
+	else
+	{
+		/* no core instance from windows that have been animated */
+		if (mw->state == IconicState)
+			mask |= PAINT_WINDOW_NO_CORE_INSTANCE_MASK;
 
-	UNWRAP (ms, s, paintWindow);
-	status = (*s->paintWindow) (w, attrib, transform, region, mask);
-	WRAP (ms, s, paintWindow, minPaintWindow);
-    }
+		UNWRAP (ms, s, paintWindow);
+		status = (*s->paintWindow) (w, attrib, transform, region, mask);
+		WRAP (ms, s, paintWindow, minPaintWindow);
+	}
 
-    return status;
+	return status;
 }
 
 static void
 minHandleEvent (CompDisplay *d,
-		XEvent      *event)
+                XEvent      *event)
 {
-    CompWindow *w;
+	CompWindow *w;
 
-    MIN_DISPLAY (d);
+	MIN_DISPLAY (d);
 
-    switch (event->type) {
-    case MapNotify:
-	w = findWindowAtDisplay (d, event->xmap.window);
-	if (w)
-	{
-	    MIN_WINDOW (w);
-
-	    if (mw->adjust)
-		mw->state = mw->newState;
-
-	    if (mw->region)
-		w->height = 0;
-
-	    mw->ignoreDamage = TRUE;
-	    while (mw->unmapCnt)
-	    {
-		unmapWindow (w);
-		mw->unmapCnt--;
-	    }
-	    mw->ignoreDamage = FALSE;
-	}
-	break;
-    case UnmapNotify:
-	w = findWindowAtDisplay (d, event->xunmap.window);
-	if (w)
-	{
-	    MIN_SCREEN (w->screen);
-
-	    if (w->pendingUnmaps && onCurrentDesktop (w)) /* Normal -> Iconic */
-	    {
-		CompMatch *match =
-		    &ms->opt[MIN_SCREEN_OPTION_WINDOW_MATCH].value.match;
-
-		MIN_WINDOW (w);
-
-		if (w->shaded)
+	switch (event->type) {
+	case MapNotify:
+		w = findWindowAtDisplay (d, event->xmap.window);
+		if (w)
 		{
-		    if (!mw->region)
-			mw->region = XCreateRegion ();
+			MIN_WINDOW (w);
 
-		    if (mw->region && ms->shadeStep)
-		    {
-			XSubtractRegion (w->region, &emptyRegion, mw->region);
-			XOffsetRegion (mw->region, -w->attrib.x,
-				       w->attrib.height +
-				       w->attrib.border_width * 2 -
-				       w->height - w->attrib.y);
-
-			mw->shade = w->height;
-
-			mw->adjust     = FALSE;
-			ms->moreAdjust = TRUE;
-
-			mw->unmapCnt++;
-			w->unmapRefCnt++;
-
-			addWindowDamage (w);
-		    }
-		}
-		else if (!w->invisible && matchEval (match, w))
-		{
-		    if (w->iconGeometrySet)
-		    {
-			mw->newState = IconicState;
-
-			mw->xScale = w->paint.xScale;
-			mw->yScale = w->paint.yScale;
-			mw->tx	   = w->attrib.x - w->serverX;
-			mw->ty	   = w->attrib.y - w->serverY;
+			if (mw->adjust)
+				mw->state = mw->newState;
 
 			if (mw->region)
+				w->height = 0;
+
+			mw->ignoreDamage = TRUE;
+			while (mw->unmapCnt)
 			{
-			    XDestroyRegion (mw->region);
-			    mw->region = NULL;
+				unmapWindow (w);
+				mw->unmapCnt--;
 			}
-
-			mw->shade = MAXSHORT;
-
-			mw->adjust     = TRUE;
-			ms->moreAdjust = TRUE;
-
-			mw->unmapCnt++;
-			w->unmapRefCnt++;
-
-			addWindowDamage (w);
-		    }
+			mw->ignoreDamage = FALSE;
 		}
-	    }
-	    else  /* X -> Withdrawn */
-	    {
-		MIN_WINDOW (w);
-
-		if (mw->adjust)
+		break;
+	case UnmapNotify:
+		w = findWindowAtDisplay (d, event->xunmap.window);
+		if (w)
 		{
-		    mw->adjust = FALSE;
-		    mw->xScale = mw->yScale = 1.0f;
-		    mw->tx = mw->ty = 0.0f;
-		    mw->xVelocity = mw->yVelocity = 0.0f;
-		    mw->xScaleVelocity = mw->yScaleVelocity = 1.0f;
-		    mw->shade = MAXSHORT;
+			MIN_SCREEN (w->screen);
 
-		    if (mw->region)
-		    {
-			XDestroyRegion (mw->region);
-			mw->region = NULL;
-		    }
+			if (w->pendingUnmaps && onCurrentDesktop (w)) /* Normal -> Iconic */
+			{
+				CompMatch *match =
+				    &ms->opt[MIN_SCREEN_OPTION_WINDOW_MATCH].value.match;
+
+				MIN_WINDOW (w);
+
+				if (w->shaded)
+				{
+					if (!mw->region)
+						mw->region = XCreateRegion ();
+
+					if (mw->region && ms->shadeStep)
+					{
+						XSubtractRegion (w->region, &emptyRegion, mw->region);
+						XOffsetRegion (mw->region, -w->attrib.x,
+						           w->attrib.height +
+						           w->attrib.border_width * 2 -
+						           w->height - w->attrib.y);
+
+						mw->shade = w->height;
+
+						mw->adjust     = FALSE;
+						ms->moreAdjust = TRUE;
+
+						mw->unmapCnt++;
+						w->unmapRefCnt++;
+
+						addWindowDamage (w);
+					}
+				}
+				else if (!w->invisible && matchEval (match, w))
+				{
+					if (w->iconGeometrySet)
+					{
+						mw->newState = IconicState;
+
+						mw->xScale = w->paint.xScale;
+						mw->yScale = w->paint.yScale;
+						mw->tx     = w->attrib.x - w->serverX;
+						mw->ty     = w->attrib.y - w->serverY;
+
+						if (mw->region)
+						{
+							XDestroyRegion (mw->region);
+							mw->region = NULL;
+						}
+
+						mw->shade = MAXSHORT;
+
+						mw->adjust     = TRUE;
+						ms->moreAdjust = TRUE;
+
+						mw->unmapCnt++;
+						w->unmapRefCnt++;
+
+						addWindowDamage (w);
+					}
+				}
+			}
+			else  /* X -> Withdrawn */
+			{
+				MIN_WINDOW (w);
+
+				if (mw->adjust)
+				{
+					mw->adjust = FALSE;
+					mw->xScale = mw->yScale = 1.0f;
+					mw->tx = mw->ty = 0.0f;
+					mw->xVelocity = mw->yVelocity = 0.0f;
+					mw->xScaleVelocity = mw->yScaleVelocity = 1.0f;
+					mw->shade = MAXSHORT;
+
+					if (mw->region)
+					{
+						XDestroyRegion (mw->region);
+						mw->region = NULL;
+					}
+				}
+
+				mw->state = NormalState;
+			}
 		}
-
-		mw->state = NormalState;
-	    }
+	default:
+		break;
 	}
-    default:
-	break;
-    }
 
-    UNWRAP (md, d, handleEvent);
-    (*d->handleEvent) (d, event);
-    WRAP (md, d, handleEvent, minHandleEvent);
+	UNWRAP (md, d, handleEvent);
+	(*d->handleEvent) (d, event);
+	WRAP (md, d, handleEvent, minHandleEvent);
 
-    switch (event->type) {
-    case MapRequest:
-	w = findWindowAtDisplay (d, event->xmaprequest.window);
-	if (w && w->hints && w->hints->initial_state == IconicState)
-	{
-	    MIN_WINDOW (w);
-	    mw->newState = mw->state = IconicState;
+	switch (event->type) {
+	case MapRequest:
+		w = findWindowAtDisplay (d, event->xmaprequest.window);
+		if (w && w->hints && w->hints->initial_state == IconicState)
+		{
+			MIN_WINDOW (w);
+			mw->newState = mw->state = IconicState;
+		}
+		break;
+	default:
+		break;
 	}
-	break;
-    default:
-	break;
-    }
 }
 
 static Bool
 minDamageWindowRect (CompWindow *w,
-		     Bool	initial,
-		     BoxPtr     rect)
+                     Bool       initial,
+                     BoxPtr     rect)
 {
-    Bool status = FALSE;
+	Bool status = FALSE;
 
-    MIN_SCREEN (w->screen);
-    MIN_WINDOW (w);
+	MIN_SCREEN (w->screen);
+	MIN_WINDOW (w);
 
-    if (mw->ignoreDamage)
-	return TRUE;
+	if (mw->ignoreDamage)
+		return TRUE;
 
-    if (initial)
-    {
-	if (mw->state == IconicState)
+	if (initial)
 	{
-	    CompMatch *match =
-		&ms->opt[MIN_SCREEN_OPTION_WINDOW_MATCH].value.match;
-
-	    mw->state = NormalState;
-
-	    if (!w->invisible	   &&
-		w->iconGeometrySet &&
-		matchEval (match, w))
-	    {
-		if (!mw->adjust)
+		if (mw->state == IconicState)
 		{
-		    mw->adjust     = TRUE;
-		    ms->moreAdjust = TRUE;
+			CompMatch *match =
+				&ms->opt[MIN_SCREEN_OPTION_WINDOW_MATCH].value.match;
 
-		    mw->tx     = w->iconGeometry.x - w->serverX;
-		    mw->ty     = w->iconGeometry.y - w->serverY;
-		    mw->xScale = (float) w->iconGeometry.width  / w->width;
-		    mw->yScale = (float) w->iconGeometry.height / w->height;
+			mw->state = NormalState;
 
-		    addWindowDamage (w);
+			if (!w->invisible      &&
+			    w->iconGeometrySet &&
+			    matchEval (match, w))
+			{
+				if (!mw->adjust)
+				{
+					mw->adjust     = TRUE;
+					ms->moreAdjust = TRUE;
+
+					mw->tx     = w->iconGeometry.x - w->serverX;
+					mw->ty     = w->iconGeometry.y - w->serverY;
+					mw->xScale = (float) w->iconGeometry.width  / w->width;
+					mw->yScale = (float) w->iconGeometry.height / w->height;
+
+					addWindowDamage (w);
+				}
+			}
 		}
-	    }
+		else if (mw->region && mw->shade < w->height)
+		{
+			if (ms->shadeStep && !w->invisible)
+			{
+				XSubtractRegion (w->region, &emptyRegion, mw->region);
+				XOffsetRegion (mw->region, -w->attrib.x, -w->attrib.y);
+
+				/* bind pixmap here so we have something to unshade with */
+				if (!w->texture->pixmap && !w->bindFailed)
+					bindWindow (w);
+
+				ms->moreAdjust = TRUE;
+			}
+			else
+			{
+				mw->shade = MAXSHORT;
+			}
+		}
+
+		mw->newState = NormalState;
 	}
-	else if (mw->region && mw->shade < w->height)
+	else if (mw->adjust)
 	{
-	    if (ms->shadeStep && !w->invisible)
-	    {
-		XSubtractRegion (w->region, &emptyRegion, mw->region);
-		XOffsetRegion (mw->region, -w->attrib.x, -w->attrib.y);
+		damageTransformedWindowRect (w,
+		                         mw->xScale,
+		                         mw->yScale,
+		                         mw->tx,
+		                         mw->ty,
+		                         rect);
 
-		/* bind pixmap here so we have something to unshade with */
-		if (!w->texture->pixmap && !w->bindFailed)
-		    bindWindow (w);
-
-		ms->moreAdjust = TRUE;
-	    }
-	    else
-	    {
-		mw->shade = MAXSHORT;
-	    }
+		status = TRUE;
 	}
 
-	mw->newState = NormalState;
-    }
-    else if (mw->adjust)
-    {
-	damageTransformedWindowRect (w,
-				     mw->xScale,
-				     mw->yScale,
-				     mw->tx,
-				     mw->ty,
-				     rect);
+	UNWRAP (ms, w->screen, damageWindowRect);
+	status |= (*w->screen->damageWindowRect) (w, initial, rect);
+	WRAP (ms, w->screen, damageWindowRect, minDamageWindowRect);
 
-	status = TRUE;
-    }
-
-    UNWRAP (ms, w->screen, damageWindowRect);
-    status |= (*w->screen->damageWindowRect) (w, initial, rect);
-    WRAP (ms, w->screen, damageWindowRect, minDamageWindowRect);
-
-    return status;
+	return status;
 }
 
 static Bool
 minFocusWindow (CompWindow *w)
 {
-    Bool status;
+	Bool status;
 
-    MIN_SCREEN (w->screen);
-    MIN_WINDOW (w);
+	MIN_SCREEN (w->screen);
+	MIN_WINDOW (w);
 
-    if (mw->unmapCnt)
-	return FALSE;
+	if (mw->unmapCnt)
+		return FALSE;
 
-    UNWRAP (ms, w->screen, focusWindow);
-    status = (*w->screen->focusWindow) (w);
-    WRAP (ms, w->screen, focusWindow, minFocusWindow);
+	UNWRAP (ms, w->screen, focusWindow);
+	status = (*w->screen->focusWindow) (w);
+	WRAP (ms, w->screen, focusWindow, minFocusWindow);
 
-    return status;
+	return status;
 }
 
 static Bool
 minInitDisplay (CompPlugin  *p,
-		CompDisplay *d)
+                CompDisplay *d)
 {
-    MinDisplay *md;
+	MinDisplay *md;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+	if (!checkPluginABI ("core", CORE_ABIVERSION))
+		return FALSE;
 
-    md = malloc (sizeof (MinDisplay));
-    if (!md)
-	return FALSE;
+	md = malloc (sizeof (MinDisplay));
+	if (!md)
+		return FALSE;
 
-    md->screenPrivateIndex = allocateScreenPrivateIndex (d);
-    if (md->screenPrivateIndex < 0)
-    {
-	free (md);
-	return FALSE;
-    }
+	md->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	if (md->screenPrivateIndex < 0)
+	{
+		free (md);
+		return FALSE;
+	}
 
-    md->winChangeStateAtom  = XInternAtom (d->display, "WM_CHANGE_STATE", 0);
+	md->winChangeStateAtom  = XInternAtom (d->display, "WM_CHANGE_STATE", 0);
 
-    WRAP (md, d, handleEvent, minHandleEvent);
+	WRAP (md, d, handleEvent, minHandleEvent);
 
-    d->base.privates[displayPrivateIndex].ptr = md;
+	d->base.privates[displayPrivateIndex].ptr = md;
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 minFiniDisplay (CompPlugin  *p,
-		CompDisplay *d)
+                CompDisplay *d)
 {
-    MIN_DISPLAY (d);
+	MIN_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, md->screenPrivateIndex);
+	freeScreenPrivateIndex (d, md->screenPrivateIndex);
 
-    UNWRAP (md, d, handleEvent);
+	UNWRAP (md, d, handleEvent);
 
-    free (md);
+	free (md);
 }
 
 static const CompMetadataOptionInfo minScreenOptionInfo[] = {
-    { "speed", "float", "<min>0.1</min>", 0, 0 },
-    { "timestep", "float", "<min>0.1</min>", 0, 0 },
-    { "window_match", "match", 0, 0, 0 },
-    { "shade_resistance", "int", "<min>0</min><max>100</max>", 0, 0 }
+	{ "speed", "float", "<min>0.1</min>", 0, 0 },
+	{ "timestep", "float", "<min>0.1</min>", 0, 0 },
+	{ "window_match", "match", 0, 0, 0 },
+	{ "shade_resistance", "int", "<min>0</min><max>100</max>", 0, 0 }
 };
 
 static Bool
 minInitScreen (CompPlugin *p,
-	       CompScreen *s)
+               CompScreen *s)
 {
-    MinScreen *ms;
+	MinScreen *ms;
 
-    MIN_DISPLAY (s->display);
+	MIN_DISPLAY (s->display);
 
-    ms = malloc (sizeof (MinScreen));
-    if (!ms)
-	return FALSE;
+	ms = malloc (sizeof (MinScreen));
+	if (!ms)
+		return FALSE;
 
-    if (!compInitScreenOptionsFromMetadata (s,
-					    &minMetadata,
-					    minScreenOptionInfo,
-					    ms->opt,
-					    MIN_SCREEN_OPTION_NUM))
-    {
-	free (ms);
-	return FALSE;
-    }
+	if (!compInitScreenOptionsFromMetadata (s,
+	                                &minMetadata,
+	                                minScreenOptionInfo,
+	                                ms->opt,
+	                                MIN_SCREEN_OPTION_NUM))
+	{
+		free (ms);
+		return FALSE;
+	}
 
-    ms->windowPrivateIndex = allocateWindowPrivateIndex (s);
-    if (ms->windowPrivateIndex < 0)
-    {
-	compFiniScreenOptions (s, ms->opt, MIN_SCREEN_OPTION_NUM);
-	free (ms);
-	return FALSE;
-    }
+	ms->windowPrivateIndex = allocateWindowPrivateIndex (s);
+	if (ms->windowPrivateIndex < 0)
+	{
+		compFiniScreenOptions (s, ms->opt, MIN_SCREEN_OPTION_NUM);
+		free (ms);
+		return FALSE;
+	}
 
-    ms->moreAdjust = FALSE;
-    ms->shadeStep  = ms->opt[MIN_SCREEN_OPTION_SHADE_RESISTANCE].rest.i.max -
-	ms->opt[MIN_SCREEN_OPTION_SHADE_RESISTANCE].value.i + 1;
+	ms->moreAdjust = FALSE;
+	ms->shadeStep  = ms->opt[MIN_SCREEN_OPTION_SHADE_RESISTANCE].rest.i.max -
+		ms->opt[MIN_SCREEN_OPTION_SHADE_RESISTANCE].value.i + 1;
 
-    WRAP (ms, s, preparePaintScreen, minPreparePaintScreen);
-    WRAP (ms, s, donePaintScreen, minDonePaintScreen);
-    WRAP (ms, s, paintOutput, minPaintOutput);
-    WRAP (ms, s, paintWindow, minPaintWindow);
-    WRAP (ms, s, damageWindowRect, minDamageWindowRect);
-    WRAP (ms, s, focusWindow, minFocusWindow);
+	WRAP (ms, s, preparePaintScreen, minPreparePaintScreen);
+	WRAP (ms, s, donePaintScreen, minDonePaintScreen);
+	WRAP (ms, s, paintOutput, minPaintOutput);
+	WRAP (ms, s, paintWindow, minPaintWindow);
+	WRAP (ms, s, damageWindowRect, minDamageWindowRect);
+	WRAP (ms, s, focusWindow, minFocusWindow);
 
-    s->base.privates[md->screenPrivateIndex].ptr = ms;
+	s->base.privates[md->screenPrivateIndex].ptr = ms;
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 minFiniScreen (CompPlugin *p,
-	       CompScreen *s)
+               CompScreen *s)
 {
-    MIN_SCREEN (s);
+	MIN_SCREEN (s);
 
-    freeWindowPrivateIndex (s, ms->windowPrivateIndex);
+	freeWindowPrivateIndex (s, ms->windowPrivateIndex);
 
-    UNWRAP (ms, s, preparePaintScreen);
-    UNWRAP (ms, s, donePaintScreen);
-    UNWRAP (ms, s, paintOutput);
-    UNWRAP (ms, s, paintWindow);
-    UNWRAP (ms, s, damageWindowRect);
-    UNWRAP (ms, s, focusWindow);
+	UNWRAP (ms, s, preparePaintScreen);
+	UNWRAP (ms, s, donePaintScreen);
+	UNWRAP (ms, s, paintOutput);
+	UNWRAP (ms, s, paintWindow);
+	UNWRAP (ms, s, damageWindowRect);
+	UNWRAP (ms, s, focusWindow);
 
-    compFiniScreenOptions (s, ms->opt, MIN_SCREEN_OPTION_NUM);
+	compFiniScreenOptions (s, ms->opt, MIN_SCREEN_OPTION_NUM);
 
-    free (ms);
+	free (ms);
 }
 
 static Bool
 minInitWindow (CompPlugin *p,
-	       CompWindow *w)
+               CompWindow *w)
 {
-    MinWindow *mw;
+	MinWindow *mw;
 
-    MIN_SCREEN (w->screen);
+	MIN_SCREEN (w->screen);
 
-    mw = malloc (sizeof (MinWindow));
-    if (!mw)
-	return FALSE;
+	mw = malloc (sizeof (MinWindow));
+	if (!mw)
+		return FALSE;
 
-    mw->xScale = mw->yScale = 1.0f;
-    mw->tx = mw->ty = 0.0f;
-    mw->adjust = FALSE;
-    mw->xVelocity = mw->yVelocity = 0.0f;
-    mw->xScaleVelocity = mw->yScaleVelocity = 1.0f;
+	mw->xScale = mw->yScale = 1.0f;
+	mw->tx = mw->ty = 0.0f;
+	mw->adjust = FALSE;
+	mw->xVelocity = mw->yVelocity = 0.0f;
+	mw->xScaleVelocity = mw->yScaleVelocity = 1.0f;
 
-    mw->unmapCnt = 0;
+	mw->unmapCnt = 0;
 
-    mw->ignoreDamage = FALSE;
+	mw->ignoreDamage = FALSE;
 
-    if (w->state & CompWindowStateHiddenMask)
-    {
-	if (w->shaded)
+	if (w->state & CompWindowStateHiddenMask)
 	{
-	    mw->state = mw->newState = NormalState;
-	    mw->shade = 0;
-	    mw->region = XCreateRegion ();
+		if (w->shaded)
+		{
+			mw->state = mw->newState = NormalState;
+			mw->shade = 0;
+			mw->region = XCreateRegion ();
+		}
+		else
+		{
+			mw->state = mw->newState = minGetWindowState (w);
+			mw->shade = MAXSHORT;
+			mw->region = NULL;
+		}
 	}
 	else
 	{
-	    mw->state = mw->newState = minGetWindowState (w);
-	    mw->shade = MAXSHORT;
-	    mw->region = NULL;
+			mw->state = mw->newState = NormalState;
+			mw->shade = MAXSHORT;
+			mw->region = NULL;
 	}
-    }
-    else
-    {
-	    mw->state = mw->newState = NormalState;
-	    mw->shade = MAXSHORT;
-	    mw->region = NULL;
-    }
 
-    w->base.privates[ms->windowPrivateIndex].ptr = mw;
+	w->base.privates[ms->windowPrivateIndex].ptr = mw;
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 minFiniWindow (CompPlugin *p,
-	       CompWindow *w)
+               CompWindow *w)
 {
-    MIN_WINDOW (w);
+	MIN_WINDOW (w);
 
-    mw->ignoreDamage = TRUE;
-    while (mw->unmapCnt--)
-	unmapWindow (w);
-    mw->ignoreDamage = FALSE;
+	mw->ignoreDamage = TRUE;
+	while (mw->unmapCnt--)
+		unmapWindow (w);
+	mw->ignoreDamage = FALSE;
 
-    if (mw->region)
-	XDestroyRegion (mw->region);
+	if (mw->region)
+		XDestroyRegion (mw->region);
 
-    free (mw);
+	free (mw);
 }
 
 static CompBool
 minInitObject (CompPlugin *p,
-	       CompObject *o)
+               CompObject *o)
 {
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) minInitDisplay,
-	(InitPluginObjectProc) minInitScreen,
-	(InitPluginObjectProc) minInitWindow
-    };
+	static InitPluginObjectProc dispTab[] = {
+		(InitPluginObjectProc) 0, /* InitCore */
+		(InitPluginObjectProc) minInitDisplay,
+		(InitPluginObjectProc) minInitScreen,
+		(InitPluginObjectProc) minInitWindow
+	};
 
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
 }
 
 static void
 minFiniObject (CompPlugin *p,
-	       CompObject *o)
+               CompObject *o)
 {
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) minFiniDisplay,
-	(FiniPluginObjectProc) minFiniScreen,
-	(FiniPluginObjectProc) minFiniWindow
-    };
+	static FiniPluginObjectProc dispTab[] = {
+		(FiniPluginObjectProc) 0, /* FiniCore */
+		(FiniPluginObjectProc) minFiniDisplay,
+		(FiniPluginObjectProc) minFiniScreen,
+		(FiniPluginObjectProc) minFiniWindow
+	};
 
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
+	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static CompOption *
 minGetObjectOptions (CompPlugin *plugin,
-		     CompObject *object,
-		     int	*count)
+                     CompObject *object,
+                     int        *count)
 {
-    static GetPluginObjectOptionsProc dispTab[] = {
-	(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-	(GetPluginObjectOptionsProc) 0, /* GetDisplayOptions */
-	(GetPluginObjectOptionsProc) minGetScreenOptions
-    };
+	static GetPluginObjectOptionsProc dispTab[] = {
+		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
+		(GetPluginObjectOptionsProc) 0, /* GetDisplayOptions */
+		(GetPluginObjectOptionsProc) minGetScreenOptions
+	};
 
-    *count = 0;
-    RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-		     (void *) count, (plugin, object, count));
+	*count = 0;
+	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
+	                 (void *) count, (plugin, object, count));
 }
 
 static CompBool
 minSetObjectOption (CompPlugin      *plugin,
-		    CompObject      *object,
-		    const char      *name,
-		    CompOptionValue *value)
+                    CompObject      *object,
+                    const char      *name,
+                    CompOptionValue *value)
 {
-    static SetPluginObjectOptionProc dispTab[] = {
-	(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-	(SetPluginObjectOptionProc) 0, /* SetDisplayOption */
-	(SetPluginObjectOptionProc) minSetScreenOption
-    };
+	static SetPluginObjectOptionProc dispTab[] = {
+		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
+		(SetPluginObjectOptionProc) 0, /* SetDisplayOption */
+		(SetPluginObjectOptionProc) minSetScreenOption
+	};
 
-    RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-		     (plugin, object, name, value));
+	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
+	                 (plugin, object, name, value));
 }
 
 static Bool
 minInit (CompPlugin *p)
 {
-    if (!compInitPluginMetadataFromInfo (&minMetadata,
-					 p->vTable->name, 0, 0,
-					 minScreenOptionInfo,
-					 MIN_SCREEN_OPTION_NUM))
-	return FALSE;
+	if (!compInitPluginMetadataFromInfo (&minMetadata,
+	                             p->vTable->name, 0, 0,
+	                             minScreenOptionInfo,
+	                             MIN_SCREEN_OPTION_NUM))
+		return FALSE;
 
-    displayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (displayPrivateIndex < 0)
-    {
-	compFiniMetadata (&minMetadata);
-	return FALSE;
-    }
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+	if (displayPrivateIndex < 0)
+	{
+		compFiniMetadata (&minMetadata);
+		return FALSE;
+	}
 
-    compAddMetadataFromFile (&minMetadata, p->vTable->name);
+	compAddMetadataFromFile (&minMetadata, p->vTable->name);
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 minFini (CompPlugin *p)
 {
-    freeDisplayPrivateIndex (displayPrivateIndex);
-    compFiniMetadata (&minMetadata);
+	freeDisplayPrivateIndex (displayPrivateIndex);
+	compFiniMetadata (&minMetadata);
 }
 
 static CompMetadata *
 minGetMetadata (CompPlugin *plugin)
 {
-    return &minMetadata;
+	return &minMetadata;
 }
 
 static CompPluginVTable minVTable = {
-    "minimize",
-    minGetMetadata,
-    minInit,
-    minFini,
-    minInitObject,
-    minFiniObject,
-    minGetObjectOptions,
-    minSetObjectOption
+	"minimize",
+	minGetMetadata,
+	minInit,
+	minFini,
+	minInitObject,
+	minFiniObject,
+	minGetObjectOptions,
+	minSetObjectOption
 };
 
 CompPluginVTable *
 getCompPluginInfo20070830 (void)
 {
-    return &minVTable;
+	return &minVTable;
 }

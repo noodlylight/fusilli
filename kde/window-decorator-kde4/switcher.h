@@ -43,42 +43,42 @@ namespace KWD
 class Switcher
 {
 
-    public:
-	Switcher (WId parentId, WId id);
-	~Switcher ();
+	public:
+		Switcher (WId parentId, WId id);
+		~Switcher ();
 
-	void update ();
-	void updateGeometry ();
+		void update ();
+		void updateGeometry ();
 
-	WId xid () const
-	{
-	    return mId;
-	}
+		WId xid () const
+		{
+			return mId;
+		}
 
-    private:
-	void updateWindowProperties ();
-	void updateBlurProperty (int topOffset,
-				 int bottomOffset,
-				 int leftOffset,
-				 int rightOffset);
- 	void redrawPixmap ();
+	private:
+		void updateWindowProperties ();
+		void updateBlurProperty (int topOffset,
+		                         int bottomOffset,
+		                         int leftOffset,
+		                         int rightOffset);
+	void redrawPixmap ();
 
-    private:
+	private:
 
-	WId mId;
-	WId mSelected;
+		WId mId;
+		WId mSelected;
 
-	QRect mGeometry;
+		QRect mGeometry;
 
-	Plasma::FrameSvg *mBackground;
-	QPixmap mPixmap;
-	Pixmap mX11Pixmap;
-	QPixmap mBackgroundPixmap;
-	Pixmap mX11BackgroundPixmap;
+		Plasma::FrameSvg *mBackground;
+		QPixmap mPixmap;
+		Pixmap mX11Pixmap;
+		QPixmap mBackgroundPixmap;
+		Pixmap mX11BackgroundPixmap;
 
-	decor_layout_t mDecorLayout;
-	decor_context_t mContext;
-	decor_extents_t mBorder;
+		decor_layout_t mDecorLayout;
+		decor_context_t mContext;
+		decor_extents_t mBorder;
 };
 
 }

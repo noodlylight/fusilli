@@ -34,719 +34,719 @@ static CompMetadata kconfigMetadata;
 static int corePrivateIndex;
 
 typedef struct _KconfigCore {
-    KConfig *config;
+	KConfig *config;
 
-    CompTimeoutHandle   syncHandle;
-    CompTimeoutHandle   reloadHandle;
-    CompFileWatchHandle fileWatch;
+	CompTimeoutHandle   syncHandle;
+	CompTimeoutHandle   reloadHandle;
+	CompFileWatchHandle fileWatch;
 
-    InitPluginForObjectProc initPluginForObject;
-    SetOptionForPluginProc  setOptionForPlugin;
+	InitPluginForObjectProc initPluginForObject;
+	SetOptionForPluginProc  setOptionForPlugin;
 } KconfigCore;
 
-#define GET_KCONFIG_CORE(c)				       \
-    ((KconfigCore *) (c)->base.privates[corePrivateIndex].ptr)
+#define GET_KCONFIG_CORE(c) \
+        ((KconfigCore *) (c)->base.privates[corePrivateIndex].ptr)
 
-#define KCONFIG_CORE(c)			   \
-    KconfigCore *kc = GET_KCONFIG_CORE (c)
+#define KCONFIG_CORE(c) \
+        KconfigCore *kc = GET_KCONFIG_CORE (c)
 
 
 static void
 kconfigRcChanged (const char *name,
-		  void	     *closure);
+                  void       *closure);
 
 static Bool
 kconfigRcSync (void *closure)
 {
-    KCONFIG_CORE (&core);
+	KCONFIG_CORE (&core);
 
-    kc->config->sync ();
+	kc->config->sync ();
 
-    kc->syncHandle = 0;
+	kc->syncHandle = 0;
 
-    return FALSE;
+	return FALSE;
 }
 
 static bool
 kconfigValueToBool (CompOptionType  type,
-		    CompOptionValue *value)
+                    CompOptionValue *value)
 {
-    switch (type) {
-    case CompOptionTypeBool:
-	return (value->b) ? true : false;
-    case CompOptionTypeBell:
-	return (value->action.bell) ? true : false;
-    default:
-	break;
-    }
+	switch (type) {
+	case CompOptionTypeBool:
+		return (value->b) ? true : false;
+	case CompOptionTypeBell:
+		return (value->action.bell) ? true : false;
+	default:
+		break;
+	}
 
-    return false;
+	return false;
 }
 
 static QString
 kconfigValueToString (CompObject      *object,
-		      CompOptionType  type,
-		      CompOptionValue *value)
+                      CompOptionType  type,
+                      CompOptionValue *value)
 {
-    QString str;
+	QString str;
 
-    switch (type) {
-    case CompOptionTypeBool:
-	str = QString::number (value->b ? TRUE : FALSE);
-	break;
-    case CompOptionTypeFloat:
-	str = QString::number (value->f);
-	break;
-    case CompOptionTypeString:
-	str = QString (value->s);
-	break;
-    case CompOptionTypeColor: {
-	char *color;
+	switch (type) {
+	case CompOptionTypeBool:
+		str = QString::number (value->b ? TRUE : FALSE);
+		break;
+	case CompOptionTypeFloat:
+		str = QString::number (value->f);
+		break;
+	case CompOptionTypeString:
+		str = QString (value->s);
+		break;
+	case CompOptionTypeColor: {
+		char *color;
 
-	color = colorToString (value->c);
-	if (color)
-	{
-	    str = QString (color);
-	    free (color);
+		color = colorToString (value->c);
+		if (color)
+		{
+			str = QString (color);
+			free (color);
+		}
+	} break;
+	case CompOptionTypeKey: {
+		char *action = NULL;
+
+		while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+			object = object->parent;
+
+		if (object)
+			action = keyActionToString (GET_CORE_DISPLAY (object),
+			                    &value->action);
+		if (action)
+		{
+			str = QString (action);
+			free (action);
+		}
+	} break;
+	case CompOptionTypeButton: {
+		char *action = NULL;
+
+		while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+			object = object->parent;
+
+		if (object)
+			action = buttonActionToString (GET_CORE_DISPLAY (object),
+			                       &value->action);
+		if (action)
+		{
+			str = QString (action);
+			free (action);
+		}
+	} break;
+	case CompOptionTypeEdge: {
+		char *edge;
+
+		edge = edgeMaskToString (value->action.edgeMask);
+		if (edge)
+		{
+			str = QString (edge);
+			free (edge);
+		}
+	} break;
+	case CompOptionTypeBell:
+		str = QString::number (value->action.bell ? TRUE : FALSE);
+		break;
+	case CompOptionTypeMatch: {
+		char *match;
+
+		match = matchToString (&value->match);
+		if (match)
+		{
+			str = QString (match);
+			free (match);
+		}
 	}
-    } break;
-    case CompOptionTypeKey: {
-	char *action = NULL;
-
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
-
-	if (object)
-	    action = keyActionToString (GET_CORE_DISPLAY (object),
-					&value->action);
-	if (action)
-	{
-	    str = QString (action);
-	    free (action);
+	default:
+		break;
 	}
-    } break;
-    case CompOptionTypeButton: {
-	char *action = NULL;
 
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
-
-	if (object)
-	    action = buttonActionToString (GET_CORE_DISPLAY (object),
-					   &value->action);
-	if (action)
-	{
-	    str = QString (action);
-	    free (action);
-	}
-    } break;
-    case CompOptionTypeEdge: {
-	char *edge;
-
-	edge = edgeMaskToString (value->action.edgeMask);
-	if (edge)
-	{
-	    str = QString (edge);
-	    free (edge);
-	}
-    } break;
-    case CompOptionTypeBell:
-	str = QString::number (value->action.bell ? TRUE : FALSE);
-	break;
-    case CompOptionTypeMatch: {
-	char *match;
-
-	match = matchToString (&value->match);
-	if (match)
-	{
-	    str = QString (match);
-	    free (match);
-	}
-    }
-    default:
-	break;
-    }
-
-    return str;
+	return str;
 }
 
 static QString
 kconfigObjectString (CompObject *object)
 {
-    QString objectName (QString (compObjectTypeName (object->type)));
-    char    *name;
+	QString objectName (QString (compObjectTypeName (object->type)));
+	char    *name;
 
-    name = compObjectName (object);
-    if (name)
-    {
-	objectName += name;
-	free (name);
-    }
+	name = compObjectName (object);
+	if (name)
+	{
+		objectName += name;
+		free (name);
+	}
 
-    return objectName;
+	return objectName;
 }
 
 static void
 kconfigSetOption (CompObject *object,
-		  CompOption *o,
-		  const char *plugin)
+                  CompOption *o,
+                  const char *plugin)
 {
-    QString group (QString (plugin) + "_" + kconfigObjectString (object));
+	QString group (QString (plugin) + "_" + kconfigObjectString (object));
 
-    KCONFIG_CORE (&core);
+	KCONFIG_CORE (&core);
 
-    kc->config->setGroup (group);
+	kc->config->setGroup (group);
 
-    switch (o->type) {
-    case CompOptionTypeBool:
-    case CompOptionTypeBell:
-	kc->config->writeEntry (o->name,
-				kconfigValueToBool (o->type, &o->value));
-	break;
-    case CompOptionTypeInt:
-	kc->config->writeEntry (o->name, o->value.i);
-	break;
-    case CompOptionTypeFloat:
-	kc->config->writeEntry (o->name, (double) o->value.f);
-	break;
-    case CompOptionTypeString:
-    case CompOptionTypeColor:
-    case CompOptionTypeKey:
-    case CompOptionTypeButton:
-    case CompOptionTypeEdge:
-    case CompOptionTypeMatch:
-	kc->config->writeEntry (o->name,
-				kconfigValueToString (object, o->type,
-						      &o->value));
-	break;
-    case CompOptionTypeList: {
-	int i;
-
-	switch (o->value.list.type) {
-	case CompOptionTypeInt: {
-	    QValueList< int > list;
-
-	    for (i = 0; i < o->value.list.nValue; i++)
-		list += o->value.list.value[i].i;
-
-	    kc->config->writeEntry (o->name, list);
-	} break;
+	switch (o->type) {
 	case CompOptionTypeBool:
+	case CompOptionTypeBell:
+		kc->config->writeEntry (o->name,
+		                    kconfigValueToBool (o->type, &o->value));
+		break;
+	case CompOptionTypeInt:
+		kc->config->writeEntry (o->name, o->value.i);
+		break;
 	case CompOptionTypeFloat:
+		kc->config->writeEntry (o->name, (double) o->value.f);
+		break;
 	case CompOptionTypeString:
 	case CompOptionTypeColor:
 	case CompOptionTypeKey:
 	case CompOptionTypeButton:
 	case CompOptionTypeEdge:
-	case CompOptionTypeBell:
-	case CompOptionTypeMatch: {
-	    QStringList list;
+	case CompOptionTypeMatch:
+		kc->config->writeEntry (o->name,
+		                    kconfigValueToString (object, o->type,
+		                                  &o->value));
+		break;
+	case CompOptionTypeList: {
+		int i;
 
-	    for (i = 0; i < o->value.list.nValue; i++)
-		list += kconfigValueToString (object,
-					      o->value.list.type,
-					      &o->value.list.value[i]);
+		switch (o->value.list.type) {
+		case CompOptionTypeInt: {
+			QValueList< int > list;
 
-	    kc->config->writeEntry (o->name, list);
+			for (i = 0; i < o->value.list.nValue; i++)
+				list += o->value.list.value[i].i;
+
+			kc->config->writeEntry (o->name, list);
+		} break;
+		case CompOptionTypeBool:
+		case CompOptionTypeFloat:
+		case CompOptionTypeString:
+		case CompOptionTypeColor:
+		case CompOptionTypeKey:
+		case CompOptionTypeButton:
+		case CompOptionTypeEdge:
+		case CompOptionTypeBell:
+		case CompOptionTypeMatch: {
+			QStringList list;
+
+			for (i = 0; i < o->value.list.nValue; i++)
+				list += kconfigValueToString (object,
+				                      o->value.list.type,
+				                      &o->value.list.value[i]);
+
+			kc->config->writeEntry (o->name, list);
+		} break;
+		case CompOptionTypeAction:
+		case CompOptionTypeList:
+			break;
+		}
 	} break;
 	case CompOptionTypeAction:
-	case CompOptionTypeList:
-	    break;
+		return;
 	}
-    } break;
-    case CompOptionTypeAction:
-	return;
-    }
 
-    if (!kc->syncHandle)
-	kc->syncHandle = compAddTimeout (0, 0, kconfigRcSync, 0);
+	if (!kc->syncHandle)
+		kc->syncHandle = compAddTimeout (0, 0, kconfigRcSync, 0);
 }
 
 static Bool
 kconfigStringToValue (CompObject      *object,
-		      QString	      str,
-		      CompOptionType  type,
-		      CompOptionValue *value)
+                      QString         str,
+                      CompOptionType  type,
+                      CompOptionValue *value)
 {
-    switch (type) {
-    case CompOptionTypeBool:
-	value->b = str.toInt () ? TRUE : FALSE;
-	break;
-    case CompOptionTypeFloat:
-	value->f = str.toFloat ();
-	break;
-    case CompOptionTypeString:
-	value->s = strdup (str.ascii ());
-	if (!value->s)
-	    return FALSE;
-	break;
-    case CompOptionTypeColor:
-	if (!stringToColor (str.ascii (), value->c))
-	    return FALSE;
-	break;
-    case CompOptionTypeKey:
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
+	switch (type) {
+	case CompOptionTypeBool:
+		value->b = str.toInt () ? TRUE : FALSE;
+		break;
+	case CompOptionTypeFloat:
+		value->f = str.toFloat ();
+		break;
+	case CompOptionTypeString:
+		value->s = strdup (str.ascii ());
+		if (!value->s)
+			return FALSE;
+		break;
+	case CompOptionTypeColor:
+		if (!stringToColor (str.ascii (), value->c))
+			return FALSE;
+		break;
+	case CompOptionTypeKey:
+		while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+			object = object->parent;
 
-	if (!object)
-	    return FALSE;
+		if (!object)
+			return FALSE;
 
-	stringToKeyAction (GET_CORE_DISPLAY (object), str.ascii (),
-			   &value->action);
-	break;
-    case CompOptionTypeButton:
-	while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
-	    object = object->parent;
+		stringToKeyAction (GET_CORE_DISPLAY (object), str.ascii (),
+		                   &value->action);
+		break;
+	case CompOptionTypeButton:
+		while (object && object->type != COMP_OBJECT_TYPE_DISPLAY)
+			object = object->parent;
 
-	if (!object)
-	    return FALSE;
+		if (!object)
+			return FALSE;
 
-	stringToButtonAction (GET_CORE_DISPLAY (object), str.ascii (),
-			      &value->action);
-	break;
-    case CompOptionTypeEdge:
-	value->action.edgeMask = stringToEdgeMask (str.ascii ());
-	break;
-    case CompOptionTypeBell:
-	value->action.bell = str.toInt () ? TRUE : FALSE;
-	break;
-    case CompOptionTypeMatch:
-	matchInit (&value->match);
-	matchAddFromString (&value->match, str.ascii ());
-	break;
-    default:
-	return FALSE;
-    }
+		stringToButtonAction (GET_CORE_DISPLAY (object), str.ascii (),
+		                      &value->action);
+		break;
+	case CompOptionTypeEdge:
+		value->action.edgeMask = stringToEdgeMask (str.ascii ());
+		break;
+	case CompOptionTypeBell:
+		value->action.bell = str.toInt () ? TRUE : FALSE;
+		break;
+	case CompOptionTypeMatch:
+		matchInit (&value->match);
+		matchAddFromString (&value->match, str.ascii ());
+		break;
+	default:
+		return FALSE;
+	}
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
-kconfigBoolToValue (bool	    b,
-		    CompOptionType  type,
-		    CompOptionValue *value)
+kconfigBoolToValue (bool            b,
+                    CompOptionType  type,
+                    CompOptionValue *value)
 {
-    switch (type) {
-    case CompOptionTypeBool:
-	value->b = (b) ? TRUE : FALSE;
-	break;
-    case CompOptionTypeBell:
-	value->action.bell = (b) ? TRUE : FALSE;
-    default:
-	break;
-    }
+	switch (type) {
+	case CompOptionTypeBool:
+		value->b = (b) ? TRUE : FALSE;
+		break;
+	case CompOptionTypeBell:
+		value->action.bell = (b) ? TRUE : FALSE;
+	default:
+		break;
+	}
 }
 
 static Bool
-kconfigReadOptionValue (CompObject	*object,
-			KConfig		*config,
-			CompOption	*o,
-			CompOptionValue *value)
+kconfigReadOptionValue (CompObject      *object,
+                        KConfig         *config,
+                        CompOption      *o,
+                        CompOptionValue *value)
 {
-    compInitOptionValue (value);
+	compInitOptionValue (value);
 
-    switch (o->type) {
-    case CompOptionTypeBool:
-    case CompOptionTypeBell:
-	kconfigBoolToValue (config->readBoolEntry (o->name), o->type, value);
-	break;
-    case CompOptionTypeInt:
-	value->i = config->readNumEntry (o->name);
-	break;
-    case CompOptionTypeFloat:
-	value->f = config->readDoubleNumEntry (o->name);
-	break;
-    case CompOptionTypeString:
-    case CompOptionTypeColor:
-    case CompOptionTypeKey:
-    case CompOptionTypeButton:
-    case CompOptionTypeEdge:
-    case CompOptionTypeMatch:
-	if (!kconfigStringToValue (object,
-				   config->readEntry (o->name), o->type,
-				   value))
-	    return FALSE;
-	break;
-    case CompOptionTypeList: {
-	int n, i;
-
-	value->list.value  = NULL;
-	value->list.nValue = 0;
-	value->list.type   = o->value.list.type;
-
-	switch (o->value.list.type) {
-	case CompOptionTypeInt: {
-	    QValueList< int > list;
-
-	    list = config->readIntListEntry (o->name);
-
-	    n = list.size ();
-	    if (n)
-	    {
-		value->list.value = (CompOptionValue *)
-		    malloc (sizeof (CompOptionValue) * n);
-		if (value->list.value)
-		{
-		    for (i = 0; i < n; i++)
-			value->list.value[i].i = list[i];
-
-		    value->list.nValue = n;
-		}
-	    }
-	} break;
+	switch (o->type) {
 	case CompOptionTypeBool:
+	case CompOptionTypeBell:
+		kconfigBoolToValue (config->readBoolEntry (o->name), o->type, value);
+		break;
+	case CompOptionTypeInt:
+		value->i = config->readNumEntry (o->name);
+		break;
 	case CompOptionTypeFloat:
+		value->f = config->readDoubleNumEntry (o->name);
+		break;
 	case CompOptionTypeString:
 	case CompOptionTypeColor:
 	case CompOptionTypeKey:
 	case CompOptionTypeButton:
 	case CompOptionTypeEdge:
-	case CompOptionTypeBell:
-	case CompOptionTypeMatch: {
-	    QStringList list;
-
-	    list = config->readListEntry (o->name);
-
-	    n = list.size ();
-	    if (n)
-	    {
-		value->list.value = (CompOptionValue *)
-		    malloc (sizeof (CompOptionValue) * n);
-		if (value->list.value)
-		{
-		    for (i = 0; i < n; i++)
-		    {
-			if (!kconfigStringToValue (object,
-						   list[i],
-						   value->list.type,
-						   &value->list.value[i]))
-			    break;
-
-			value->list.nValue++;
-		    }
-
-		    if (value->list.nValue != n)
-		    {
-			compFiniOptionValue (value, o->type);
+	case CompOptionTypeMatch:
+		if (!kconfigStringToValue (object,
+		                       config->readEntry (o->name), o->type,
+		                       value))
 			return FALSE;
-		    }
-		}
-	    }
-	} break;
-	case CompOptionTypeList:
-	case CompOptionTypeAction:
-	    return FALSE;
-	}
-    } break;
-    case CompOptionTypeAction:
-	return FALSE;
-	break;
-    }
+		break;
+	case CompOptionTypeList: {
+		int n, i;
 
-    return TRUE;
+		value->list.value  = NULL;
+		value->list.nValue = 0;
+		value->list.type   = o->value.list.type;
+
+		switch (o->value.list.type) {
+		case CompOptionTypeInt: {
+			QValueList< int > list;
+
+			list = config->readIntListEntry (o->name);
+
+			n = list.size ();
+			if (n)
+			{
+				value->list.value = (CompOptionValue *)
+				    malloc (sizeof (CompOptionValue) * n);
+				if (value->list.value)
+				{
+					for (i = 0; i < n; i++)
+						value->list.value[i].i = list[i];
+
+					value->list.nValue = n;
+				}
+			}
+		} break;
+		case CompOptionTypeBool:
+		case CompOptionTypeFloat:
+		case CompOptionTypeString:
+		case CompOptionTypeColor:
+		case CompOptionTypeKey:
+		case CompOptionTypeButton:
+		case CompOptionTypeEdge:
+		case CompOptionTypeBell:
+		case CompOptionTypeMatch: {
+			QStringList list;
+
+			list = config->readListEntry (o->name);
+
+			n = list.size ();
+			if (n)
+			{
+				value->list.value = (CompOptionValue *)
+					malloc (sizeof (CompOptionValue) * n);
+				if (value->list.value)
+				{
+					for (i = 0; i < n; i++)
+					{
+						if (!kconfigStringToValue (object,
+						               list[i],
+						               value->list.type,
+						               &value->list.value[i]))
+							break;
+
+						value->list.nValue++;
+					}
+
+					if (value->list.nValue != n)
+					{
+						compFiniOptionValue (value, o->type);
+						return FALSE;
+					}
+				}
+			}
+		} break;
+		case CompOptionTypeList:
+		case CompOptionTypeAction:
+			return FALSE;
+		}
+	} break;
+	case CompOptionTypeAction:
+		return FALSE;
+		break;
+	}
+
+	return TRUE;
 }
 
 static void
 kconfigGetOption (CompObject *object,
-		  CompOption *o,
-		  const char *plugin)
+                  CompOption *o,
+                  const char *plugin)
 {
-    QString	  group (QString (plugin) + "_" +
-			 kconfigObjectString (object));
-    const QString name (o->name);
+	QString	  group (QString (plugin) + "_" +
+	                      kconfigObjectString (object));
+	const QString name (o->name);
 
-    KCONFIG_CORE (&core);
+	KCONFIG_CORE (&core);
 
-    kc->config->setGroup (group);
+	kc->config->setGroup (group);
 
-    if (kc->config->hasKey (name))
-    {
-	CompOptionValue value;
-
-	if (kconfigReadOptionValue (object, kc->config, o, &value))
+	if (kc->config->hasKey (name))
 	{
-	    (*core.setOptionForPlugin) (object, plugin, o->name, &value);
-	    compFiniOptionValue (&value, o->type);
+		CompOptionValue value;
+
+		if (kconfigReadOptionValue (object, kc->config, o, &value))
+		{
+			(*core.setOptionForPlugin) (object, plugin, o->name, &value);
+			compFiniOptionValue (&value, o->type);
+		}
 	}
-    }
-    else
-    {
-	kconfigSetOption (object, o, plugin);
-    }
+	else
+	{
+		kconfigSetOption (object, o, plugin);
+	}
 }
 
 static CompBool
 kconfigReloadObjectTree (CompObject *object,
-			 void       *closure);
+                         void       *closure);
 
 static CompBool
 kconfigReloadObjectsWithType (CompObjectType type,
-			      CompObject     *parent,
-			      void	     *closure)
+                              CompObject     *parent,
+                              void           *closure)
 {
-    compObjectForEach (parent, type, kconfigReloadObjectTree, closure);
+	compObjectForEach (parent, type, kconfigReloadObjectTree, closure);
 
-    return TRUE;
+	return TRUE;
 }
 
 static CompBool
 kconfigReloadObjectTree (CompObject *object,
-			 void       *closure)
+                         void       *closure)
 {
-    CompPlugin *p = (CompPlugin *) closure;
-    CompOption  *option;
-    int		nOption;
+	CompPlugin *p = (CompPlugin *) closure;
+	CompOption  *option;
+	int         nOption;
 
-    option = (*p->vTable->getObjectOptions) (p, object, &nOption);
-    while (nOption--)
-	kconfigGetOption (object, option++, p->vTable->name);
+	option = (*p->vTable->getObjectOptions) (p, object, &nOption);
+	while (nOption--)
+		kconfigGetOption (object, option++, p->vTable->name);
 
-    compObjectForEachType (object, kconfigReloadObjectsWithType, closure);
+	compObjectForEachType (object, kconfigReloadObjectsWithType, closure);
 
-    return TRUE;
+	return TRUE;
 }
 
 static Bool
 kconfigRcReload (void *closure)
 {
-    CompPlugin  *p;
+	CompPlugin  *p;
 
-    KCONFIG_CORE (&core);
+	KCONFIG_CORE (&core);
 
-    kc->config->reparseConfiguration ();
+	kc->config->reparseConfiguration ();
 
-    for (p = getPlugins (); p; p = p->next)
-    {
-	if (!p->vTable->getObjectOptions)
-	    continue;
+	for (p = getPlugins (); p; p = p->next)
+	{
+		if (!p->vTable->getObjectOptions)
+			continue;
 
-	kconfigReloadObjectTree (&core.base, (void *) p);
-    }
+		kconfigReloadObjectTree (&core.base, (void *) p);
+	}
 
-    kc->reloadHandle = 0;
+	kc->reloadHandle = 0;
 
-    return FALSE;
+	return FALSE;
 }
 
 static void
 kconfigRcChanged (const char *name,
-		  void	     *closure)
+                  void       *closure)
 {
-    if (strcmp (name, COMPIZ_KCONFIG_RC) == 0)
-    {
-	KCONFIG_CORE (&core);
+	if (strcmp (name, COMPIZ_KCONFIG_RC) == 0)
+	{
+		KCONFIG_CORE (&core);
 
-	if (!kc->reloadHandle)
-	    kc->reloadHandle = compAddTimeout (0, 0, kconfigRcReload, closure);
-    }
+		if (!kc->reloadHandle)
+			kc->reloadHandle = compAddTimeout (0, 0, kconfigRcReload, closure);
+	}
 }
 
 static CompBool
 kconfigSetOptionForPlugin (CompObject      *object,
-			   const char	   *plugin,
-			   const char	   *name,
-			   CompOptionValue *value)
+                           const char      *plugin,
+                           const char      *name,
+                           CompOptionValue *value)
 {
-    CompBool status;
+	CompBool status;
 
-    KCONFIG_CORE (&core);
+	KCONFIG_CORE (&core);
 
-    UNWRAP (kc, &core, setOptionForPlugin);
-    status = (*core.setOptionForPlugin) (object, plugin, name, value);
-    WRAP (kc, &core, setOptionForPlugin, kconfigSetOptionForPlugin);
+	UNWRAP (kc, &core, setOptionForPlugin);
+	status = (*core.setOptionForPlugin) (object, plugin, name, value);
+	WRAP (kc, &core, setOptionForPlugin, kconfigSetOptionForPlugin);
 
-    if (status && !kc->reloadHandle)
-    {
-	CompPlugin *p;
-
-	p = findActivePlugin (plugin);
-	if (p && p->vTable->getObjectOptions)
+	if (status && !kc->reloadHandle)
 	{
-	    CompOption *option;
-	    int	       nOption;
+		CompPlugin *p;
 
-	    option = (*p->vTable->getObjectOptions) (p, object, &nOption);
-	    option = compFindOption (option, nOption, name, 0);
-	    if (option)
-		kconfigSetOption (object, option, p->vTable->name);
+		p = findActivePlugin (plugin);
+		if (p && p->vTable->getObjectOptions)
+		{
+			CompOption *option;
+			int        nOption;
+
+			option = (*p->vTable->getObjectOptions) (p, object, &nOption);
+			option = compFindOption (option, nOption, name, 0);
+			if (option)
+				kconfigSetOption (object, option, p->vTable->name);
+		}
 	}
-    }
 
-    return status;
+	return status;
 }
 
 static CompBool
 kconfigInitPluginForObject (CompPlugin *p,
-			    CompObject *o)
+                            CompObject *o)
 {
-    CompBool status;
+	CompBool status;
 
-    KCONFIG_CORE (&core);
+	KCONFIG_CORE (&core);
 
-    UNWRAP (kc, &core, initPluginForObject);
-    status = (*core.initPluginForObject) (p, o);
-    WRAP (kc, &core, initPluginForObject, kconfigInitPluginForObject);
+	UNWRAP (kc, &core, initPluginForObject);
+	status = (*core.initPluginForObject) (p, o);
+	WRAP (kc, &core, initPluginForObject, kconfigInitPluginForObject);
 
-    if (status && p->vTable->getObjectOptions)
-    {
-	CompOption *option;
-	int	   nOption;
+	if (status && p->vTable->getObjectOptions)
+	{
+		CompOption *option;
+		int        nOption;
 
-	option = (*p->vTable->getObjectOptions) (p, o, &nOption);
-	while (nOption--)
-	    kconfigGetOption (o, option++, p->vTable->name);
-    }
+		option = (*p->vTable->getObjectOptions) (p, o, &nOption);
+		while (nOption--)
+			kconfigGetOption (o, option++, p->vTable->name);
+	}
 
-    return status;
+	return status;
 }
 
 static Bool
 kconfigInitCore (CompPlugin *p,
-		 CompCore   *c)
+                 CompCore   *c)
 {
-    KconfigCore *kc;
-    QString	dir;
+	KconfigCore *kc;
+	QString	dir;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+	if (!checkPluginABI ("core", CORE_ABIVERSION))
+		return FALSE;
 
-    kc = new KconfigCore;
-    if (!kc)
-	return FALSE;
+	kc = new KconfigCore;
+	if (!kc)
+		return FALSE;
 
-    kc->config = new KConfig (COMPIZ_KCONFIG_RC);
-    if (!kc->config)
-    {
-	delete kc;
-	return FALSE;
-    }
+	kc->config = new KConfig (COMPIZ_KCONFIG_RC);
+	if (!kc->config)
+	{
+		delete kc;
+		return FALSE;
+	}
 
-    kc->reloadHandle = compAddTimeout (0, 0, kconfigRcReload, 0);
-    kc->syncHandle   = 0;
-    kc->fileWatch    = 0;
+	kc->reloadHandle = compAddTimeout (0, 0, kconfigRcReload, 0);
+	kc->syncHandle   = 0;
+	kc->fileWatch    = 0;
 
-    dir = KGlobal::dirs ()->saveLocation ("config", QString::null, false);
+	dir = KGlobal::dirs ()->saveLocation ("config", QString::null, false);
 
-    if (QFile::exists (dir))
-    {
-	kc->fileWatch = addFileWatch (dir.ascii (), ~0, kconfigRcChanged, 0);
-    }
-    else
-    {
-	compLogMessage ("kconfig", CompLogLevelWarn, "Bad access \"%s\"",
-			dir.ascii ());
-    }
+	if (QFile::exists (dir))
+	{
+		kc->fileWatch = addFileWatch (dir.ascii (), ~0, kconfigRcChanged, 0);
+	}
+	else
+	{
+		compLogMessage ("kconfig", CompLogLevelWarn, "Bad access \"%s\"",
+		                dir.ascii ());
+	}
 
-    WRAP (kc, c, initPluginForObject, kconfigInitPluginForObject);
-    WRAP (kc, c, setOptionForPlugin, kconfigSetOptionForPlugin);
+	WRAP (kc, c, initPluginForObject, kconfigInitPluginForObject);
+	WRAP (kc, c, setOptionForPlugin, kconfigSetOptionForPlugin);
 
-    c->base.privates[corePrivateIndex].ptr = kc;
+	c->base.privates[corePrivateIndex].ptr = kc;
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 kconfigFiniCore (CompPlugin *p,
-		 CompCore   *c)
+                 CompCore   *c)
 {
-    KCONFIG_CORE (c);
+	KCONFIG_CORE (c);
 
-    UNWRAP (kc, c, initPluginForObject);
-    UNWRAP (kc, c, setOptionForPlugin);
+	UNWRAP (kc, c, initPluginForObject);
+	UNWRAP (kc, c, setOptionForPlugin);
 
-    if (kc->reloadHandle)
-	compRemoveTimeout (kc->reloadHandle);
+	if (kc->reloadHandle)
+		compRemoveTimeout (kc->reloadHandle);
 
-    if (kc->syncHandle)
-    {
-	compRemoveTimeout (kc->syncHandle);
-	kconfigRcSync (0);
-    }
+	if (kc->syncHandle)
+	{
+		compRemoveTimeout (kc->syncHandle);
+		kconfigRcSync (0);
+	}
 
-    if (kc->fileWatch)
-	removeFileWatch (kc->fileWatch);
+	if (kc->fileWatch)
+		removeFileWatch (kc->fileWatch);
 
-    delete kc->config;
-    delete kc;
+	delete kc->config;
+	delete kc;
 }
 
 static CompBool
 kconfigInitObject (CompPlugin *p,
-		   CompObject *o)
+                   CompObject *o)
 {
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) kconfigInitCore
-    };
+	static InitPluginObjectProc dispTab[] = {
+		(InitPluginObjectProc) kconfigInitCore
+	};
 
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
 }
 
 static void
 kconfigFiniObject (CompPlugin *p,
-		   CompObject *o)
+                   CompObject *o)
 {
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) kconfigFiniCore
-    };
+	static FiniPluginObjectProc dispTab[] = {
+		(FiniPluginObjectProc) kconfigFiniCore
+	};
 
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
+	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
 kconfigInit (CompPlugin *p)
 {
-    if (!compInitPluginMetadataFromInfo (&kconfigMetadata, p->vTable->name,
-					 0, 0, 0, 0))
-	return FALSE;
+	if (!compInitPluginMetadataFromInfo (&kconfigMetadata, p->vTable->name,
+	                             0, 0, 0, 0))
+		return FALSE;
 
-    corePrivateIndex = allocateCorePrivateIndex ();
-    if (corePrivateIndex < 0)
-    {
-	compFiniMetadata (&kconfigMetadata);
-	return FALSE;
-    }
+	corePrivateIndex = allocateCorePrivateIndex ();
+	if (corePrivateIndex < 0)
+	{
+		compFiniMetadata (&kconfigMetadata);
+		return FALSE;
+	}
 
-    kInstance = new KInstance ("compiz-kconfig");
-    if (!kInstance)
-    {
-	freeCorePrivateIndex (corePrivateIndex);
-	compFiniMetadata (&kconfigMetadata);
-	return FALSE;
-    }
+	kInstance = new KInstance ("compiz-kconfig");
+	if (!kInstance)
+	{
+		freeCorePrivateIndex (corePrivateIndex);
+		compFiniMetadata (&kconfigMetadata);
+		return FALSE;
+	}
 
-    compAddMetadataFromFile (&kconfigMetadata, p->vTable->name);
+	compAddMetadataFromFile (&kconfigMetadata, p->vTable->name);
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 kconfigFini (CompPlugin *p)
 {
-    delete kInstance;
+	delete kInstance;
 
-    freeCorePrivateIndex (corePrivateIndex);
-    compFiniMetadata (&kconfigMetadata);
+	freeCorePrivateIndex (corePrivateIndex);
+	compFiniMetadata (&kconfigMetadata);
 }
 
 static CompMetadata *
 kconfigGetMetadata (CompPlugin *plugin)
 {
-    return &kconfigMetadata;
+	return &kconfigMetadata;
 }
 
 CompPluginVTable kconfigVTable = {
-    "kconfig",
-    kconfigGetMetadata,
-    kconfigInit,
-    kconfigFini,
-    kconfigInitObject,
-    kconfigFiniObject,
-    0, /* GetObjectOptions */
-    0  /* SetObjectOption */
+	"kconfig",
+	kconfigGetMetadata,
+	kconfigInit,
+	kconfigFini,
+	kconfigInitObject,
+	kconfigFiniObject,
+	0, /* GetObjectOptions */
+	0  /* SetObjectOption */
 };
 
 CompPluginVTable *
 getCompPluginInfo20070830 (void)
 {
-    return &kconfigVTable;
+	return &kconfigVTable;
 }

@@ -132,325 +132,325 @@ static int displayPrivateIndex;
 #define COMMANDS_DISPLAY_OPTION_NUM                 100
 
 typedef struct _CommandsDisplay {
-    CompOption opt[COMMANDS_DISPLAY_OPTION_NUM];
+	CompOption opt[COMMANDS_DISPLAY_OPTION_NUM];
 } CommandsDisplay;
 
-#define GET_COMMANDS_DISPLAY(d)                                       \
-    ((CommandsDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
-#define COMMANDS_DISPLAY(d)                                           \
-    CommandsDisplay *cd = GET_COMMANDS_DISPLAY (d)
+#define GET_COMMANDS_DISPLAY(d) \
+        ((CommandsDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+#define COMMANDS_DISPLAY(d) \
+        CommandsDisplay *cd = GET_COMMANDS_DISPLAY (d)
 
 #define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
 
 static Bool
 runCommandDispatch (CompDisplay     *d,
-		    CompAction      *action,
-		    CompActionState state,
-		    CompOption      *option,
-		    int             nOption)
+                    CompAction      *action,
+                    CompActionState state,
+                    CompOption      *option,
+                    int             nOption)
 {
-    CompScreen *s;
-    Window     xid;
+	CompScreen *s;
+	Window     xid;
 
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-    s   = findScreenAtDisplay (d, xid);
+	xid = getIntOptionNamed (option, nOption, "root", 0);
+	s   = findScreenAtDisplay (d, xid);
 
-    if (s)
-    {
-	int index = COMMANDS_DISPLAY_OPTION_COMMAND0 + action->priv.val;
+	if (s)
+	{
+		int index = COMMANDS_DISPLAY_OPTION_COMMAND0 + action->priv.val;
 
-	COMMANDS_DISPLAY (d);
+		COMMANDS_DISPLAY (d);
 
-	runCommand (s, cd->opt[index].value.s);
-    }
+		runCommand (s, cd->opt[index].value.s);
+	}
 
-    return TRUE;
+	return TRUE;
 }
 
 static const CompMetadataOptionInfo commandsDisplayOptionInfo[] = {
-    { "command0", "string", 0, 0, 0 },
-    { "command1", "string", 0, 0, 0 },
-    { "command2", "string", 0, 0, 0 },
-    { "command3", "string", 0, 0, 0 },
-    { "command4", "string", 0, 0, 0 },
-    { "command5", "string", 0, 0, 0 },
-    { "command6", "string", 0, 0, 0 },
-    { "command7", "string", 0, 0, 0 },
-    { "command8", "string", 0, 0, 0 },
-    { "command9", "string", 0, 0, 0 },
-    { "command10", "string", 0, 0, 0 },
-    { "command11", "string", 0, 0, 0 },
-    { "command12", "string", 0, 0, 0 },
-    { "command13", "string", 0, 0, 0 },
-    { "command14", "string", 0, 0, 0 },
-    { "command15", "string", 0, 0, 0 },
-    { "command16", "string", 0, 0, 0 },
-    { "command17", "string", 0, 0, 0 },
-    { "command18", "string", 0, 0, 0 },
-    { "command19", "string", 0, 0, 0 },
-    { "command20", "string", 0, 0, 0 },
-    { "command21", "string", 0, 0, 0 },
-    { "command22", "string", 0, 0, 0 },
-    { "command23", "string", 0, 0, 0 },
-    { "command24", "string", 0, 0, 0 },
-    { "run_command0_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command1_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command2_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command3_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command4_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command5_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command6_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command7_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command8_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command9_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command10_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command11_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command12_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command13_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command14_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command15_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command16_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command17_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command18_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command19_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command20_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command21_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command22_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command23_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command24_key", "key", 0, runCommandDispatch, 0 },
-    { "run_command0_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command1_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command2_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command3_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command4_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command5_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command6_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command7_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command8_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command9_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command10_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command11_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command12_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command13_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command14_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command15_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command16_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command17_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command18_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command19_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command20_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command21_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command22_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command23_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command24_button", "button", 0, runCommandDispatch, 0 },
-    { "run_command0_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command1_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command2_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command3_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command4_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command5_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command6_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command7_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command8_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command9_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command10_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command11_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command12_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command13_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command14_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command15_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command16_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command17_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command18_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command19_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command20_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command21_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command22_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command23_edge", "edge", 0, runCommandDispatch, 0 },
-    { "run_command24_edge", "edge", 0, runCommandDispatch, 0 }
+	{ "command0", "string", 0, 0, 0 },
+	{ "command1", "string", 0, 0, 0 },
+	{ "command2", "string", 0, 0, 0 },
+	{ "command3", "string", 0, 0, 0 },
+	{ "command4", "string", 0, 0, 0 },
+	{ "command5", "string", 0, 0, 0 },
+	{ "command6", "string", 0, 0, 0 },
+	{ "command7", "string", 0, 0, 0 },
+	{ "command8", "string", 0, 0, 0 },
+	{ "command9", "string", 0, 0, 0 },
+	{ "command10", "string", 0, 0, 0 },
+	{ "command11", "string", 0, 0, 0 },
+	{ "command12", "string", 0, 0, 0 },
+	{ "command13", "string", 0, 0, 0 },
+	{ "command14", "string", 0, 0, 0 },
+	{ "command15", "string", 0, 0, 0 },
+	{ "command16", "string", 0, 0, 0 },
+	{ "command17", "string", 0, 0, 0 },
+	{ "command18", "string", 0, 0, 0 },
+	{ "command19", "string", 0, 0, 0 },
+	{ "command20", "string", 0, 0, 0 },
+	{ "command21", "string", 0, 0, 0 },
+	{ "command22", "string", 0, 0, 0 },
+	{ "command23", "string", 0, 0, 0 },
+	{ "command24", "string", 0, 0, 0 },
+	{ "run_command0_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command1_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command2_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command3_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command4_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command5_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command6_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command7_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command8_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command9_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command10_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command11_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command12_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command13_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command14_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command15_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command16_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command17_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command18_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command19_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command20_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command21_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command22_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command23_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command24_key", "key", 0, runCommandDispatch, 0 },
+	{ "run_command0_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command1_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command2_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command3_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command4_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command5_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command6_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command7_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command8_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command9_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command10_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command11_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command12_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command13_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command14_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command15_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command16_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command17_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command18_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command19_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command20_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command21_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command22_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command23_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command24_button", "button", 0, runCommandDispatch, 0 },
+	{ "run_command0_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command1_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command2_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command3_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command4_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command5_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command6_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command7_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command8_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command9_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command10_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command11_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command12_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command13_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command14_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command15_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command16_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command17_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command18_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command19_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command20_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command21_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command22_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command23_edge", "edge", 0, runCommandDispatch, 0 },
+	{ "run_command24_edge", "edge", 0, runCommandDispatch, 0 }
 };
 
 static CompBool
 commandsInitDisplay (CompPlugin  *p,
-		     CompDisplay *d)
+                     CompDisplay *d)
 {
-    CommandsDisplay *cd;
-    int             i;
+	CommandsDisplay *cd;
+	int             i;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+	if (!checkPluginABI ("core", CORE_ABIVERSION))
+		return FALSE;
 
-    cd = malloc (sizeof (CommandsDisplay));
-    if (!cd)
-	return FALSE;
+	cd = malloc (sizeof (CommandsDisplay));
+	if (!cd)
+		return FALSE;
 
-    if (!compInitDisplayOptionsFromMetadata (d,
-					     &commandsMetadata,
-					     commandsDisplayOptionInfo,
-					     cd->opt,
-					     COMMANDS_DISPLAY_OPTION_NUM))
-    {
-	free (cd);
-	return FALSE;
-    }
+	if (!compInitDisplayOptionsFromMetadata (d,
+	                                 &commandsMetadata,
+	                                 commandsDisplayOptionInfo,
+	                                 cd->opt,
+	                                 COMMANDS_DISPLAY_OPTION_NUM))
+	{
+		free (cd);
+		return FALSE;
+	}
 
-    for (i = 0; i < 25; i++)
-    {
-	int opt;
-	
-	opt = COMMANDS_DISPLAY_OPTION_RUN_COMMAND0_KEY + i;
-	cd->opt[opt].value.action.priv.val = i;
-	opt = COMMANDS_DISPLAY_OPTION_RUN_COMMAND0_BUTTON + i;
-	cd->opt[opt].value.action.priv.val = i;
-	opt = COMMANDS_DISPLAY_OPTION_RUN_COMMAND0_EDGE + i;
-	cd->opt[opt].value.action.priv.val = i;
-    }
+	for (i = 0; i < 25; i++)
+	{
+		int opt;
 
-    d->base.privates[displayPrivateIndex].ptr = cd;
+		opt = COMMANDS_DISPLAY_OPTION_RUN_COMMAND0_KEY + i;
+		cd->opt[opt].value.action.priv.val = i;
+		opt = COMMANDS_DISPLAY_OPTION_RUN_COMMAND0_BUTTON + i;
+		cd->opt[opt].value.action.priv.val = i;
+		opt = COMMANDS_DISPLAY_OPTION_RUN_COMMAND0_EDGE + i;
+		cd->opt[opt].value.action.priv.val = i;
+	}
 
-    return TRUE;
+	d->base.privates[displayPrivateIndex].ptr = cd;
+
+	return TRUE;
 }
 
 static void
 commandsFiniDisplay (CompPlugin  *p,
-		     CompDisplay *d)
+                     CompDisplay *d)
 {
-    COMMANDS_DISPLAY (d);
+	COMMANDS_DISPLAY (d);
 
-    compFiniDisplayOptions (d, cd->opt, COMMANDS_DISPLAY_OPTION_NUM);
+	compFiniDisplayOptions (d, cd->opt, COMMANDS_DISPLAY_OPTION_NUM);
 
-    free (cd);
+	free (cd);
 }
 
 static CompOption *
 commandsGetDisplayOptions (CompPlugin  *p,
-			   CompDisplay *d,
-			   int         *count)
+                           CompDisplay *d,
+                           int         *count)
 {
-    COMMANDS_DISPLAY (d);
+	COMMANDS_DISPLAY (d);
 
-    *count = NUM_OPTIONS (cd);
-    return cd->opt;
+	*count = NUM_OPTIONS (cd);
+	return cd->opt;
 }
 
 static CompBool
 commandsSetDisplayOption (CompPlugin      *p,
-			  CompDisplay     *d,
-			  const char      *name,
-			  CompOptionValue *value)
+                          CompDisplay     *d,
+                          const char      *name,
+                          CompOptionValue *value)
 {
-    CompOption *o;
+	CompOption *o;
 
-    COMMANDS_DISPLAY (d);
+	COMMANDS_DISPLAY (d);
 
-    o = compFindOption (cd->opt, NUM_OPTIONS (cd), name, NULL);
-    if (!o)
-	return FALSE;
+	o = compFindOption (cd->opt, NUM_OPTIONS (cd), name, NULL);
+	if (!o)
+		return FALSE;
 
-    return compSetDisplayOption (d, o, value);
+	return compSetDisplayOption (d, o, value);
 }
 
 static CompBool
 commandsInitObject (CompPlugin *p,
-		    CompObject *o)
+                    CompObject *o)
 {
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) commandsInitDisplay
-    };
+	static InitPluginObjectProc dispTab[] = {
+		(InitPluginObjectProc) 0, /* InitCore */
+		(InitPluginObjectProc) commandsInitDisplay
+	};
 
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
 }
 
 static void
 commandsFiniObject (CompPlugin *p,
-		    CompObject *o)
+                    CompObject *o)
 {
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) commandsFiniDisplay
-    };
+	static FiniPluginObjectProc dispTab[] = {
+		(FiniPluginObjectProc) 0, /* FiniCore */
+		(FiniPluginObjectProc) commandsFiniDisplay
+	};
 
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
+	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static CompOption *
 commandsGetObjectOptions (CompPlugin *p,
-			  CompObject *o,
-			  int        *count)
+                          CompObject *o,
+                          int        *count)
 {
-    static GetPluginObjectOptionsProc dispTab[] = {
-	(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-	(GetPluginObjectOptionsProc) commandsGetDisplayOptions
-    };
+	static GetPluginObjectOptionsProc dispTab[] = {
+		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
+		(GetPluginObjectOptionsProc) commandsGetDisplayOptions
+	};
 
-    *count = 0;
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab),
-		     (void *) count, (p, o, count));
+	*count = 0;
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab),
+	                 (void *) count, (p, o, count));
 }
 
 static CompBool
 commandsSetObjectOption (CompPlugin      *p,
-			 CompObject      *o,
-			 const char      *name,
-			 CompOptionValue *value)
+                         CompObject      *o,
+                         const char      *name,
+                         CompOptionValue *value)
 {
-    static SetPluginObjectOptionProc dispTab[] = {
-	(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-	(SetPluginObjectOptionProc) commandsSetDisplayOption,
-    };
+	static SetPluginObjectOptionProc dispTab[] = {
+		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
+		(SetPluginObjectOptionProc) commandsSetDisplayOption,
+	};
 
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), FALSE,
-		     (p, o, name, value));
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), FALSE,
+	                 (p, o, name, value));
 }
 
 static Bool
 commandsInit (CompPlugin *p)
 {
-    if (!compInitPluginMetadataFromInfo (&commandsMetadata,
-					 p->vTable->name,
-					 commandsDisplayOptionInfo,
-					 COMMANDS_DISPLAY_OPTION_NUM, 0, 0))
-	return FALSE;
+	if (!compInitPluginMetadataFromInfo (&commandsMetadata,
+	                             p->vTable->name,
+	                             commandsDisplayOptionInfo,
+	                             COMMANDS_DISPLAY_OPTION_NUM, 0, 0))
+		return FALSE;
 
-    displayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (displayPrivateIndex < 0)
-    {
-	compFiniMetadata (&commandsMetadata);
-	return FALSE;
-    }
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+	if (displayPrivateIndex < 0)
+	{
+		compFiniMetadata (&commandsMetadata);
+		return FALSE;
+	}
 
-    compAddMetadataFromFile (&commandsMetadata, p->vTable->name);
+	compAddMetadataFromFile (&commandsMetadata, p->vTable->name);
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 commandsFini (CompPlugin *p)
 {
-    freeDisplayPrivateIndex (displayPrivateIndex);
-    compFiniMetadata (&commandsMetadata);
+	freeDisplayPrivateIndex (displayPrivateIndex);
+	compFiniMetadata (&commandsMetadata);
 }
 
 static CompMetadata *
 commandsGetMetadata (CompPlugin *p)
 {
-    return &commandsMetadata;
+	return &commandsMetadata;
 }
 
 static CompPluginVTable commandsVTable = {
-    "commands",
-    commandsGetMetadata,
-    commandsInit,
-    commandsFini,
-    commandsInitObject,
-    commandsFiniObject,
-    commandsGetObjectOptions,
-    commandsSetObjectOption
+	"commands",
+	commandsGetMetadata,
+	commandsInit,
+	commandsFini,
+	commandsInitObject,
+	commandsFiniObject,
+	commandsGetObjectOptions,
+	commandsSetObjectOption
 };
 
 CompPluginVTable *
 getCompPluginInfo20070830 (void)
 {
-    return &commandsVTable;
+	return &commandsVTable;
 }

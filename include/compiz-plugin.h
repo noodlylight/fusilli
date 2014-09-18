@@ -36,31 +36,31 @@ typedef void (*FiniPluginProc) (CompPlugin *plugin);
 typedef CompMetadata *(*GetMetadataProc) (CompPlugin *plugin);
 
 typedef CompBool (*InitPluginObjectProc) (CompPlugin *plugin,
-					  CompObject *object);
+                                          CompObject *object);
 typedef void (*FiniPluginObjectProc) (CompPlugin  *plugin,
-				      CompObject *object);
+                                      CompObject *object);
 
 typedef CompOption *(*GetPluginObjectOptionsProc) (CompPlugin *plugin,
-						   CompObject *object,
-						   int	      *count);
+                                                   CompObject *object,
+                                                   int        *count);
 typedef CompBool (*SetPluginObjectOptionProc) (CompPlugin      *plugin,
-					       CompObject      *object,
-					       const char      *name,
-					       CompOptionValue *value);
+                                               CompObject      *object,
+                                               const char      *name,
+                                               CompOptionValue *value);
 
 typedef struct _CompPluginVTable {
-    const char *name;
+	const char *name;
 
-    GetMetadataProc getMetadata;
+	GetMetadataProc getMetadata;
 
-    InitPluginProc init;
-    FiniPluginProc fini;
+	InitPluginProc init;
+	FiniPluginProc fini;
 
-    InitPluginObjectProc initObject;
-    FiniPluginObjectProc finiObject;
+	InitPluginObjectProc initObject;
+	FiniPluginObjectProc finiObject;
 
-    GetPluginObjectOptionsProc getObjectOptions;
-    SetPluginObjectOptionProc  setObjectOption;
+	GetPluginObjectOptionsProc getObjectOptions;
+	SetPluginObjectOptionProc  setObjectOption;
 } CompPluginVTable;
 
 CompPluginVTable *

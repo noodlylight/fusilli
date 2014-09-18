@@ -28,41 +28,41 @@
 #include <compiz-core.h>
 
 int
-allocatePrivateIndex (int		  *len,
-		      char		  **indices,
-		      ReallocPrivatesProc reallocProc,
-		      void		  *closure)
+allocatePrivateIndex (int                 *len,
+                      char                **indices,
+                      ReallocPrivatesProc reallocProc,
+                      void                *closure)
 {
-    char *newIndices;
-    int  i;
+	char *newIndices;
+	int  i;
 
-    for (i = 0; i < *len; i++)
-    {
-	if (!(*indices)[i])
+	for (i = 0; i < *len; i++)
 	{
-	    (*indices)[i] = 1;
-	    return i;
+		if (!(*indices)[i])
+		{
+			(*indices)[i] = 1;
+			return i;
+		}
 	}
-    }
 
-    newIndices = (char *) realloc (*indices, (*len + 1) * sizeof (char));
-    if (!newIndices)
-	return -1;
+	newIndices = (char *) realloc (*indices, (*len + 1) * sizeof (char));
+	if (!newIndices)
+		return -1;
 
-    newIndices[*len] = 1;
-    *indices = newIndices;
+	newIndices[*len] = 1;
+	*indices = newIndices;
 
-    if (!(*reallocProc) (*len + 1, closure))
-	return -1;
+	if (!(*reallocProc) (*len + 1, closure))
+		return -1;
 
-    return (*len)++;
+	return (*len)++;
 }
 
 void
 freePrivateIndex (int  len,
-		  char *indices,
-		  int  index)
+                  char *indices,
+                  int  index)
 {
-    if (index < len)
-	indices[index] = 0;
+	if (index < len)
+		indices[index] = 0;
 }

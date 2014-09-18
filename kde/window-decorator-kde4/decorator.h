@@ -49,8 +49,8 @@
 #define C(name) { 0, XC_ ## name }
 
 struct _cursor {
-    Cursor       cursor;
-    unsigned int shape;
+	Cursor       cursor;
+	unsigned int shape;
 };
 
 extern struct _cursor cursors[3][3];
@@ -66,99 +66,99 @@ class KWindowSystem;
 
 namespace KWD
 {
-    class Options;
+	class Options;
 
 class PluginManager:public KDecorationPlugins {
-    public:
-	PluginManager (KSharedConfigPtr config);
-	virtual bool provides (Requirement)
-	{
-	    return false;
-	}
-    };
+	public:
+		PluginManager (KSharedConfigPtr config);
+		virtual bool provides (Requirement)
+		{
+			return false;
+		}
+	};
 
 
 class Decorator:public KApplication {
-    Q_OBJECT public:
+	Q_OBJECT public:
 
-	Decorator ();
-	~Decorator (void);
+		Decorator ();
+		~Decorator (void);
 
-	static NETRootInfo *rootInfo (void)
-	{
-	    return mRootInfo;
-	}
-	static PluginManager *pluginManager (void)
-	{
-	    return mPlugins;
-	}
-	static KWD::Options *options (void)
-	{
-	    return mOptions;
-	}
-	static WId activeId (void)
-	{
-	    return mActiveId;
-	}
-	static decor_shadow_options_t *shadowOptions (void)
-	{
-	    return &mShadowOptions;
-	}
+		static NETRootInfo *rootInfo (void)
+		{
+			return mRootInfo;
+		}
+		static PluginManager *pluginManager (void)
+		{
+			return mPlugins;
+		}
+		static KWD::Options *options (void)
+		{
+			return mOptions;
+		}
+		static WId activeId (void)
+		{
+			return mActiveId;
+		}
+		static decor_shadow_options_t *shadowOptions (void)
+		{
+			return &mShadowOptions;
+		}
 
-	static void sendClientMessage (WId  eventWid,
-				       WId  wid,
-				       Atom atom,
-				       Atom value,
-				       long data1 = 0,
-				       long data2 = 0,
-				       long data3 = 0);
+		static void sendClientMessage (WId  eventWid,
+		                               WId  wid,
+		                               Atom atom,
+		                               Atom value,
+		                               long data1 = 0,
+		                               long data2 = 0,
+		                               long data3 = 0);
 
-	bool enableDecorations (Time timestamp);
-	bool x11EventFilter (XEvent *xevent);
-	void changeShadowOptions (decor_shadow_options_t *opt);
+		bool enableDecorations (Time timestamp);
+		bool x11EventFilter (XEvent *xevent);
+		void changeShadowOptions (decor_shadow_options_t *opt);
 
-    public slots:
-	void reconfigure (void);
-	
-    private:
-	WId fetchFrame (WId window);
-	void updateShadow (void);
-	void updateAllShadowOptions (void);
+	public slots:
+		void reconfigure (void);
+		
+	private:
+		WId fetchFrame (WId window);
+		void updateShadow (void);
+		void updateAllShadowOptions (void);
 
-    private slots:
-	void handleWindowAdded (WId id);
-	void handleWindowRemoved (WId id);
-	void handleActiveWindowChanged (WId id);
-	void handleWindowChanged (WId		      id,
-				  const unsigned long *properties);
+	private slots:
+		void handleWindowAdded (WId id);
+		void handleWindowRemoved (WId id);
+		void handleActiveWindowChanged (WId id);
+		void handleWindowChanged (WId                 id,
+		                          const unsigned long *properties);
 
-	void shadowRadiusChanged (double value);
-	void shadowOpacityChanged (double value);
-	void shadowXOffsetChanged (int value);
-	void shadowYOffsetChanged (int value);
-	void shadowColorChanged (QString value);
+		void shadowRadiusChanged (double value);
+		void shadowOpacityChanged (double value);
+		void shadowXOffsetChanged (int value);
+		void shadowYOffsetChanged (int value);
+		void shadowColorChanged (QString value);
 
-	void plasmaThemeChanged ();
+		void plasmaThemeChanged ();
 
-    private:
-	static PluginManager *mPlugins;
-	static KWD::Options *mOptions;
-	static decor_shadow_t *mNoBorderShadow;
-	static decor_shadow_options_t mShadowOptions;
-	static NETRootInfo *mRootInfo;
-	static WId mActiveId;
+	private:
+		static PluginManager *mPlugins;
+		static KWD::Options *mOptions;
+		static decor_shadow_t *mNoBorderShadow;
+		static decor_shadow_options_t mShadowOptions;
+		static NETRootInfo *mRootInfo;
+		static WId mActiveId;
 
-	KWD::Window *mDecorNormal;
-	KWD::Window *mDecorActive;
-	QMap <WId, KWD::Window *>mClients;
-	QMap <WId, KWD::Window *>mFrames;
-	KConfig *mConfig;
-	Time mDmSnTimestamp;
+		KWD::Window *mDecorNormal;
+		KWD::Window *mDecorActive;
+		QMap <WId, KWD::Window *>mClients;
+		QMap <WId, KWD::Window *>mFrames;
+		KConfig *mConfig;
+		Time mDmSnTimestamp;
 
-	WId mCompositeWindow;
+		WId mCompositeWindow;
 
-	Switcher *mSwitcher;
-    };
+		Switcher *mSwitcher;
+	};
 }
 
 #endif

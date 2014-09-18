@@ -31,41 +31,41 @@
 #include <qglobal.h>
 
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 5, 0))
-    #define QT_45
+	#define QT_45
 #endif
 
 namespace KWD
 {
-    namespace Atoms
-    {
-	extern Atom switchSelectWindow;
-	extern Atom switchFgColor;
-	extern Atom netWmWindowOpacity;
-	extern Atom netFrameWindow;
-	extern Atom netWindowDecor;
-	extern Atom netWindowDecorNormal;
-	extern Atom netWindowDecorActive;
-	extern Atom netWindowDecorBare;
-	extern Atom wmTakeFocus;
-	extern Atom netWmContextHelp;
-	extern Atom wmProtocols;
-	extern Atom toolkitActionAtom;
-	extern Atom toolkitActionWindowMenuAtom;
-	extern Atom toolkitActionForceQuitDialogAtom;
-	extern Atom compizWindowBlurDecor;
-	extern Atom enlightmentDesktop;
+	namespace Atoms
+	{
+		extern Atom switchSelectWindow;
+		extern Atom switchFgColor;
+		extern Atom netWmWindowOpacity;
+		extern Atom netFrameWindow;
+		extern Atom netWindowDecor;
+		extern Atom netWindowDecorNormal;
+		extern Atom netWindowDecorActive;
+		extern Atom netWindowDecorBare;
+		extern Atom wmTakeFocus;
+		extern Atom netWmContextHelp;
+		extern Atom wmProtocols;
+		extern Atom toolkitActionAtom;
+		extern Atom toolkitActionWindowMenuAtom;
+		extern Atom toolkitActionForceQuitDialogAtom;
+		extern Atom compizWindowBlurDecor;
+		extern Atom enlightmentDesktop;
 
-	void init (void);
-    }
+		void init (void);
+	}
 
-    void trapXError (void);
-    int popXError (void);
-    bool eventFilter (void *message, long *result);
-    void *readXProperty (WId window, Atom property, Atom type, int *items);
-    bool readWindowProperty (long wId, long property, long *value);
-    unsigned short readPropertyShort (WId	     id,
-				      Atom	     property,
-				      unsigned short defaultValue);
+	void trapXError (void);
+	int popXError (void);
+	bool eventFilter (void *message, long *result);
+	void *readXProperty (WId window, Atom property, Atom type, int *items);
+	bool readWindowProperty (long wId, long property, long *value);
+	unsigned short readPropertyShort (WId            id,
+	                                  Atom           property,
+	                                  unsigned short defaultValue);
 }
 
 #endif
