@@ -182,29 +182,6 @@ if test "$use_glib" = yes; then
   AC_DEFINE(USE_GLIB, 1, [Build glib plugin])
 fi
 
-AC_ARG_ENABLE(gconf,
-  [  --disable-gconf         Disable gconf plugin],
-  [use_gconf=$enableval], [use_gconf=yes])
-
-if test "x$use_gconf" = "xyes"; then
-  PKG_CHECK_MODULES(GCONF, gconf-2.0)
-
-  AC_PATH_PROG(GCONFTOOL, gconftool-2, no)
-  if test x"$GCONFTOOL" = xno; then
-    AC_MSG_ERROR([gconftool-2 executable not found in your path - should be installed with GConf])
-  fi
-fi
-
-AM_GCONF_SOURCE_2
-
-AM_CONDITIONAL(USE_GCONF, test "x$use_gconf" = "xyes")
-if test "$use_gconf" = yes; then
-  AC_DEFINE(USE_GCONF, 1, [Build gconf plugin])
-fi
-
-stylesheetdir=$datadir/compiz
-AC_SUBST(stylesheetdir)
-
 AC_ARG_ENABLE(dbus,
   [  --disable-dbus          Disable dbus plugin],
   [use_dbus=$enableval], [use_dbus=yes])
@@ -458,34 +435,6 @@ AC_SUBST(KDE4_LIBS)
 AC_SUBST(QT4_MOC)
 AC_SUBST(QDBUSXML2CPP)
 
-AC_ARG_ENABLE(kconfig,
-  [  --disable-kconfig       Disable kconfig plugin],
-  [use_kconfig=$enableval], [use_kconfig=yes])
-
-if test "x$use_kde" != "xyes"; then
-  use_kconfig=no;
-fi
-
-if test "x$use_kconfig" = "xyes"; then
-  KCONFIG_CFLAGS=$KDE_CFLAGS
-  KCONFIG_LIBS=$KDE_LIBS
-  KDE_KCFG_DIR=`kde-config --install kcfg --expandvars 2>/dev/null`
-  KDE_KCONFIG_DIR=`kde-config --install config --expandvars 2>/dev/null`
-fi
-
-AM_CONDITIONAL(USE_KCONFIG, test "x$use_kconfig" = "xyes")
-if test "$use_kconfig" = yes; then
-  AC_DEFINE(USE_KCONFIG, 1, [Build kconfig plugin])
-fi
-
-AC_SUBST(KCONFIG_CFLAGS)
-AC_SUBST(KCONFIG_LIBS)
-AC_SUBST(KDE_KCFG_DIR)
-AC_SUBST(KDE_KCONFIG_DIR)
-
-kcfgdir=$KDE_KCFG_DIR
-AC_SUBST(kcfgdir)
-
 AC_ARG_WITH(max-desktops,
   [  --with-max-desktops     Max reasonable desktops],
   [MAX_DESKTOPS=$withval],
@@ -537,8 +486,6 @@ AC_OUTPUT([
 compiz.pc
 compiz-cube.pc
 compiz-scale.pc
-compiz-gconf.pc
-compiz-kconfig.pc
 Makefile
 src/Makefile
 libdecoration/Makefile
@@ -558,8 +505,6 @@ metadata/Makefile
 echo ""
 echo "the following optional plugins will be compiled:"
 echo "  glib:     $use_glib"
-echo "  gconf:    $use_gconf"
-echo "  kconfig:  $use_kconfig"
 echo "  dbus:     $use_dbus"
 echo "  annotate: $use_annotate"
 echo "  svg:      $use_librsvg"

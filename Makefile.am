@@ -7,28 +7,17 @@ EXTRA_DIST =		    \
 	COPYING.MIT	    \
 	compiz.pc.in	    \
 	compiz-cube.pc.in   \
-	compiz-scale.pc.in  \
-	compiz-gconf.pc.in
+	compiz-scale.pc.in
 
 DISTCLEANFILES =	 \
 	po/stamp-it	 \
 	po/.intltool-merge-cache
 
-if USE_GCONF
-gconfdata = compiz-gconf.pc
-endif
-
-if USE_KCONFIG
-kconfigdata = compiz-kconfig.pc
-endif
-
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA =	\
 	compiz.pc	\
 	compiz-cube.pc	\
-	compiz-scale.pc \
-	$(gconfdata)	\
-	$(kconfigdata)
+	compiz-scale.pc
 
 # Some custom targets to make it easier to release things.
 # Use either:
