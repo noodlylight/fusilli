@@ -1,1 +1,1 @@
-SUBDIRS = window-decorator window-decorator-kde4
+SUBDIRS = window-decorator-kde4
