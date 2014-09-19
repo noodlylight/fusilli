@@ -1,22 +1,5 @@
-
 General:
 
-* Session management
+* Add recipes for fusilli
 
-* Various window management improvements
-
-* Window shade mode
-
-* Support for multiple desktops
-
-* Multi-screen support
-
-
-KDE:
-
-* Remove glib dependency from place plugin
-
-* QT/KDE configuration plugin similar to the gconf plugin
-
-* QT/KDE decoration program
 
