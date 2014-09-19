@@ -6,9 +6,6 @@
 		<category>Effects</category>
 		<feature>blur</feature>
 		<deps>
-			<relation type="before">
-				<plugin>video</plugin>
-			</relation>
 			<relation type="after">
 				<plugin>decoration</plugin>
 			</relation>

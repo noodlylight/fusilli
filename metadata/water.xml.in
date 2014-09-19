@@ -7,7 +7,6 @@
 		<deps>
 			<relation type="before">
 				<plugin>blur</plugin>
-				<plugin>video</plugin>
 			</relation>
 		</deps>
 		<display>
