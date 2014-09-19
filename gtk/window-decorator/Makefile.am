@@ -17,7 +17,7 @@ gtk_window_decorator_SOURCES	  = \
 gtk_window_decorator_program = gtk-window-decorator
 endif
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	-I$(top_srcdir)/include            \
 	@GTK_WINDOW_DECORATOR_CFLAGS@      \
 	@METACITY_CFLAGS@                  \

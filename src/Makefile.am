@@ -1,4 +1,4 @@
-INCLUDES =			     \
+AM_CPPFLAGS =			     \
 	@FUSILLI_CFLAGS@		     \
 	@GL_CFLAGS@		     \
 	-I$(top_srcdir)/include	     \

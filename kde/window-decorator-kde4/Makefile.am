@@ -37,7 +37,7 @@ dist_kde4_window_decorator_SOURCES = \
 
 kde4_window_decorator_program = kde4-window-decorator
 
-INCLUDES = -I$(top_srcdir)/include -I$(top_builddir)/include @KDE4_WINDOW_DECORATOR_CFLAGS@ @KDE4_CFLAGS@
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include @KDE4_WINDOW_DECORATOR_CFLAGS@ @KDE4_CFLAGS@
 
 bin_PROGRAMS = $(kde4_window_decorator_program)
 

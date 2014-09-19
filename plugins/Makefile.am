@@ -108,7 +108,7 @@ libinotify_la_SOURCES = inotify.c
 libinotify_module = libinotify.la
 endif
 
-INCLUDES =					\
+AM_CPPFLAGS =					\
 	@FUSILLI_CFLAGS@				\
 	@LIBPNG_CFLAGS@				\
 	@LIBRSVG_CFLAGS@			\
