@@ -62,9 +62,6 @@ libvideo_la_LDFLAGS = -module -avoid-version -no-undefined
 libvideo_la_LIBADD = $(top_builddir)/libdecoration/libdecoration.la
 libvideo_la_SOURCES = video.c
 
-libini_la_LDFLAGS = -module -avoid-version -no-undefined
-libini_la_SOURCES = ini.c
-
 libobs_la_LDFLAGS = -module -avoid-version -no-undefined
 libobs_la_SOURCES = obs.c
 
@@ -150,7 +147,6 @@ module_LTLIBRARIES =		\
 	libblur.la		\
 	libregex.la		\
 	libvideo.la		\
-	libini.la		\
 	libobs.la		\
 	libcommands.la		\
 	libgnomecompat.la	\

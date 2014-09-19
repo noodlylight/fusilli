@@ -11,7 +11,6 @@ xml_in_files =         \
 	fade.xml.in        \
 	glib.xml.in        \
 	gnomecompat.xml.in \
-	ini.xml.in         \
 	inotify.xml.in     \
 	minimize.xml.in    \
 	move.xml.in        \
