@@ -10,7 +10,7 @@ xml_in_files =         \
 	decoration.xml.in  \
 	fade.xml.in        \
 	glib.xml.in        \
-	gnomecompat.xml.in \
+	matecompat.xml.in  \
 	inotify.xml.in     \
 	minimize.xml.in    \
 	move.xml.in        \
