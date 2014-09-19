@@ -1,25 +1,25 @@
 xmldir       = $(metadatadir)
-xml_in_files =		   \
-	core.xml.in	   \
+xml_in_files =         \
+	core.xml.in        \
 	annotate.xml.in    \
-	blur.xml.in	   \
-	clone.xml.in	   \
-	commands.xml.in	   \
-	cube.xml.in	   \
-	dbus.xml.in	   \
+	blur.xml.in        \
+	clone.xml.in       \
+	commands.xml.in    \
+	cube.xml.in        \
+	dbus.xml.in        \
 	decoration.xml.in  \
-	fade.xml.in	   \
-	glib.xml.in	   \
+	fade.xml.in        \
+	glib.xml.in        \
 	gnomecompat.xml.in \
-	ini.xml.in	   \
-	inotify.xml.in	   \
-	minimize.xml.in	   \
-	move.xml.in	   \
-	obs.xml.in	   \
-	place.xml.in	   \
-	png.xml.in	   \
-	regex.xml.in	   \
-	resize.xml.in	   \
+	ini.xml.in         \
+	inotify.xml.in     \
+	minimize.xml.in    \
+	move.xml.in        \
+	obs.xml.in         \
+	place.xml.in       \
+	png.xml.in         \
+	regex.xml.in       \
+	resize.xml.in      \
 	rotate.xml.in      \
 	scale.xml.in       \
 	screenshot.xml.in  \
@@ -40,10 +40,10 @@ core.xml.in: core.xml.in.in Makefile
 
 @INTLTOOL_XML_RULE@
 
-EXTRA_DIST =		    \
+EXTRA_DIST =            \
 	$(xml_in_files)     \
 	core.xml.in.in
 
-DISTCLEANFILES =	    \
+DISTCLEANFILES =        \
 	$(xml_files)        \
 	core.xml.in

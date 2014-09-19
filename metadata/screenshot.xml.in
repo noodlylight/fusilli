@@ -1,29 +1,29 @@
 <fusilli>
-    <plugin name="screenshot">
-	<_short>Screenshot</_short>
-	<_long>Screenshot plugin</_long>
-	<category>Extras</category>
-	<deps>
-	    <requirement>
-		<feature>imageext:png</feature>
-	    </requirement>
-	</deps>
-	<display>
-	    <option name="initiate_button" type="button">
-		<_short>Initiate</_short>
-		<_long>Initiate rectangle screenshot</_long>
-		<default>&lt;Super&gt;Button1</default>
-	    </option>
-	    <option name="directory" type="string">
-		<_short>Directory</_short>
-		<_long>Put screenshot images in this directory. If empty, the desktop directory will be used.</_long>
-		<default></default>
-	    </option>
-	    <option name="launch_app" type="string">
-		<_short>Launch Application</_short>
-		<_long>Automatically open screenshot in this application</_long>
-		<default></default>
-	    </option>
-	</display>
-    </plugin>
+	<plugin name="screenshot">
+		<_short>Screenshot</_short>
+		<_long>Screenshot plugin</_long>
+		<category>Extras</category>
+		<deps>
+			<requirement>
+				<feature>imageext:png</feature>
+			</requirement>
+		</deps>
+		<display>
+			<option name="initiate_button" type="button">
+				<_short>Initiate</_short>
+				<_long>Initiate rectangle screenshot</_long>
+				<default>&lt;Super&gt;Button1</default>
+			</option>
+			<option name="directory" type="string">
+				<_short>Directory</_short>
+				<_long>Put screenshot images in this directory. If empty, the desktop directory will be used.</_long>
+				<default></default>
+			</option>
+			<option name="launch_app" type="string">
+				<_short>Launch Application</_short>
+				<_long>Automatically open screenshot in this application</_long>
+				<default></default>
+			</option>
+		</display>
+	</plugin>
 </fusilli>

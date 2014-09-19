@@ -1,7 +1,7 @@
 <fusilli>
-    <plugin name="regex">
-	<_short>Regex Matching</_short>
-	<_long>Regex window matching</_long>
-	<category>Utility</category>
-    </plugin>
+	<plugin name="regex">
+		<_short>Regex Matching</_short>
+		<_long>Regex window matching</_long>
+		<category>Utility</category>
+	</plugin>
 </fusilli>

@@ -1,92 +1,92 @@
 <fusilli>
-    <plugin name="fade">
-	<_short>Fading Windows</_short>
-	<_long>Fade in windows when mapped and fade out windows when unmapped</_long>
-	<category>Effects</category>
-	<deps>
-	    <requirement>
-		<plugin>regex</plugin>
-	    </requirement>
-	    <relation type="after">
-		<plugin>regex</plugin>
-	    </relation>
-	    <relation type="before">
-		<plugin>cube</plugin>
-		<plugin>scale</plugin>
-		<plugin>move</plugin>
-		<plugin>switcher</plugin>
-	    </relation>
-	</deps>
-	<screen>
-	    <option name="fade_mode" type="int">
-		<_short>Fade Mode</_short>
-		<_long>Window fade mode</_long>
-		<min>0</min>
-		<max>1</max>
-		<default>0</default>
-		<desc>
-		    <value>0</value>
-		    <_name>Constant speed</_name>
-		</desc>
-		<desc>
-		    <value>1</value>
-		    <_name>Constant time</_name>
-		</desc>
-	    </option>
-	    <option name="fade_speed" type="float">
-		<_short>Fade Speed</_short>
-		<_long>Window fade speed in "Constant speed" mode</_long>
-		<default>5.0</default>
-		<min>0.1</min>
-		<max>25.0</max>
-		<precision>0.1</precision>
-	    </option>
-	    <option name="fade_time" type="int">
-		<_short>Fade Time</_short>
-		<_long>Window fade time (in ms) in "Constant time" mode</_long>
-		<default>100</default>
-		<min>1</min>
-		<max>5000</max>
-	    </option>
-	    <option name="window_match" type="match">
-		<_short>Fade windows</_short>
-		<_long>Windows that should be fading</_long>
-		<default>any</default>
-	    </option>
-	    <option name="visual_bell" type="bool">
-		<_short>Visual Bell</_short>
-		<_long>Fade effect on system beep</_long>
-		<default>false</default>
-	    </option>
-	    <option name="fullscreen_visual_bell" type="bool">
-		<_short>Fullscreen Visual Bell</_short>
-		<_long>Fullscreen fade effect on system beep</_long>
-		<default>false</default>
-	    </option>
-	    <option name="minimize_open_close" type="bool">
-		<_short>Fade On Minimize/Open/Close</_short>
-		<_long>Fade effect on minimize/open/close window events</_long>
-		<default>true</default>
-	    </option>
-	    <option name="dim_unresponsive" type="bool">
-		<_short>Dim Unresponsive Windows</_short>
-		<_long>Dim windows that are not responding to window manager requests</_long>
-		<default>true</default>
-	    </option>
-	    <option name="unresponsive_brightness" type="int">
-		<_short>Unresponsive Window Brightness</_short>
-		<_long>Brightness (in %) of unresponsive windows</_long>
-		<min>0</min>
-		<max>100</max>
-		<default>65</default>
-	    </option>
-	    <option name="unresponsive_saturation" type="int">
-		<_short>Unresponsive Window Saturation</_short>
-		<_long>Saturation (in %) of unresponsive windows</_long>
-		<min>0</min>
-		<max>100</max>
-		<default>0</default>
-	    </option>
-	</screen>
-    </plugin>
+	<plugin name="fade">
+		<_short>Fading Windows</_short>
+		<_long>Fade in windows when mapped and fade out windows when unmapped</_long>
+		<category>Effects</category>
+		<deps>
+			<requirement>
+				<plugin>regex</plugin>
+			</requirement>
+			<relation type="after">
+				<plugin>regex</plugin>
+			</relation>
+			<relation type="before">
+				<plugin>cube</plugin>
+				<plugin>scale</plugin>
+				<plugin>move</plugin>
+				<plugin>switcher</plugin>
+			</relation>
+		</deps>
+		<screen>
+			<option name="fade_mode" type="int">
+				<_short>Fade Mode</_short>
+				<_long>Window fade mode</_long>
+				<min>0</min>
+				<max>1</max>
+				<default>0</default>
+				<desc>
+					<value>0</value>
+					<_name>Constant speed</_name>
+				</desc>
+				<desc>
+					<value>1</value>
+					<_name>Constant time</_name>
+				</desc>
+			</option>
+			<option name="fade_speed" type="float">
+				<_short>Fade Speed</_short>
+				<_long>Window fade speed in "Constant speed" mode</_long>
+				<default>5.0</default>
+				<min>0.1</min>
+				<max>25.0</max>
+				<precision>0.1</precision>
+			</option>
+			<option name="fade_time" type="int">
+				<_short>Fade Time</_short>
+				<_long>Window fade time (in ms) in "Constant time" mode</_long>
+				<default>100</default>
+				<min>1</min>
+				<max>5000</max>
+			</option>
+			<option name="window_match" type="match">
+				<_short>Fade windows</_short>
+				<_long>Windows that should be fading</_long>
+				<default>any</default>
+			</option>
+			<option name="visual_bell" type="bool">
+				<_short>Visual Bell</_short>
+				<_long>Fade effect on system beep</_long>
+				<default>false</default>
+			</option>
+			<option name="fullscreen_visual_bell" type="bool">
+				<_short>Fullscreen Visual Bell</_short>
+				<_long>Fullscreen fade effect on system beep</_long>
+				<default>false</default>
+			</option>
+			<option name="minimize_open_close" type="bool">
+				<_short>Fade On Minimize/Open/Close</_short>
+				<_long>Fade effect on minimize/open/close window events</_long>
+				<default>true</default>
+			</option>
+			<option name="dim_unresponsive" type="bool">
+				<_short>Dim Unresponsive Windows</_short>
+				<_long>Dim windows that are not responding to window manager requests</_long>
+				<default>true</default>
+			</option>
+			<option name="unresponsive_brightness" type="int">
+				<_short>Unresponsive Window Brightness</_short>
+				<_long>Brightness (in %) of unresponsive windows</_long>
+				<min>0</min>
+				<max>100</max>
+				<default>65</default>
+			</option>
+			<option name="unresponsive_saturation" type="int">
+				<_short>Unresponsive Window Saturation</_short>
+				<_long>Saturation (in %) of unresponsive windows</_long>
+				<min>0</min>
+				<max>100</max>
+				<default>0</default>
+			</option>
+		</screen>
+	</plugin>
 </fusilli>

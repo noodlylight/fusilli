@@ -1,7 +1,7 @@
 <fusilli>
-    <plugin name="glib">
-	<_short>GLib</_short>
-	<_long>GLib main loop support</_long>
-	<category>Utility</category>
-    </plugin>
+	<plugin name="glib">
+		<_short>GLib</_short>
+		<_long>GLib main loop support</_long>
+		<category>Utility</category>
+	</plugin>
 </fusilli>
