@@ -70,6 +70,9 @@ class Window: public QObject, public KDecorationBridgeUnstable {
 		virtual bool isCloseable (void) const;
 		virtual bool isMaximizable (void) const;
 		virtual MaximizeMode maximizeMode (void) const;
+#if KDE_IS_VERSION(4,10,90)
+		virtual QuickTileMode quickTileMode (void) const;
+#endif
 		virtual bool isMinimizable (void) const;
 		virtual bool providesContextHelp (void) const;
 		virtual int desktop (void) const;

@@ -216,6 +216,14 @@ KWD::Window::isMaximizable (void) const
 	return wInfo.actionSupported (NET::ActionMax);
 }
 
+#if KDE_IS_VERSION(4,10,90)
+KDecoration::QuickTileMode
+KWD::Window::quickTileMode (void) const
+{
+	return QuickTileNone;
+}
+#endif
+
 KDecoration::MaximizeMode
 KWD::Window::maximizeMode (void) const
 {
