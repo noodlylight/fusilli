@@ -23,14 +23,14 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_H
-#define _COMPIZ_H
+#ifndef _FUSILLI_H
+#define _FUSILLI_H
 
 #include <libxml/parser.h>
 
-#include <compiz-common.h>
+#include <fusilli-common.h>
 
-COMPIZ_BEGIN_DECLS
+FUSILLI_BEGIN_DECLS
 
 typedef int CompBool;
 typedef int CompTimeoutHandle;
@@ -175,6 +175,6 @@ compReadXmlChunk (const char *src,
                   int        length);
 
 
-COMPIZ_END_DECLS
+FUSILLI_END_DECLS
 
 #endif

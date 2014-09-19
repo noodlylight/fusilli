@@ -31,9 +31,9 @@
 #include <libxml/xpathInternals.h>
 #include <locale.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
-#define HOME_METADATADIR ".compiz/metadata"
+#define HOME_METADATADIR ".fusilli/metadata"
 #define EXTENSION ".xml"
 
 Bool
@@ -252,7 +252,7 @@ readPluginXmlCallback (void *context,
 	int       offset = ctx->offset;
 	int       i, j;
 
-	i = compReadXmlChunk ("<compiz><plugin name=\"", &offset, buffer, length);
+	i = compReadXmlChunk ("<fusilli><plugin name=\"", &offset, buffer, length);
 	i += compReadXmlChunk (ctx->name, &offset, buffer + i, length - i);
 	i += compReadXmlChunk ("\">", &offset, buffer + i, length - i);
 
@@ -282,7 +282,7 @@ readPluginXmlCallback (void *context,
 		i += compReadXmlChunk ("</screen>", &offset, buffer + i, length - i);
 	}
 
-	i += compReadXmlChunk ("</plugin></compiz>", &offset, buffer + i,
+	i += compReadXmlChunk ("</plugin></fusilli>", &offset, buffer + i,
 	                       length - i);
 
 	if (!offset && length > i)
@@ -1112,7 +1112,7 @@ compInitScreenOptionFromMetadata (CompScreen   *s,
 {
 	char str[1024];
 
-	sprintf (str, "/compiz/%s/screen//option[@name=\"%s\"]", m->path, name);
+	sprintf (str, "/fusilli/%s/screen//option[@name=\"%s\"]", m->path, name);
 
 	return initOptionFromMetadataPath (s->display, m, o, BAD_CAST str);
 }
@@ -1207,7 +1207,7 @@ compInitDisplayOptionFromMetadata (CompDisplay  *d,
 {
 	char str[1024];
 
-	sprintf (str, "/compiz/%s/display//option[@name=\"%s\"]", m->path, name);
+	sprintf (str, "/fusilli/%s/display//option[@name=\"%s\"]", m->path, name);
 
 	return initOptionFromMetadataPath (d, m, o, BAD_CAST str);
 }
@@ -1337,7 +1337,7 @@ compGetShortPluginDescription (CompMetadata *m)
 {
 	char str[1024];
 
-	sprintf (str, "/compiz/%s/short/child::text()", m->path);
+	sprintf (str, "/fusilli/%s/short/child::text()", m->path);
 
 	return compGetStringFromMetadataPath (m, str);
 }
@@ -1347,7 +1347,7 @@ compGetLongPluginDescription (CompMetadata *m)
 {
 	char str[1024];
 
-	sprintf (str, "/compiz/%s/long/child::text()", m->path);
+	sprintf (str, "/fusilli/%s/long/child::text()", m->path);
 
 	return compGetStringFromMetadataPath (m, str);
 }
@@ -1358,7 +1358,7 @@ compGetShortScreenOptionDescription (CompMetadata *m,
 {
 	char str[1024];
 
-	sprintf (str, "/compiz/%s/screen//option[@name=\"%s\"]/short/child::text()",
+	sprintf (str, "/fusilli/%s/screen//option[@name=\"%s\"]/short/child::text()",
 			 m->path, o->name);
 
 	return compGetStringFromMetadataPath (m, str);
@@ -1370,7 +1370,7 @@ compGetLongScreenOptionDescription (CompMetadata *m,
 {
 	char str[1024];
 
-	sprintf (str, "/compiz/%s/screen//option[@name=\"%s\"]/long/child::text()",
+	sprintf (str, "/fusilli/%s/screen//option[@name=\"%s\"]/long/child::text()",
 			 m->path, o->name);
 
 	return compGetStringFromMetadataPath (m, str);
@@ -1384,7 +1384,7 @@ compGetShortDisplayOptionDescription (CompMetadata *m,
 	char str[1024];
 
 	sprintf (str,
-	         "/compiz/%s/display//option[@name=\"%s\"]/short/child::text()",
+	         "/fusilli/%s/display//option[@name=\"%s\"]/short/child::text()",
 	         m->path, o->name);
 
 	return compGetStringFromMetadataPath (m, str);
@@ -1397,7 +1397,7 @@ compGetLongDisplayOptionDescription (CompMetadata *m,
 {
 	char str[1024];
 
-	sprintf (str, "/compiz/%s/display//option[@name=\"%s\"]/long/child::text()",
+	sprintf (str, "/fusilli/%s/display//option[@name=\"%s\"]/long/child::text()",
 	          m->path, o->name);
 
 	return compGetStringFromMetadataPath (m, str);

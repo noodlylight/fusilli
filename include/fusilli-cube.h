@@ -23,12 +23,12 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_CUBE_H
-#define _COMPIZ_CUBE_H
+#ifndef _FUSILLI_CUBE_H
+#define _FUSILLI_CUBE_H
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
-COMPIZ_BEGIN_DECLS
+FUSILLI_BEGIN_DECLS
 
 #define CUBE_ABIVERSION 20080424
 
@@ -225,6 +225,6 @@ typedef struct _CubeScreen {
 #define CUBE_SCREEN(s) \
         CubeScreen *cs = GET_CUBE_SCREEN (s, GET_CUBE_DISPLAY (s->display))
 
-COMPIZ_END_DECLS
+FUSILLI_END_DECLS
 
 #endif

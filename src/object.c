@@ -23,7 +23,7 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 typedef CompBool (*AllocObjectPrivateIndexProc) (CompObject *parent);
 

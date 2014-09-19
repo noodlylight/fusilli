@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="svg">
 	<_short>Svg</_short>
 	<_long>Svg image loader</_long>
@@ -6,4 +6,4 @@
 	<feature>imageext:svg</feature>
 	<feature>imagemime:image/svg+xml</feature>
     </plugin>
-</compiz>
+</fusilli>

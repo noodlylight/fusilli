@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="commands">
 	<_short>Commands</_short>
 	<_long>Assigns bindings to arbitrary commands</_long>
@@ -443,4 +443,4 @@
 	    </group>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

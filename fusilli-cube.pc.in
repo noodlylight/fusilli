@@ -3,11 +3,11 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: compiz-cube
-Description: Cube plugin for compiz
+Name: fusilli-cube
+Description: Cube plugin for fusilli
 Version: @VERSION@
 
-Requires: compiz
+Requires: fusilli
 Libs:
-Cflags: @COMPIZ_CFLAGS@ @GL_CFLAGS@ -I${includedir}/compiz
+Cflags: @FUSILLI_CFLAGS@ @GL_CFLAGS@ -I${includedir}/fusilli
 

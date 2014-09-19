@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="video">
 	<_short>Video Playback</_short>
 	<_long>Video playback</_long>
@@ -12,4 +12,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

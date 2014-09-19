@@ -1,7 +1,7 @@
-<compiz>
+<fusilli>
     <plugin name="gnomecompat">
 	<_short>Gnome Compatibility</_short>
-	<_long>Options that keep Compiz compatible to the Gnome desktop environment</_long>
+	<_long>Options that keep Fusilli compatible to the Gnome desktop environment</_long>
 	<category>General</category>
 	<display>
 	    <option name="main_menu_key" type="key">
@@ -49,4 +49,4 @@
 	    </group>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

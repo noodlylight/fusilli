@@ -31,12 +31,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 #define DEFAULT_PLUGINS     "ini,inotify,png,decoration,move,resize,switcher"
 #define NUM_DEFAULT_PLUGINS 7
 #define MAX_OPTION_LENGTH   1024
-#define HOME_OPTIONDIR     ".compiz/options"
+#define HOME_OPTIONDIR     ".fusilli/options"
 #define CORE_NAME           "general"
 #define FILE_SUFFIX         ".conf"
 

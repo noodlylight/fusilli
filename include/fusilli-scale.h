@@ -23,12 +23,12 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_SCALE_H
-#define _COMPIZ_SCALE_H
+#ifndef _FUSILLI_SCALE_H
+#define _FUSILLI_SCALE_H
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
-COMPIZ_BEGIN_DECLS
+FUSILLI_BEGIN_DECLS
 
 #define SCALE_ABIVERSION 20081007
 
@@ -206,6 +206,6 @@ typedef struct _ScaleWindow {
                           GET_SCALE_SCREEN  (w->screen, \
                           GET_SCALE_DISPLAY (w->screen->display)))
 
-COMPIZ_END_DECLS
+FUSILLI_END_DECLS
 
 #endif

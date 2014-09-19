@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="move">
 	<_short>Move Window</_short>
 	<_long>Move window</_long>
@@ -38,4 +38,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

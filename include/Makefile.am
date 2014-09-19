@@ -1,13 +1,13 @@
-compizincludedir = $(includedir)/compiz
-compizinclude_HEADERS = \
-	compiz.h	\
-	compiz-plugin.h	\
-	compiz-core.h	\
-	compiz-cube.h   \
-	compiz-scale.h	\
+fusilliincludedir = $(includedir)/fusilli
+fusilliinclude_HEADERS = \
+	fusilli.h	\
+	fusilli-plugin.h	\
+	fusilli-core.h	\
+	fusilli-cube.h   \
+	fusilli-scale.h	\
 	decoration.h
 
-nodist_compizinclude_HEADERS = \
-	compiz-common.h
+nodist_fusilliinclude_HEADERS = \
+	fusilli-common.h
 
-DISTCLEANFILES = compiz-common.h
+DISTCLEANFILES = fusilli-common.h

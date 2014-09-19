@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="clone">
 	<_short>Clone Output</_short>
 	<_long>Output clone handler</_long>
@@ -11,4 +11,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

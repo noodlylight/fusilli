@@ -27,7 +27,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 ScreenPaintAttrib defaultScreenPaintAttrib = {
 	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -DEFAULT_Z_CAMERA

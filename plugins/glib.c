@@ -25,7 +25,7 @@
 
 #include <glib.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata glibMetadata;
 
@@ -208,7 +208,7 @@ glibInitDisplay (CompPlugin  *p,
 	gd->fdsSize       = 0;
 	gd->timeoutHandle = 0;
 	gd->wakeupTimeoutHandle = 0;
-	gd->notifyAtom    = XInternAtom (d->display, "_COMPIZ_GLIB_NOTIFY", 0);
+	gd->notifyAtom    = XInternAtom (d->display, "_FUSILLI_GLIB_NOTIFY", 0);
 
 	WRAP (gd, d, handleEvent, glibHandleEvent);
 

@@ -29,14 +29,14 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 #include <decoration.h>
 
 #include <X11/Xatom.h>
 #include <X11/extensions/shape.h>
 
 /*
- * compiz composited video
+ * fusilli composited video
  *
  * supported image formats:
  *
@@ -1073,14 +1073,14 @@ videoInitDisplay (CompPlugin  *p,
 	vd->textures = 0;
 
 	vd->videoAtom          =
-	    XInternAtom (d->display, "_COMPIZ_VIDEO", 0);
+	    XInternAtom (d->display, "_FUSILLI_VIDEO", 0);
 	vd->videoSupportedAtom =
-	    XInternAtom (d->display, "_COMPIZ_VIDEO_SUPPORTED", 0);
+	    XInternAtom (d->display, "_FUSILLI_VIDEO_SUPPORTED", 0);
 
 	vd->videoImageFormatAtom[IMAGE_FORMAT_RGB]  =
-	    XInternAtom (d->display, "_COMPIZ_VIDEO_IMAGE_FORMAT_RGB", 0);
+	    XInternAtom (d->display, "_FUSILLI_VIDEO_IMAGE_FORMAT_RGB", 0);
 	vd->videoImageFormatAtom[IMAGE_FORMAT_YV12] =
-	    XInternAtom (d->display, "_COMPIZ_VIDEO_IMAGE_FORMAT_YV12", 0);
+	    XInternAtom (d->display, "_FUSILLI_VIDEO_IMAGE_FORMAT_YV12", 0);
 
 	WRAP (vd, d, handleEvent, videoHandleEvent);
 

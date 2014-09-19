@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="cube">
 	<_short>Desktop Cube</_short>
 	<_long>Place windows on cube</_long>
@@ -182,4 +182,4 @@
 	    </group>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>

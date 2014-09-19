@@ -30,7 +30,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 #include <decoration.h>
 
 #include <X11/Xatom.h>
@@ -343,7 +343,7 @@ switchActivateEvent (CompScreen *s,
 	o[1].name = "active";
 	o[1].value.b = activating;
 
-	(*s->display->handleCompizEvent) (s->display, "switcher", "activate", o, 2);
+	(*s->display->handleFusilliEvent) (s->display, "switcher", "activate", o, 2);
 }
 
 static int
@@ -635,7 +635,7 @@ switchInitiate (CompScreen            *s,
 		xwmh.flags = InputHint;
 		xwmh.input = 0;
 
-		xch.res_name  = "compiz";
+		xch.res_name  = "fusilli";
 		xch.res_class = "switcher-window";
 
 		attr.background_pixel = 0;

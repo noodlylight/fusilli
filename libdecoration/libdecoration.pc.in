@@ -9,4 +9,4 @@ Version: @VERSION@
 
 Requires: @DECORATION_REQUIRES@
 Libs: @DECORATION_LIBS@ -L${libdir} -ldecoration
-Cflags: @DECORATION_CFLAGS@ -I${includedir}/compiz
+Cflags: @DECORATION_CFLAGS@ -I${includedir}/fusilli

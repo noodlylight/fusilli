@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="place">
 	<_short>Place Windows</_short>
 	<_long>Place windows at appropriate positions when mapped</_long>
@@ -158,4 +158,4 @@
 	    </group>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>

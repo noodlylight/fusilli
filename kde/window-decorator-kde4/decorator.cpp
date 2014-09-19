@@ -54,10 +54,10 @@
 #define SHADOW_COLOR_GREEN 0x0000
 #define SHADOW_COLOR_BLUE  0x0000
 
-#define DBUS_DEST           "org.freedesktop.compiz"
-#define DBUS_SIGNAL_PATH    "/org/freedesktop/compiz/decoration/display"
-#define DBUS_QUERY_PATH     "/org/freedesktop/compiz/decoration/allscreens"
-#define DBUS_INTERFACE      "org.freedesktop.compiz"
+#define DBUS_DEST           "org.freedesktop.fusilli"
+#define DBUS_SIGNAL_PATH    "/org/freedesktop/fusilli/decoration/display"
+#define DBUS_QUERY_PATH     "/org/freedesktop/fusilli/decoration/allscreens"
+#define DBUS_INTERFACE      "org.freedesktop.fusilli"
 #define DBUS_METHOD_GET     "get"
 #define DBUS_SIGNAL_CHANGED "changed"
 
@@ -247,50 +247,50 @@ KWD::Decorator::enableDecorations (Time timestamp)
 void
 KWD::Decorator::updateAllShadowOptions (void)
 {
-	QDBusInterface       *compiz;
+	QDBusInterface       *fusilli;
 	QDBusReply<QString>  stringReply;
 	QDBusReply<double>   doubleReply;
 	QDBusReply<int>      intReply;
 	int                  c[4];
 
-	compiz = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_radius",
+	fusilli = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_radius",
 	                             DBUS_INTERFACE);
-	doubleReply = compiz->call (DBUS_METHOD_GET);
-	delete compiz;
+	doubleReply = fusilli->call (DBUS_METHOD_GET);
+	delete fusilli;
 
 	if (doubleReply.isValid ())
 		mShadowOptions.shadow_radius = doubleReply.value ();
 
-	compiz = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_opacity",
+	fusilli = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_opacity",
 	                             DBUS_INTERFACE);
-	doubleReply = compiz->call (DBUS_METHOD_GET);
-	delete compiz;
+	doubleReply = fusilli->call (DBUS_METHOD_GET);
+	delete fusilli;
 
 	if (doubleReply.isValid ())
 		mShadowOptions.shadow_opacity = doubleReply.value ();
 
-	compiz = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_x_offset",
+	fusilli = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_x_offset",
 	                             DBUS_INTERFACE);
-	intReply = compiz->call (DBUS_METHOD_GET);
-	delete compiz;
+	intReply = fusilli->call (DBUS_METHOD_GET);
+	delete fusilli;
 
 	if (intReply.isValid ())
 		mShadowOptions.shadow_offset_x = intReply.value ();
 
-	compiz = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_y_offset",
+	fusilli = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_y_offset",
 	                             DBUS_INTERFACE);
-	intReply = compiz->call (DBUS_METHOD_GET);
-	delete compiz;
+	intReply = fusilli->call (DBUS_METHOD_GET);
+	delete fusilli;
 
 	if (intReply.isValid ())
 		mShadowOptions.shadow_offset_y = intReply.value ();
 	else
 		mShadowOptions.shadow_offset_y = SHADOW_OFFSET_Y;
 
-	compiz = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_color",
+	fusilli = new QDBusInterface (DBUS_DEST, DBUS_QUERY_PATH "/shadow_color",
 	                             DBUS_INTERFACE);
-	stringReply = compiz->call (DBUS_METHOD_GET);
-	delete compiz;
+	stringReply = fusilli->call (DBUS_METHOD_GET);
+	delete fusilli;
 
 	if (stringReply.isValid () &&
 	    sscanf (stringReply.value ().toAscii ().data (), "#%2x%2x%2x%2x",
@@ -528,7 +528,7 @@ KWD::Decorator::x11EventFilter (XEvent *xevent)
 			QApplication::x11ProcessEvent ((XEvent *) &xbe2);
 
 			/* We won't get a button release event, because of the screengrabs
-			   in compiz */
+			   in fusilli */
 			if (client->getFakeRelease () && xevent->type == ButtonPress)
 			{
 				xbe2.type = ButtonRelease;

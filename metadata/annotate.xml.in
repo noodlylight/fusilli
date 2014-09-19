@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="annotate">
 	<_short>Annotate</_short>
 	<_long>Annotate plugin</_long>
@@ -60,4 +60,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

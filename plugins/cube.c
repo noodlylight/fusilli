@@ -30,7 +30,7 @@
 #include <X11/Xatom.h>
 #include <X11/Xproto.h>
 
-#include <compiz-cube.h>
+#include <fusilli-cube.h>
 
 static CompMetadata cubeMetadata;
 
@@ -984,7 +984,7 @@ cubeMoveViewportAndPaint (CompScreen              *s,
 			dView--;
 		}
 
-		/* translate back to compiz output */
+		/* translate back to fusilli output */
 		output = cs->srcOutput = cs->output[cubeOutput];
 
 		setWindowPaintOffset (s, -dView * s->width, 0);

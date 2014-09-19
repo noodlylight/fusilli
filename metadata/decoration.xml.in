@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="decoration">
 	<_short>Window Decoration</_short>
 	<_long>Window decorations</_long>
@@ -68,4 +68,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

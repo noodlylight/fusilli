@@ -23,12 +23,12 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_PLUGIN_H
-#define _COMPIZ_PLUGIN_H
+#ifndef _FUSILLI_PLUGIN_H
+#define _FUSILLI_PLUGIN_H
 
-#include <compiz.h>
+#include <fusilli.h>
 
-COMPIZ_BEGIN_DECLS
+FUSILLI_BEGIN_DECLS
 
 typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
 typedef void (*FiniPluginProc) (CompPlugin *plugin);
@@ -66,6 +66,6 @@ typedef struct _CompPluginVTable {
 CompPluginVTable *
 getCompPluginInfo20070830 (void);
 
-COMPIZ_END_DECLS
+FUSILLI_END_DECLS
 
 #endif

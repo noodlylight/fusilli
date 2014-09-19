@@ -85,37 +85,37 @@
 
 #define METACITY_GCONF_DIR "/apps/metacity/general"
 
-#define COMPIZ_USE_SYSTEM_FONT_KEY \
+#define FUSILLI_USE_SYSTEM_FONT_KEY \
         METACITY_GCONF_DIR "/titlebar_uses_system_font"
 
-#define COMPIZ_TITLEBAR_FONT_KEY \
+#define FUSILLI_TITLEBAR_FONT_KEY \
         METACITY_GCONF_DIR "/titlebar_font"
 
-#define COMPIZ_DOUBLE_CLICK_TITLEBAR_KEY \
+#define FUSILLI_DOUBLE_CLICK_TITLEBAR_KEY \
         METACITY_GCONF_DIR "/action_double_click_titlebar"
 
-#define COMPIZ_MIDDLE_CLICK_TITLEBAR_KEY \
+#define FUSILLI_MIDDLE_CLICK_TITLEBAR_KEY \
         METACITY_GCONF_DIR "/action_middle_click_titlebar"
 
-#define COMPIZ_RIGHT_CLICK_TITLEBAR_KEY \
+#define FUSILLI_RIGHT_CLICK_TITLEBAR_KEY \
         METACITY_GCONF_DIR "/action_right_click_titlebar"
 
-#define COMPIZ_GCONF_DIR1 "/apps/compiz/plugins/decoration/allscreens/options"
+#define FUSILLI_GCONF_DIR1 "/apps/fusilli/plugins/decoration/allscreens/options"
 
-#define COMPIZ_SHADOW_RADIUS_KEY \
-        COMPIZ_GCONF_DIR1 "/shadow_radius"
+#define FUSILLI_SHADOW_RADIUS_KEY \
+        FUSILLI_GCONF_DIR1 "/shadow_radius"
 
-#define COMPIZ_SHADOW_OPACITY_KEY \
-        COMPIZ_GCONF_DIR1 "/shadow_opacity"
+#define FUSILLI_SHADOW_OPACITY_KEY \
+        FUSILLI_GCONF_DIR1 "/shadow_opacity"
 
-#define COMPIZ_SHADOW_COLOR_KEY \
-        COMPIZ_GCONF_DIR1 "/shadow_color"
+#define FUSILLI_SHADOW_COLOR_KEY \
+        FUSILLI_GCONF_DIR1 "/shadow_color"
 
-#define COMPIZ_SHADOW_OFFSET_X_KEY \
-        COMPIZ_GCONF_DIR1 "/shadow_x_offset"
+#define FUSILLI_SHADOW_OFFSET_X_KEY \
+        FUSILLI_GCONF_DIR1 "/shadow_x_offset"
 
-#define COMPIZ_SHADOW_OFFSET_Y_KEY \
-        COMPIZ_GCONF_DIR1 "/shadow_y_offset"
+#define FUSILLI_SHADOW_OFFSET_Y_KEY \
+        FUSILLI_GCONF_DIR1 "/shadow_y_offset"
 
 #define META_THEME_KEY \
         METACITY_GCONF_DIR "/theme"
@@ -146,9 +146,9 @@
 #define WHEEL_ACTION_KEY \
         GCONF_DIR "/mouse_wheel_action"
 
-#define DBUS_DEST       "org.freedesktop.compiz"
-#define DBUS_PATH       "/org/freedesktop/compiz/decoration/allscreens"
-#define DBUS_INTERFACE  "org.freedesktop.compiz"
+#define DBUS_DEST       "org.freedesktop.fusilli"
+#define DBUS_PATH       "/org/freedesktop/fusilli/decoration/allscreens"
+#define DBUS_INTERFACE  "org.freedesktop.fusilli"
 #define DBUS_METHOD_GET "get"
 
 #define STROKE_ALPHA 0.6
@@ -5760,7 +5760,7 @@ titlebar_font_changed (GConfClient *client)
 	gchar *str;
 
 	str = gconf_client_get_string (client,
-	                               COMPIZ_TITLEBAR_FONT_KEY,
+	                               FUSILLI_TITLEBAR_FONT_KEY,
 	                               NULL);
 	if (!str)
 		str = g_strdup ("Sans Bold 12");
@@ -6211,7 +6211,7 @@ shadow_settings_changed (GConfClient *client)
 	gboolean changed = FALSE;
 
 	radius = gconf_client_get_float (client,
-	                                 COMPIZ_SHADOW_RADIUS_KEY,
+	                                 FUSILLI_SHADOW_RADIUS_KEY,
 	                                 NULL);
 	radius = MAX (0.0, MIN (radius, 48.0));
 	if (shadow_radius != radius)
@@ -6221,7 +6221,7 @@ shadow_settings_changed (GConfClient *client)
 	}
 
 	opacity = gconf_client_get_float (client,
-	                                  COMPIZ_SHADOW_OPACITY_KEY,
+	                                  FUSILLI_SHADOW_OPACITY_KEY,
 	                                  NULL);
 	opacity = MAX (0.0, MIN (opacity, 6.0));
 	if (shadow_opacity != opacity)
@@ -6231,7 +6231,7 @@ shadow_settings_changed (GConfClient *client)
 	}
 
 	color = gconf_client_get_string (client,
-	                                 COMPIZ_SHADOW_COLOR_KEY,
+	                                 FUSILLI_SHADOW_COLOR_KEY,
 	                                 NULL);
 	if (color)
 	{
@@ -6249,7 +6249,7 @@ shadow_settings_changed (GConfClient *client)
 	}
 
 	offset = gconf_client_get_int (client,
-	                               COMPIZ_SHADOW_OFFSET_X_KEY,
+	                               FUSILLI_SHADOW_OFFSET_X_KEY,
 	                               NULL);
 	offset = MAX (-16, MIN (offset, 16));
 	if (shadow_offset_x != offset)
@@ -6259,7 +6259,7 @@ shadow_settings_changed (GConfClient *client)
 	}
 
 	offset = gconf_client_get_int (client,
-	                               COMPIZ_SHADOW_OFFSET_Y_KEY,
+	                               FUSILLI_SHADOW_OFFSET_Y_KEY,
 	                               NULL);
 	offset = MAX (-16, MIN (offset, 16));
 	if (shadow_offset_y != offset)
@@ -6477,34 +6477,34 @@ value_changed (GConfClient *client,
 {
 	gboolean changed = FALSE;
 
-	if (strcmp (key, COMPIZ_USE_SYSTEM_FONT_KEY) == 0)
+	if (strcmp (key, FUSILLI_USE_SYSTEM_FONT_KEY) == 0)
 	{
 		if (gconf_client_get_bool (client,
-		                           COMPIZ_USE_SYSTEM_FONT_KEY,
+		                           FUSILLI_USE_SYSTEM_FONT_KEY,
 		                           NULL) != use_system_font)
 		{
 			use_system_font = !use_system_font;
 			changed = TRUE;
 		}
 	}
-	else if (strcmp (key, COMPIZ_TITLEBAR_FONT_KEY) == 0)
+	else if (strcmp (key, FUSILLI_TITLEBAR_FONT_KEY) == 0)
 	{
 		titlebar_font_changed (client);
 		changed = !use_system_font;
 	}
-	else if (strcmp (key, COMPIZ_DOUBLE_CLICK_TITLEBAR_KEY) == 0)
+	else if (strcmp (key, FUSILLI_DOUBLE_CLICK_TITLEBAR_KEY) == 0)
 	{
 		titlebar_click_action_changed (client, key,
 		                               &double_click_action,
 		                               DOUBLE_CLICK_ACTION_DEFAULT);
 	}
-	else if (strcmp (key, COMPIZ_MIDDLE_CLICK_TITLEBAR_KEY) == 0)
+	else if (strcmp (key, FUSILLI_MIDDLE_CLICK_TITLEBAR_KEY) == 0)
 	{
 		titlebar_click_action_changed (client, key,
 		                               &middle_click_action,
 		                               MIDDLE_CLICK_ACTION_DEFAULT);
 	}
-	else if (strcmp (key, COMPIZ_RIGHT_CLICK_TITLEBAR_KEY) == 0)
+	else if (strcmp (key, FUSILLI_RIGHT_CLICK_TITLEBAR_KEY) == 0)
 	{
 		titlebar_click_action_changed (client, key,
 		                               &right_click_action,
@@ -6514,11 +6514,11 @@ value_changed (GConfClient *client,
 	{
 		wheel_action_changed (client);
 	}
-	else if (strcmp (key, COMPIZ_SHADOW_RADIUS_KEY)   == 0 ||
-	         strcmp (key, COMPIZ_SHADOW_OPACITY_KEY)  == 0 ||
-	         strcmp (key, COMPIZ_SHADOW_OFFSET_X_KEY) == 0 ||
-	         strcmp (key, COMPIZ_SHADOW_OFFSET_Y_KEY) == 0 ||
-	         strcmp (key, COMPIZ_SHADOW_COLOR_KEY) == 0)
+	else if (strcmp (key, FUSILLI_SHADOW_RADIUS_KEY)   == 0 ||
+	         strcmp (key, FUSILLI_SHADOW_OPACITY_KEY)  == 0 ||
+	         strcmp (key, FUSILLI_SHADOW_OFFSET_X_KEY) == 0 ||
+	         strcmp (key, FUSILLI_SHADOW_OFFSET_Y_KEY) == 0 ||
+	         strcmp (key, FUSILLI_SHADOW_COLOR_KEY) == 0)
 	{
 		if (shadow_settings_changed (client))
 			changed = TRUE;
@@ -6589,7 +6589,7 @@ dbus_handle_message (DBusConnection *connection,
 
 	if (!strcmp (path[0], "org")         &&
 	    !strcmp (path[1], "freedesktop") &&
-	    !strcmp (path[2], "compiz")      &&
+	    !strcmp (path[2], "fusilli")      &&
 	    !strcmp (path[3], "decoration")  &&
 	    !strcmp (path[4], "allscreens"))
 	{
@@ -6710,7 +6710,7 @@ init_settings (WnckScreen *screen)
 	                      NULL);
 
 	gconf_client_add_dir (gconf,
-	                      COMPIZ_GCONF_DIR1,
+	                      FUSILLI_GCONF_DIR1,
 	                      GCONF_CLIENT_PRELOAD_ONELEVEL,
 	                      NULL);
 
@@ -6840,7 +6840,7 @@ init_settings (WnckScreen *screen)
 
 #ifdef USE_GCONF
 	use_system_font = gconf_client_get_bool (gconf,
-	                                         COMPIZ_USE_SYSTEM_FONT_KEY,
+	                                         FUSILLI_USE_SYSTEM_FONT_KEY,
 	                                         NULL);
 	theme_changed (gconf);
 	theme_opacity_changed (gconf);
@@ -6857,15 +6857,15 @@ init_settings (WnckScreen *screen)
 
 #ifdef USE_GCONF
 	titlebar_click_action_changed (gconf,
-	                               COMPIZ_DOUBLE_CLICK_TITLEBAR_KEY,
+	                               FUSILLI_DOUBLE_CLICK_TITLEBAR_KEY,
 	                               &double_click_action,
 	                               DOUBLE_CLICK_ACTION_DEFAULT);
 	titlebar_click_action_changed (gconf,
-	                               COMPIZ_MIDDLE_CLICK_TITLEBAR_KEY,
+	                               FUSILLI_MIDDLE_CLICK_TITLEBAR_KEY,
 	                               &middle_click_action,
 	                               MIDDLE_CLICK_ACTION_DEFAULT);
 	titlebar_click_action_changed (gconf,
-	                               COMPIZ_RIGHT_CLICK_TITLEBAR_KEY,
+	                               FUSILLI_RIGHT_CLICK_TITLEBAR_KEY,
 	                               &right_click_action,
 	                               RIGHT_CLICK_ACTION_DEFAULT);
 	wheel_action_changed (gconf);
@@ -7015,11 +7015,11 @@ main (int argc, char *argv[])
 	                                   FALSE);
 
 	toolkit_action_atom                   =
-	    XInternAtom (xdisplay, "_COMPIZ_TOOLKIT_ACTION", FALSE);
+	    XInternAtom (xdisplay, "_FUSILLI_TOOLKIT_ACTION", FALSE);
 	toolkit_action_window_menu_atom       =
-	    XInternAtom (xdisplay, "_COMPIZ_TOOLKIT_ACTION_WINDOW_MENU", FALSE);
+	    XInternAtom (xdisplay, "_FUSILLI_TOOLKIT_ACTION_WINDOW_MENU", FALSE);
 	toolkit_action_force_quit_dialog_atom =
-	    XInternAtom (xdisplay, "_COMPIZ_TOOLKIT_ACTION_FORCE_QUIT_DIALOG",
+	    XInternAtom (xdisplay, "_FUSILLI_TOOLKIT_ACTION_FORCE_QUIT_DIALOG",
 	                 FALSE);
 
 	status = decor_acquire_dm_session (xdisplay,

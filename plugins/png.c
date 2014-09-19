@@ -29,7 +29,7 @@
 #include <png.h>
 #include <setjmp.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata pngMetadata;
 

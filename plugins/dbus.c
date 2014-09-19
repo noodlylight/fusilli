@@ -31,25 +31,25 @@
 #include <dbus/dbus.h>
 #include <libxml/xmlwriter.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata dbusMetadata;
 
-#define COMPIZ_DBUS_SERVICE_NAME            "org.freedesktop.compiz"
-#define COMPIZ_DBUS_INTERFACE               "org.freedesktop.compiz"
-#define COMPIZ_DBUS_ROOT_PATH               "/org/freedesktop/compiz"
+#define FUSILLI_DBUS_SERVICE_NAME            "org.freedesktop.fusilli"
+#define FUSILLI_DBUS_INTERFACE               "org.freedesktop.fusilli"
+#define FUSILLI_DBUS_ROOT_PATH               "/org/freedesktop/fusilli"
 
-#define COMPIZ_DBUS_ACTIVATE_MEMBER_NAME            "activate"
-#define COMPIZ_DBUS_DEACTIVATE_MEMBER_NAME          "deactivate"
-#define COMPIZ_DBUS_SET_MEMBER_NAME                 "set"
-#define COMPIZ_DBUS_GET_MEMBER_NAME                 "get"
-#define COMPIZ_DBUS_GET_METADATA_MEMBER_NAME        "getMetadata"
-#define COMPIZ_DBUS_LIST_MEMBER_NAME                "list"
-#define COMPIZ_DBUS_GET_PLUGINS_MEMBER_NAME         "getPlugins"
-#define COMPIZ_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME "getPluginMetadata"
+#define FUSILLI_DBUS_ACTIVATE_MEMBER_NAME            "activate"
+#define FUSILLI_DBUS_DEACTIVATE_MEMBER_NAME          "deactivate"
+#define FUSILLI_DBUS_SET_MEMBER_NAME                 "set"
+#define FUSILLI_DBUS_GET_MEMBER_NAME                 "get"
+#define FUSILLI_DBUS_GET_METADATA_MEMBER_NAME        "getMetadata"
+#define FUSILLI_DBUS_LIST_MEMBER_NAME                "list"
+#define FUSILLI_DBUS_GET_PLUGINS_MEMBER_NAME         "getPlugins"
+#define FUSILLI_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME "getPluginMetadata"
 
-#define COMPIZ_DBUS_CHANGED_SIGNAL_NAME             "changed"
-#define COMPIZ_DBUS_PLUGINS_CHANGED_SIGNAL_NAME     "pluginsChanged"
+#define FUSILLI_DBUS_CHANGED_SIGNAL_NAME             "changed"
+#define FUSILLI_DBUS_PLUGINS_CHANGED_SIGNAL_NAME     "pluginsChanged"
 
 #define DBUS_FILE_WATCH_CURRENT 0
 #define DBUS_FILE_WATCH_PLUGIN  1
@@ -176,7 +176,7 @@ dbusIntrospectStartInterface (xmlTextWriterPtr writer)
 {
 	xmlTextWriterStartElement (writer, BAD_CAST "interface");
 	xmlTextWriterWriteAttribute (writer, BAD_CAST "name",
-	                             BAD_CAST COMPIZ_DBUS_SERVICE_NAME);
+	                             BAD_CAST FUSILLI_DBUS_SERVICE_NAME);
 }
 
 static void
@@ -292,14 +292,14 @@ dbusHandleRootIntrospectMessage (DBusConnection *connection,
 	dbusIntrospectStartRoot (writer);
 	dbusIntrospectStartInterface (writer);
 
-	dbusIntrospectAddMethod (writer, COMPIZ_DBUS_GET_PLUGINS_MEMBER_NAME, 1,
+	dbusIntrospectAddMethod (writer, FUSILLI_DBUS_GET_PLUGINS_MEMBER_NAME, 1,
 	                         "as", "out");
 	dbusIntrospectAddMethod (writer,
-	                         COMPIZ_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME, 7,
+	                         FUSILLI_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME, 7,
 	                         "s", "in", "s", "out", "s", "out", "s", "out",
 	                         "b", "out", "as", "out", "as", "out");
 	dbusIntrospectAddSignal (writer,
-	                         COMPIZ_DBUS_PLUGINS_CHANGED_SIGNAL_NAME, 0);
+	                         FUSILLI_DBUS_PLUGINS_CHANGED_SIGNAL_NAME, 0);
 
 	dbusIntrospectEndInterface (writer);
 
@@ -438,7 +438,7 @@ dbusHandleScreenIntrospectMessage (DBusConnection *connection,
 	dbusIntrospectStartRoot (writer);
 	dbusIntrospectStartInterface (writer);
 
-	dbusIntrospectAddMethod (writer, COMPIZ_DBUS_LIST_MEMBER_NAME, 1,
+	dbusIntrospectAddMethod (writer, FUSILLI_DBUS_LIST_MEMBER_NAME, 1,
 	                         "as", "out");
 
 	dbusIntrospectEndInterface (writer);
@@ -536,7 +536,7 @@ dbusHandleOptionIntrospectMessage (DBusConnection *connection,
 					strcpy (type, "i");
 
 				dbusIntrospectAddMethod (writer,
-				                 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
+				                 FUSILLI_DBUS_GET_METADATA_MEMBER_NAME,
 				                 6, "s", "out", "s", "out",
 				                 "b", "out", "s", "out",
 				                 "i", "out", "i", "out");
@@ -549,7 +549,7 @@ dbusHandleOptionIntrospectMessage (DBusConnection *connection,
 					strcpy (type, "d");
 
 				dbusIntrospectAddMethod (writer,
-				                 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
+				                 FUSILLI_DBUS_GET_METADATA_MEMBER_NAME,
 				                 7, "s", "out", "s", "out",
 				                 "b", "out", "s", "out",
 				                 "d", "out", "d", "out",
@@ -563,7 +563,7 @@ dbusHandleOptionIntrospectMessage (DBusConnection *connection,
 					strcpy (type, "s");
 
 				dbusIntrospectAddMethod (writer,
-				                 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
+				                 FUSILLI_DBUS_GET_METADATA_MEMBER_NAME,
 				                 5, "s", "out", "s", "out",
 				                 "b", "out", "s", "out",
 				                 "as", "out");
@@ -592,18 +592,18 @@ dbusHandleOptionIntrospectMessage (DBusConnection *connection,
 			}
 
 			dbusIntrospectAddMethod (writer,
-			                     COMPIZ_DBUS_GET_MEMBER_NAME, 1,
+			                     FUSILLI_DBUS_GET_MEMBER_NAME, 1,
 			                     type, "out");
 			dbusIntrospectAddMethod (writer,
-			                     COMPIZ_DBUS_SET_MEMBER_NAME, 1,
+			                     FUSILLI_DBUS_SET_MEMBER_NAME, 1,
 			                     type, "in");
 			dbusIntrospectAddSignal (writer,
-			                     COMPIZ_DBUS_CHANGED_SIGNAL_NAME, 1,
+			                     FUSILLI_DBUS_CHANGED_SIGNAL_NAME, 1,
 			                     type, "out");
 
 			if (!metadataHandled)
 				dbusIntrospectAddMethod (writer,
-				                 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME,
+				                 FUSILLI_DBUS_GET_METADATA_MEMBER_NAME,
 				                 4, "s", "out", "s", "out",
 				                 "b", "out", "s", "out");
 			break;
@@ -654,9 +654,9 @@ dbusHandleOptionIntrospectMessage (DBusConnection *connection,
  *
  * Example (rotate to face 1):
  *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/rotate/allscreens/rotate_to	      \
- * org.freedesktop.compiz.activate			      \
+ * dbus-send --type=method_call --dest=org.freedesktop.fusilli \
+ * /org/freedesktop/fusilli/rotate/allscreens/rotate_to	      \
+ * org.freedesktop.fusilli.activate			      \
  * string:'root'					      \
  * int32:`xwininfo -root | grep id: | awk '{ print $4 }'`     \
  * string:'face' int32:1
@@ -665,15 +665,15 @@ dbusHandleOptionIntrospectMessage (DBusConnection *connection,
  * You can also call the terminate function
  *
  * Example unfold and refold cube:
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/cube/allscreens/unfold	      \
- * org.freedesktop.compiz.activate			      \
+ * dbus-send --type=method_call --dest=org.freedesktop.fusilli \
+ * /org/freedesktop/fusilli/cube/allscreens/unfold	      \
+ * org.freedesktop.fusilli.activate			      \
  * string:'root'					      \
  * int32:`xwininfo -root | grep id: | awk '{ print $4 }'`
  *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/cube/allscreens/unfold	      \
- * org.freedesktop.compiz.deactivate			      \
+ * dbus-send --type=method_call --dest=org.freedesktop.fusilli \
+ * /org/freedesktop/fusilli/cube/allscreens/unfold	      \
+ * org.freedesktop.fusilli.deactivate			      \
  * string:'root'					      \
  * int32:`xwininfo -root | grep id: | awk '{ print $4 }'`
  *
@@ -987,9 +987,9 @@ dbusGetOptionValue (CompObject      *object,
  *
  * Example (will set command0 option to firefox):
  *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/core/allscreens/command0	      \
- * org.freedesktop.compiz.set				      \
+ * dbus-send --type=method_call --dest=org.freedesktop.fusilli \
+ * /org/freedesktop/fusilli/core/allscreens/command0	      \
+ * org.freedesktop.fusilli.set				      \
  * string:'firefox'
  *
  * List and action options can be changed using more than one
@@ -998,18 +998,18 @@ dbusGetOptionValue (CompObject      *object,
  * Example (will set active_plugins option to
  * [dbus,decoration,place]):
  *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/core/allscreens/active_plugins     \
- * org.freedesktop.compiz.set				      \
+ * dbus-send --type=method_call --dest=org.freedesktop.fusilli \
+ * /org/freedesktop/fusilli/core/allscreens/active_plugins     \
+ * org.freedesktop.fusilli.set				      \
  * array:string:'dbus','decoration','place'
  *
  * Example (will set run_command0 option to trigger on key
  * binding <Control><Alt>Return and not trigger on any button
  * bindings, screen edges or bell notifications):
  *
- * dbus-send --type=method_call --dest=org.freedesktop.compiz \
- * /org/freedesktop/compiz/core/allscreens/run_command0	      \
- * org.freedesktop.compiz.set				      \
+ * dbus-send --type=method_call --dest=org.freedesktop.fusilli \
+ * /org/freedesktop/fusilli/core/allscreens/run_command0	      \
+ * org.freedesktop.fusilli.set				      \
  * string:'<Control><Alt>Return'			      \
  * string:'Disabled'					      \
  * boolean:'false'					      \
@@ -1336,9 +1336,9 @@ dbusAppendOptionValue (CompObject      *object,
  * Example (will retrieve the current value of command0 option):
  *
  * dbus-send --print-reply --type=method_call	    \
- * --dest=org.freedesktop.compiz		    \
- * /org/freedesktop/compiz/core/allscreens/command0 \
- * org.freedesktop.compiz.get
+ * --dest=org.freedesktop.fusilli		    \
+ * /org/freedesktop/fusilli/core/allscreens/command0 \
+ * org.freedesktop.fusilli.get
  */
 static Bool
 dbusHandleGetOptionMessage (DBusConnection *connection,
@@ -1384,9 +1384,9 @@ dbusHandleGetOptionMessage (DBusConnection *connection,
  * Example:
  *
  * dbus-send --print-reply --type=method_call \
- * --dest=org.freedesktop.compiz	      \
- * /org/freedesktop/compiz/core/allscreens    \
- * org.freedesktop.compiz.list
+ * --dest=org.freedesktop.fusilli	      \
+ * /org/freedesktop/fusilli/core/allscreens    \
+ * org.freedesktop.fusilli.list
  */
 static Bool
 dbusHandleListMessage (DBusConnection *connection,
@@ -1424,9 +1424,9 @@ dbusHandleListMessage (DBusConnection *connection,
  * Example:
  *
  * dbus-send --print-reply --type=method_call		\
- * --dest=org.freedesktop.compiz			\
- * /org/freedesktop/compiz/core/allscreens/run_command0 \
- * org.freedesktop.compiz.getMetadata
+ * --dest=org.freedesktop.fusilli			\
+ * /org/freedesktop/fusilli/core/allscreens/run_command0 \
+ * org.freedesktop.fusilli.getMetadata
  */
 static Bool
 dbusHandleGetMetadataMessage (DBusConnection *connection,
@@ -1556,9 +1556,9 @@ dbusHandleGetMetadataMessage (DBusConnection *connection,
  * Example:
  *
  * dbus-send --print-reply --type=method_call \
- * --dest=org.freedesktop.compiz	      \
- * /org/freedesktop/compiz		      \
- * org.freedesktop.compiz.getPlugins
+ * --dest=org.freedesktop.fusilli	      \
+ * /org/freedesktop/fusilli		      \
+ * org.freedesktop.fusilli.getPlugins
  */
 static Bool
 dbusHandleGetPluginsMessage (DBusConnection *connection,
@@ -1602,9 +1602,9 @@ dbusHandleGetPluginsMessage (DBusConnection *connection,
  * Example:
  *
  * dbus-send --print-reply --type=method_call \
- * --dest=org.freedesktop.compiz	      \
- * /org/freedesktop/compiz		      \
- * org.freedesktop.compiz.getPluginMetadata   \
+ * --dest=org.freedesktop.fusilli	      \
+ * /org/freedesktop/fusilli		      \
+ * org.freedesktop.fusilli.getPluginMetadata   \
  * string:'png'
  */
 static Bool
@@ -1747,8 +1747,8 @@ dbusHandleMessage (DBusConnection *connection,
 				return DBUS_HANDLER_RESULT_HANDLED;
 			}
 		}
-		else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-		                      COMPIZ_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME))
+		else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+		                      FUSILLI_DBUS_GET_PLUGIN_METADATA_MEMBER_NAME))
 		{
 			if (dbusHandleGetPluginMetadataMessage (connection, message))
 			{
@@ -1756,8 +1756,8 @@ dbusHandleMessage (DBusConnection *connection,
 				return DBUS_HANDLER_RESULT_HANDLED;
 			}
 		}
-		else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-		                                COMPIZ_DBUS_GET_PLUGINS_MEMBER_NAME))
+		else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+		                                FUSILLI_DBUS_GET_PLUGINS_MEMBER_NAME))
 		{
 			if (dbusHandleGetPluginsMessage (connection, message))
 			{
@@ -1801,8 +1801,8 @@ dbusHandleMessage (DBusConnection *connection,
 				return DBUS_HANDLER_RESULT_HANDLED;
 			}
 		}
-		else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-		                                       COMPIZ_DBUS_LIST_MEMBER_NAME))
+		else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+		                                       FUSILLI_DBUS_LIST_MEMBER_NAME))
 		{
 			if (dbusHandleListMessage (connection, message, &path[3]))
 			{
@@ -1821,29 +1821,29 @@ dbusHandleMessage (DBusConnection *connection,
 		status = dbusHandleOptionIntrospectMessage (connection, message,
 		                                            &path[3]);
 	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-	                                      COMPIZ_DBUS_ACTIVATE_MEMBER_NAME))
+	else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+	                                      FUSILLI_DBUS_ACTIVATE_MEMBER_NAME))
 	{
 		status = dbusHandleActionMessage (connection, message, &path[3], TRUE);
 	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-	                                  COMPIZ_DBUS_DEACTIVATE_MEMBER_NAME))
+	else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+	                                  FUSILLI_DBUS_DEACTIVATE_MEMBER_NAME))
 	{
 		status = dbusHandleActionMessage (connection, message, &path[3],
 		                                  FALSE);
 	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-	                                       COMPIZ_DBUS_SET_MEMBER_NAME))
+	else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+	                                       FUSILLI_DBUS_SET_MEMBER_NAME))
 	{
 		status = dbusHandleSetOptionMessage (connection, message, &path[3]);
 	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-	                                      COMPIZ_DBUS_GET_MEMBER_NAME))
+	else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+	                                      FUSILLI_DBUS_GET_MEMBER_NAME))
 	{
 		status = dbusHandleGetOptionMessage (connection, message, &path[3]);
 	}
-	else if (dbus_message_is_method_call (message, COMPIZ_DBUS_INTERFACE,
-	                                 COMPIZ_DBUS_GET_METADATA_MEMBER_NAME))
+	else if (dbus_message_is_method_call (message, FUSILLI_DBUS_INTERFACE,
+	                                 FUSILLI_DBUS_GET_METADATA_MEMBER_NAME))
 	{
 		status = dbusHandleGetMetadataMessage (connection, message, &path[3]);
 	}
@@ -1889,18 +1889,18 @@ dbusSendChangeSignalForOption (CompObject *object,
 	name = compObjectName (object);
 	if (name)
 	{
-		sprintf (path, "%s/%s/%s%s/%s", COMPIZ_DBUS_ROOT_PATH,
+		sprintf (path, "%s/%s/%s%s/%s", FUSILLI_DBUS_ROOT_PATH,
 		         plugin, compObjectTypeName (object->type), name, o->name);
 
 		free (name);
 	}
 	else
-		sprintf (path, "%s/%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
+		sprintf (path, "%s/%s/%s/%s", FUSILLI_DBUS_ROOT_PATH,
 		         plugin, compObjectTypeName (object->type), o->name);
 
 	signal = dbus_message_new_signal (path,
-	                              COMPIZ_DBUS_SERVICE_NAME,
-	                              COMPIZ_DBUS_CHANGED_SIGNAL_NAME);
+	                              FUSILLI_DBUS_SERVICE_NAME,
+	                              FUSILLI_DBUS_CHANGED_SIGNAL_NAME);
 
 	dbusAppendOptionValue (object, signal, o->type, &o->value);
 
@@ -2051,12 +2051,12 @@ dbusRegisterPluginForDisplay (DBusConnection *connection,
 	char       objectPath[256];
 
 	/* register plugin root path */
-	snprintf (objectPath, 256, "%s/%s", COMPIZ_DBUS_ROOT_PATH, pluginName);
+	snprintf (objectPath, 256, "%s/%s", FUSILLI_DBUS_ROOT_PATH, pluginName);
 	dbus_connection_register_object_path (connection, objectPath,
 	                                      &dbusMessagesVTable, d);
 
 	/* register plugin/screen path */
-	snprintf (objectPath, 256, "%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
+	snprintf (objectPath, 256, "%s/%s/%s", FUSILLI_DBUS_ROOT_PATH,
 	          pluginName, "allscreens");
 	dbus_connection_register_object_path (connection, objectPath,
 	                                      &dbusMessagesVTable, d);
@@ -2070,7 +2070,7 @@ dbusRegisterPluginForScreen (DBusConnection *connection,
 	char       objectPath[256];
 
 	/* register plugin/screen path */
-	snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
+	snprintf (objectPath, 256, "%s/%s/screen%d", FUSILLI_DBUS_ROOT_PATH,
 	          pluginName, s->screenNum);
 	dbus_connection_register_object_path (connection, objectPath,
 	                              &dbusMessagesVTable, s->display);
@@ -2088,7 +2088,7 @@ dbusRegisterPluginsForDisplay (DBusConnection *connection,
 	for (i = 0; i < dd->nPlugins; i++)
 	{
 		snprintf (path, 256, "%s/%s/allscreens",
-		          COMPIZ_DBUS_ROOT_PATH, dd->pluginList[i]);
+		          FUSILLI_DBUS_ROOT_PATH, dd->pluginList[i]);
 
 		dbusRegisterPluginForDisplay (connection, d, dd->pluginList[i]);
 		dbusRegisterOptions (connection, path);
@@ -2107,7 +2107,7 @@ dbusRegisterPluginsForScreen (DBusConnection *connection,
 	for (i = 0; i < dd->nPlugins; i++)
 	{
 		snprintf (path, 256, "%s/%s/screen%d",
-		          COMPIZ_DBUS_ROOT_PATH, dd->pluginList[i], s->screenNum);
+		          FUSILLI_DBUS_ROOT_PATH, dd->pluginList[i], s->screenNum);
 		dbusRegisterPluginForScreen (connection, s, dd->pluginList[i]);
 		dbusRegisterOptions (connection, path);
 	}
@@ -2120,13 +2120,13 @@ dbusUnregisterPluginForDisplay (DBusConnection *connection,
 {
 	char objectPath[256];
 
-	snprintf (objectPath, 256, "%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
+	snprintf (objectPath, 256, "%s/%s/%s", FUSILLI_DBUS_ROOT_PATH,
 	          pluginName, "allscreens");
 
 	dbusUnregisterOptions (connection, objectPath);
 	dbus_connection_unregister_object_path (connection, objectPath);
 
-	snprintf (objectPath, 256, "%s/%s", COMPIZ_DBUS_ROOT_PATH, pluginName);
+	snprintf (objectPath, 256, "%s/%s", FUSILLI_DBUS_ROOT_PATH, pluginName);
 	dbus_connection_unregister_object_path (connection, objectPath);
 }
 
@@ -2149,7 +2149,7 @@ dbusUnregisterPluginForScreen (DBusConnection *connection,
 {
 	char objectPath[256];
 
-	snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
+	snprintf (objectPath, 256, "%s/%s/screen%d", FUSILLI_DBUS_ROOT_PATH,
 	          pluginName, s->screenNum);
 
 	dbusUnregisterOptions (connection, objectPath);
@@ -2176,7 +2176,7 @@ dbusInitPluginForDisplay (CompPlugin  *p,
 
 	DBUS_CORE (&core);
 
-	snprintf (objectPath, 256, "%s/%s/%s", COMPIZ_DBUS_ROOT_PATH,
+	snprintf (objectPath, 256, "%s/%s/%s", FUSILLI_DBUS_ROOT_PATH,
 	          p->vTable->name, "allscreens");
 	dbusRegisterOptions (dc->connection, objectPath);
 
@@ -2191,7 +2191,7 @@ dbusInitPluginForScreen (CompPlugin *p,
 
 	DBUS_CORE (&core);
 
-	snprintf (objectPath, 256, "%s/%s/screen%d", COMPIZ_DBUS_ROOT_PATH,
+	snprintf (objectPath, 256, "%s/%s/screen%d", FUSILLI_DBUS_ROOT_PATH,
 	          p->vTable->name, s->screenNum);
 	dbusRegisterOptions (dc->connection, objectPath);
 
@@ -2287,9 +2287,9 @@ dbusSendPluginsChangedSignal (const char *name,
 
 	DBUS_CORE (&core);
 
-	signal = dbus_message_new_signal (COMPIZ_DBUS_ROOT_PATH,
-	                              COMPIZ_DBUS_SERVICE_NAME,
-	                              COMPIZ_DBUS_PLUGINS_CHANGED_SIGNAL_NAME);
+	signal = dbus_message_new_signal (FUSILLI_DBUS_ROOT_PATH,
+	                              FUSILLI_DBUS_SERVICE_NAME,
+	                              FUSILLI_DBUS_PLUGINS_CHANGED_SIGNAL_NAME);
 
 	dbus_connection_send (dc->connection, signal, NULL);
 	dbus_connection_flush (dc->connection);
@@ -2336,7 +2336,7 @@ dbusInitCore (CompPlugin *p,
 	}
 
 	ret = dbus_bus_request_name (dc->connection,
-	                         COMPIZ_DBUS_SERVICE_NAME,
+	                         FUSILLI_DBUS_SERVICE_NAME,
 	                         DBUS_NAME_FLAG_REPLACE_EXISTING |
 	                         DBUS_NAME_FLAG_ALLOW_REPLACEMENT,
 	                         &error);
@@ -2422,7 +2422,7 @@ dbusInitCore (CompPlugin *p,
 
 	/* register the objects */
 	dbus_connection_register_object_path (dc->connection,
-	                              COMPIZ_DBUS_ROOT_PATH,
+	                              FUSILLI_DBUS_ROOT_PATH,
 	                              &dbusMessagesVTable, 0);
 
 	return TRUE;
@@ -2443,7 +2443,7 @@ dbusFiniCore (CompPlugin *p,
 
 	compRemoveWatchFd (dc->watchFdHandle);
 
-	dbus_bus_release_name (dc->connection, COMPIZ_DBUS_SERVICE_NAME, NULL);
+	dbus_bus_release_name (dc->connection, FUSILLI_DBUS_SERVICE_NAME, NULL);
 
 	/*
 	  can't unref the connection returned by dbus_bus_get as it's

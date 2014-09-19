@@ -32,7 +32,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 #define TEXTURE_SIZE 256
 

@@ -24,7 +24,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 /**
  * Identity matrix.

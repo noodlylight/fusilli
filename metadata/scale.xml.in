@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="scale">
 	<_short>Scale</_short>
 	<_long>Scale windows</_long>
@@ -180,4 +180,4 @@
 	    </group>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>

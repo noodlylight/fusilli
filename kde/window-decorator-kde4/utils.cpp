@@ -50,7 +50,7 @@ namespace KWD
 		Atom toolkitActionAtom;
 		Atom toolkitActionWindowMenuAtom;
 		Atom toolkitActionForceQuitDialogAtom;
-		Atom compizWindowBlurDecor;
+		Atom fusilliWindowBlurDecor;
 		Atom enlightmentDesktop;
 	}
 }
@@ -197,13 +197,13 @@ KWD::Atoms::init (void)
 	wmProtocols = XInternAtom (xdisplay, "WM_PROTOCOLS", false);
 	netWmWindowOpacity =
 	    XInternAtom (xdisplay, "_NET_WM_WINDOW_OPACITY", false);
-	toolkitActionAtom = XInternAtom (xdisplay, "_COMPIZ_TOOLKIT_ACTION", false);
+	toolkitActionAtom = XInternAtom (xdisplay, "_FUSILLI_TOOLKIT_ACTION", false);
 	toolkitActionWindowMenuAtom =
-	    XInternAtom (xdisplay, "_COMPIZ_TOOLKIT_ACTION_WINDOW_MENU", false);
+	    XInternAtom (xdisplay, "_FUSILLI_TOOLKIT_ACTION_WINDOW_MENU", false);
 	toolkitActionForceQuitDialogAtom =
-	    XInternAtom (xdisplay, "_COMPIZ_TOOLKIT_ACTION_FORCE_QUIT_DIALOG",
+	    XInternAtom (xdisplay, "_FUSILLI_TOOLKIT_ACTION_FORCE_QUIT_DIALOG",
 	                  false);
-	compizWindowBlurDecor =
+	fusilliWindowBlurDecor =
 		XInternAtom (xdisplay, DECOR_BLUR_ATOM_NAME, false);
 	enlightmentDesktop = XInternAtom (xdisplay, "ENLIGHTENMENT_DESKTOP", false);
 }

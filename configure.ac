@@ -1,22 +1,22 @@
 AC_PREREQ(2.57)
 
-dnl compiz package version number
+dnl fusilli package version number
 dnl An odd micro number indicates in-progress development.
 dnl An even micro number indicates a released version.
-m4_define(compiz_version_major, 0)
-m4_define(compiz_version_minor, 8)
-m4_define(compiz_version_micro, 9)
+m4_define(fusilli_version_major, 0)
+m4_define(fusilli_version_minor, 8)
+m4_define(fusilli_version_micro, 9)
 
-AC_INIT([compiz],
-	[compiz_version_major().compiz_version_minor().compiz_version_micro()],
-	[davidr@novell.com])
+AC_INIT([fusilli],
+	[fusilli_version_major().fusilli_version_minor().fusilli_version_micro()],
+	[noodlylight@gmail.com])
 
-COMPIZ_VERSION_MAJOR=compiz_version_major()
-COMPIZ_VERSION_MINOR=compiz_version_minor()
-COMPIZ_VERSION_MICRO=compiz_version_micro()
-AC_SUBST(COMPIZ_VERSION_MAJOR)
-AC_SUBST(COMPIZ_VERSION_MINOR)
-AC_SUBST(COMPIZ_VERSION_MICRO)
+FUSILLI_VERSION_MAJOR=fusilli_version_major()
+FUSILLI_VERSION_MINOR=fusilli_version_minor()
+FUSILLI_VERSION_MICRO=fusilli_version_micro()
+AC_SUBST(FUSILLI_VERSION_MAJOR)
+AC_SUBST(FUSILLI_VERSION_MINOR)
+AC_SUBST(FUSILLI_VERSION_MICRO)
 
 AM_INIT_AUTOMAKE([1.7 foreign])
 AC_CONFIG_HEADER([config.h])
@@ -37,7 +37,7 @@ AC_CHECK_HEADERS([stdlib.h sys/time.h unistd.h])
 ALL_LINGUAS="af ar bg bn bn_IN bs ca cs cy da de el en_GB en_US es eu et fi fr gl gu he hi hr hu id it ja ka km ko lo lt mk mr nb nl or pa pl pt pt_BR ro ru sk sl sr sv ta tr uk vi xh zh_CN zh_TW zu"
 AC_SUBST(ALL_LINGUAS)
 AM_GLIB_GNU_GETTEXT
-GETTEXT_PACKAGE=compiz
+GETTEXT_PACKAGE=fusilli
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE", [Gettext package.])
 AC_SUBST(GETTEXT_PACKAGE)
 
@@ -104,7 +104,7 @@ fi
 
 AC_C_BIGENDIAN
 
-plugindir=$libdir/compiz
+plugindir=$libdir/fusilli
 AC_SUBST(plugindir)
 
 AC_ARG_WITH(default-plugins, [  --with-default-plugins=PLUGINS ],
@@ -112,13 +112,13 @@ AC_ARG_WITH(default-plugins, [  --with-default-plugins=PLUGINS ],
 		       [default_plugins=""])
 AC_SUBST(default_plugins)
 
-imagedir=$datadir/compiz
+imagedir=$datadir/fusilli
 AC_SUBST(imagedir)
 
-metadatadir=$datadir/compiz
+metadatadir=$datadir/fusilli
 AC_SUBST(metadatadir)
 
-COMPIZ_REQUIRES="x11        \
+FUSILLI_REQUIRES="x11        \
 		 xcomposite \
 		 xext       \
 		 xfixes	    \
@@ -131,8 +131,8 @@ COMPIZ_REQUIRES="x11        \
 		 libxslt    \
 		 libstartup-notification-1.0 >= 0.7"
 
-PKG_CHECK_MODULES(COMPIZ, $COMPIZ_REQUIRES)
-AC_SUBST(COMPIZ_REQUIRES)
+PKG_CHECK_MODULES(FUSILLI, $FUSILLI_REQUIRES)
+AC_SUBST(FUSILLI_REQUIRES)
 
 DECORATION_REQUIRES="xrender"
 
@@ -431,28 +431,28 @@ if test -n "$MAX_DESKTOPS"; then
   AC_DEFINE_UNQUOTED(MAX_DESKTOPS, $MAX_DESKTOPS, [Max reasonable desktops])
 fi
 
-AC_CONFIG_COMMANDS([include/compiz-common.h],
+AC_CONFIG_COMMANDS([include/fusilli-common.h],
 [
-	commonfile=include/compiz-common.h
+	commonfile=include/fusilli-common.h
 	outfile=$commonfile.tmp
 	AC_MSG_NOTICE([creating $commonfile])
 	cat > $outfile <<_EOF
-#ifndef COMPIZ_COMMON_H
-#define COMPIZ_COMMON_H
+#ifndef FUSILLI_COMMON_H
+#define FUSILLI_COMMON_H
 
 #ifdef  __cplusplus
-# define COMPIZ_BEGIN_DECLS  extern "C" {
-# define COMPIZ_END_DECLS    }
+# define FUSILLI_BEGIN_DECLS  extern "C" {
+# define FUSILLI_END_DECLS    }
 #else
-# define COMPIZ_BEGIN_DECLS
-# define COMPIZ_END_DECLS
+# define FUSILLI_BEGIN_DECLS
+# define FUSILLI_END_DECLS
 #endif
 
-#define COMPIZ_VERSION_MAJOR $COMPIZ_VERSION_MAJOR
-#define COMPIZ_VERSION_MINOR $COMPIZ_VERSION_MINOR
-#define COMPIZ_VERSION_MICRO $COMPIZ_VERSION_MICRO
+#define FUSILLI_VERSION_MAJOR $FUSILLI_VERSION_MAJOR
+#define FUSILLI_VERSION_MINOR $FUSILLI_VERSION_MINOR
+#define FUSILLI_VERSION_MICRO $FUSILLI_VERSION_MICRO
 
-#define COMPIZ_VERSION_STRING "$COMPIZ_VERSION_MAJOR.$COMPIZ_VERSION_MINOR.$COMPIZ_VERSION_MICRO"
+#define FUSILLI_VERSION_STRING "$FUSILLI_VERSION_MAJOR.$FUSILLI_VERSION_MINOR.$FUSILLI_VERSION_MICRO"
 
 _EOF
 	echo '#endif' >> $outfile
@@ -464,15 +464,15 @@ _EOF
 	  mv $outfile $commonfile
 	fi
 ],[
-	COMPIZ_VERSION_MAJOR=$COMPIZ_VERSION_MAJOR
-	COMPIZ_VERSION_MINOR=$COMPIZ_VERSION_MINOR
-	COMPIZ_VERSION_MICRO=$COMPIZ_VERSION_MICRO
+	FUSILLI_VERSION_MAJOR=$FUSILLI_VERSION_MAJOR
+	FUSILLI_VERSION_MINOR=$FUSILLI_VERSION_MINOR
+	FUSILLI_VERSION_MICRO=$FUSILLI_VERSION_MICRO
 ])
 
 AC_OUTPUT([
-compiz.pc
-compiz-cube.pc
-compiz-scale.pc
+fusilli.pc
+fusilli-cube.pc
+fusilli-scale.pc
 Makefile
 src/Makefile
 libdecoration/Makefile

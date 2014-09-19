@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="screenshot">
 	<_short>Screenshot</_short>
 	<_long>Screenshot plugin</_long>
@@ -26,4 +26,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

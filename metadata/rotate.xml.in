@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="rotate">
 	<_short>Rotate Cube</_short>
 	<_long>Rotate desktop cube</_long>
@@ -278,4 +278,4 @@
 	    </option>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>

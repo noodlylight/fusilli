@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: compiz-scale
-Description: Scale plugin for compiz
+Name: fusilli-scale
+Description: Scale plugin for fusilli
 Version: @VERSION@
 
-Requires: compiz
+Requires: fusilli
 Libs:
-Cflags: @COMPIZ_CFLAGS@ @GL_CFLAGS@ -I${includedir}/compiz
+Cflags: @FUSILLI_CFLAGS@ @GL_CFLAGS@ -I${includedir}/fusilli

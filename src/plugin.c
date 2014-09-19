@@ -33,7 +33,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 CompPlugin *plugins = 0;
 

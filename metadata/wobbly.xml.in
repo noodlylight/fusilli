@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="wobbly">
 	<_short>Wobbly Windows</_short>
 	<_long>Use spring model for wobbly window effect</_long>
@@ -116,4 +116,4 @@
 	    </option>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>

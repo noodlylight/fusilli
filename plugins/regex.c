@@ -31,7 +31,7 @@
 
 #include <X11/Xatom.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata regexMetadata;
 

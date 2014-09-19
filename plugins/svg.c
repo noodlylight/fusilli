@@ -33,7 +33,7 @@
 #include <X11/Xatom.h>
 #include <X11/extensions/shape.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 #include <decoration.h>
 
 static CompMetadata svgMetadata;
@@ -48,7 +48,7 @@ typedef struct _SvgDisplay {
 
 	int	screenPrivateIndex;
 
-	HandleCompizEventProc handleCompizEvent;
+	HandleFusilliEventProc handleFusilliEvent;
 
 	FileToImageProc fileToImage;
 } SvgDisplay;
@@ -601,7 +601,7 @@ svgWindowResizeNotify (CompWindow *w,
 }
 
 static void
-svgHandleCompizEvent (CompDisplay *d,
+svgHandleFusilliEvent (CompDisplay *d,
                       const char  *pluginName,
                       const char  *eventName,
                       CompOption  *option,
@@ -609,9 +609,9 @@ svgHandleCompizEvent (CompDisplay *d,
 {
 	SVG_DISPLAY (d);
 
-	UNWRAP (sd, d, handleCompizEvent);
-	(*d->handleCompizEvent) (d, pluginName, eventName, option, nOption);
-	WRAP (sd, d, handleCompizEvent, svgHandleCompizEvent);
+	UNWRAP (sd, d, handleFusilliEvent);
+	(*d->handleFusilliEvent) (d, pluginName, eventName, option, nOption);
+	WRAP (sd, d, handleFusilliEvent, svgHandleFusilliEvent);
 
 	if (strcmp (pluginName, "zoom") == 0)
 	{
@@ -820,7 +820,7 @@ svgInitDisplay (CompPlugin  *p,
 		return FALSE;
 	}
 
-	WRAP (sd, d, handleCompizEvent, svgHandleCompizEvent);
+	WRAP (sd, d, handleFusilliEvent, svgHandleFusilliEvent);
 	WRAP (sd, d, fileToImage, svgFileToImage);
 
 	d->base.privates[displayPrivateIndex].ptr = sd;
@@ -839,7 +839,7 @@ svgFiniDisplay (CompPlugin  *p,
 
 	SVG_DISPLAY (d);
 
-	UNWRAP (sd, d, handleCompizEvent);
+	UNWRAP (sd, d, handleFusilliEvent);
 	UNWRAP (sd, d, fileToImage);
 
 	for (s = d->screens; s; s = s->next)

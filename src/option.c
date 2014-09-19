@@ -29,7 +29,7 @@
 #include <ctype.h>
 #include <math.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 struct _Modifier {
 	char *name;

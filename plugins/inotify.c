@@ -28,7 +28,7 @@
 #include <poll.h>
 #include <sys/inotify.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata inotifyMetadata;
 

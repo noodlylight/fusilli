@@ -30,32 +30,32 @@
 #include <gconf/gconf-client.h>
 #include <glib/gi18n.h>
 
-#include "compiz-window-manager.h"
+#include "fusilli-window-manager.h"
 
-#define COMPIZ_CLICK_TO_FOCUS_KEY \
-        "/apps/compiz/general/allscreens/options/click_to_focus"
+#define FUSILLI_CLICK_TO_FOCUS_KEY \
+        "/apps/fusilli/general/allscreens/options/click_to_focus"
 
-#define COMPIZ_AUTORAISE_KEY \
-        "/apps/compiz/general/allscreens/options/autoraise"
+#define FUSILLI_AUTORAISE_KEY \
+        "/apps/fusilli/general/allscreens/options/autoraise"
 
-#define COMPIZ_AUTORAISE_DELAY_KEY \
-        "/apps/compiz/general/allscreens/options/autoraise_delay"
+#define FUSILLI_AUTORAISE_DELAY_KEY \
+        "/apps/fusilli/general/allscreens/options/autoraise_delay"
 
-#define COMPIZ_MOUSE_MOVE_KEY \
-        "/apps/compiz/plugins/move/allscreens/options/initiate_button"
+#define FUSILLI_MOUSE_MOVE_KEY \
+        "/apps/fusilli/plugins/move/allscreens/options/initiate_button"
 
 #define GCONF_DIR "/apps/metacity/general"
 
-#define COMPIZ_DOUBLE_CLICK_TITLEBAR_KEY \
+#define FUSILLI_DOUBLE_CLICK_TITLEBAR_KEY \
         GCONF_DIR "/action_double_click_titlebar"
 
-#define COMPIZ_USE_SYSTEM_FONT_KEY \
+#define FUSILLI_USE_SYSTEM_FONT_KEY \
         GCONF_DIR "/titlebar_uses_system_font"
 
-#define COMPIZ_TITLEBAR_FONT_KEY \
+#define FUSILLI_TITLEBAR_FONT_KEY \
         GCONF_DIR "/titlebar_font"
 
-#define COMPIZ_THEME_KEY \
+#define FUSILLI_THEME_KEY \
         GCONF_DIR "/theme"
 
 enum {
@@ -87,7 +87,7 @@ static const struct {
 
 static GnomeWindowManagerClass *parent_class;
 
-struct _CompizWindowManagerPrivate {
+struct _FusilliWindowManagerPrivate {
 	GConfClient *gconf;
 	gchar       *font;
 	gchar       *theme;
@@ -100,9 +100,9 @@ value_changed (GConfClient *client,
                GConfValue  *value,
                void        *data)
 {
-	CompizWindowManager *wm;
+	FusilliWindowManager *wm;
 
-	wm = COMPIZ_WINDOW_MANAGER (data);
+	wm = FUSILLI_WINDOW_MANAGER (data);
 
 	gnome_window_manager_settings_changed (GNOME_WINDOW_MANAGER (wm));
 }
@@ -115,43 +115,43 @@ window_manager_new (int expected_interface_version)
 
 	if (expected_interface_version != GNOME_WINDOW_MANAGER_INTERFACE_VERSION)
 	{
-		g_warning ("Compiz window manager module wasn't compiled with the "
+		g_warning ("Fusilli window manager module wasn't compiled with the "
 		           "current version of gnome-control-center");
 		return NULL;
 	}
 
-	wm = g_object_new (compiz_window_manager_get_type (), NULL);
+	wm = g_object_new (fusilli_window_manager_get_type (), NULL);
 
 	return wm;
 }
 
 static void
-compiz_change_settings (GnomeWindowManager    *wm,
+fusilli_change_settings (GnomeWindowManager    *wm,
                         const GnomeWMSettings *settings)
 {
-	CompizWindowManager *cwm;
+	FusilliWindowManager *cwm;
 
-	cwm = COMPIZ_WINDOW_MANAGER (wm);
+	cwm = FUSILLI_WINDOW_MANAGER (wm);
 
 	if (settings->flags & GNOME_WM_SETTING_FONT)
 		gconf_client_set_string (cwm->p->gconf,
-		                         COMPIZ_TITLEBAR_FONT_KEY,
+		                         FUSILLI_TITLEBAR_FONT_KEY,
 		                         settings->font, NULL);
 
 	if (settings->flags & GNOME_WM_SETTING_MOUSE_FOCUS)
 		gconf_client_set_bool (cwm->p->gconf,
-		                       COMPIZ_CLICK_TO_FOCUS_KEY,
+		                       FUSILLI_CLICK_TO_FOCUS_KEY,
 		                       settings->focus_follows_mouse == FALSE,
 		                       NULL);
 
 	 if (settings->flags & GNOME_WM_SETTING_AUTORAISE)
 		gconf_client_set_bool (cwm->p->gconf,
-		                       COMPIZ_AUTORAISE_KEY,
+		                       FUSILLI_AUTORAISE_KEY,
 		                       settings->autoraise, NULL);
 
 	 if (settings->flags & GNOME_WM_SETTING_AUTORAISE_DELAY)
 		gconf_client_set_int (cwm->p->gconf,
-		                      COMPIZ_AUTORAISE_DELAY_KEY,
+		                      FUSILLI_AUTORAISE_DELAY_KEY,
 		                      settings->autoraise_delay, NULL);
 
 	if (settings->flags & GNOME_WM_SETTING_MOUSE_MOVE_MODIFIER)
@@ -160,14 +160,14 @@ compiz_change_settings (GnomeWindowManager    *wm,
 
 		value = g_strdup_printf ("<%s>Button1", settings->mouse_move_modifier);
 		gconf_client_set_string (cwm->p->gconf,
-		                         COMPIZ_MOUSE_MOVE_KEY,
+		                         FUSILLI_MOUSE_MOVE_KEY,
 		                         value, NULL);
 		g_free (value);
 	}
 
 	if (settings->flags & GNOME_WM_SETTING_THEME)
 		gconf_client_set_string (cwm->p->gconf,
-		                         COMPIZ_THEME_KEY,
+		                         FUSILLI_THEME_KEY,
 		                         settings->theme, NULL);
 
 	if (settings->flags & GNOME_WM_SETTING_DOUBLE_CLICK_ACTION)
@@ -187,19 +187,19 @@ compiz_change_settings (GnomeWindowManager    *wm,
 
 		if (action)
 			gconf_client_set_string (cwm->p->gconf,
-			                         COMPIZ_DOUBLE_CLICK_TITLEBAR_KEY,
+			                         FUSILLI_DOUBLE_CLICK_TITLEBAR_KEY,
 			                         action, NULL);
 	}
 }
 
 static void
-compiz_get_settings (GnomeWindowManager *wm,
+fusilli_get_settings (GnomeWindowManager *wm,
                      GnomeWMSettings    *settings)
 {
-	CompizWindowManager *cwm;
+	FusilliWindowManager *cwm;
 	int                 to_get;
 
-	cwm = COMPIZ_WINDOW_MANAGER (wm);
+	cwm = FUSILLI_WINDOW_MANAGER (wm);
 
 	to_get = settings->flags;
 	settings->flags = 0;
@@ -209,7 +209,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 		char *str;
 
 		str = gconf_client_get_string (cwm->p->gconf,
-		                               COMPIZ_TITLEBAR_FONT_KEY,
+		                               FUSILLI_TITLEBAR_FONT_KEY,
 		                               NULL);
 
 		if (!str)
@@ -229,7 +229,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 	{
 		settings->focus_follows_mouse =
 		    gconf_client_get_bool (cwm->p->gconf,
-		                           COMPIZ_CLICK_TO_FOCUS_KEY, NULL) == FALSE;
+		                           FUSILLI_CLICK_TO_FOCUS_KEY, NULL) == FALSE;
 
 		settings->flags |= GNOME_WM_SETTING_MOUSE_FOCUS;
 	}
@@ -237,7 +237,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 	if (to_get & GNOME_WM_SETTING_AUTORAISE)
 	{
 		settings->autoraise = gconf_client_get_bool (cwm->p->gconf,
-		                                             COMPIZ_AUTORAISE_KEY,
+		                                             FUSILLI_AUTORAISE_KEY,
 		                                             NULL);
 
 		settings->flags |= GNOME_WM_SETTING_AUTORAISE;
@@ -247,7 +247,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 	{
 		settings->autoraise_delay =
 		    gconf_client_get_int (cwm->p->gconf,
-		                          COMPIZ_AUTORAISE_DELAY_KEY,
+		                          FUSILLI_AUTORAISE_DELAY_KEY,
 		                          NULL);
 
 		settings->flags |= GNOME_WM_SETTING_AUTORAISE_DELAY;
@@ -259,7 +259,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 		char       *str;
 
 		str = gconf_client_get_string (cwm->p->gconf,
-		                               COMPIZ_MOUSE_MOVE_KEY,
+		                               FUSILLI_MOUSE_MOVE_KEY,
 		                               NULL);
 
 		if (str == NULL)
@@ -295,7 +295,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 		char *str;
 
 		str = gconf_client_get_string (cwm->p->gconf,
-		                               COMPIZ_THEME_KEY,
+		                               FUSILLI_THEME_KEY,
 		                               NULL);
 
 		if (str == NULL)
@@ -315,7 +315,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 		settings->double_click_action = DOUBLE_CLICK_MAXIMIZE;
 
 		str = gconf_client_get_string (cwm->p->gconf,
-		                               COMPIZ_DOUBLE_CLICK_TITLEBAR_KEY,
+		                               FUSILLI_DOUBLE_CLICK_TITLEBAR_KEY,
 		                               NULL);
 
 		if (str)
@@ -338,7 +338,7 @@ compiz_get_settings (GnomeWindowManager *wm,
 }
 
 static int
-compiz_get_settings_mask (GnomeWindowManager *wm)
+fusilli_get_settings_mask (GnomeWindowManager *wm)
 {
 	return GNOME_WM_SETTING_MASK;
 }
@@ -394,7 +394,7 @@ add_themes_from_dir (GList      *current_list,
 }
 
 static GList *
-compiz_get_theme_list (GnomeWindowManager *wm)
+fusilli_get_theme_list (GnomeWindowManager *wm)
 {
 	GList *themes = NULL;
 	char  *home_dir_themes;
@@ -411,13 +411,13 @@ compiz_get_theme_list (GnomeWindowManager *wm)
 }
 
 static char *
-compiz_get_user_theme_folder (GnomeWindowManager *wm)
+fusilli_get_user_theme_folder (GnomeWindowManager *wm)
 {
 	return g_build_filename (g_get_home_dir (), ".themes", NULL);
 }
 
 static void
-compiz_get_double_click_actions (GnomeWindowManager             *wm,
+fusilli_get_double_click_actions (GnomeWindowManager             *wm,
                                  const GnomeWMDoubleClickAction **actions_p,
                                  int                            *n_actions_p)
 {
@@ -449,17 +449,17 @@ compiz_get_double_click_actions (GnomeWindowManager             *wm,
 }
 
 static void
-compiz_window_manager_init (CompizWindowManager      *cwm,
-                            CompizWindowManagerClass *class)
+fusilli_window_manager_init (FusilliWindowManager      *cwm,
+                             FusilliWindowManagerClass *class)
 {
-	cwm->p             = g_new0 (CompizWindowManagerPrivate, 1);
+	cwm->p             = g_new0 (FusilliWindowManagerPrivate, 1);
 	cwm->p->gconf      = gconf_client_get_default ();
 	cwm->p->mouse_modifier = NULL;
 	cwm->p->font       = NULL;
 	cwm->p->theme      = NULL;
 
 	gconf_client_add_dir (cwm->p->gconf,
-	                      "/apps/compiz",
+	                      "/apps/fusilli",
 	                      GCONF_CLIENT_PRELOAD_ONELEVEL,
 	                      NULL);
 
@@ -476,14 +476,14 @@ compiz_window_manager_init (CompizWindowManager      *cwm,
 }
 
 static void
-compiz_window_manager_finalize (GObject *object)
+fusilli_window_manager_finalize (GObject *object)
 {
-	CompizWindowManager *cwm;
+	FusilliWindowManager *cwm;
 
 	g_return_if_fail (object != NULL);
-	g_return_if_fail (IS_COMPIZ_WINDOW_MANAGER (object));
+	g_return_if_fail (IS_FUSILLI_WINDOW_MANAGER (object));
 
-	cwm = COMPIZ_WINDOW_MANAGER (object);
+	cwm = FUSILLI_WINDOW_MANAGER (object);
 
 	g_signal_handlers_disconnect_by_func (G_OBJECT (cwm->p->gconf),
 	                                      G_CALLBACK (value_changed),
@@ -505,7 +505,7 @@ compiz_window_manager_finalize (GObject *object)
 }
 
 static void
-compiz_window_manager_class_init (CompizWindowManagerClass *class)
+fusilli_window_manager_class_init (FusilliWindowManagerClass *class)
 {
 	GObjectClass            *object_class;
 	GnomeWindowManagerClass *wm_class;
@@ -517,43 +517,43 @@ compiz_window_manager_class_init (CompizWindowManagerClass *class)
 	object_class = G_OBJECT_CLASS (class);
 	wm_class     = GNOME_WINDOW_MANAGER_CLASS (class);
 
-	object_class->finalize = compiz_window_manager_finalize;
+	object_class->finalize = fusilli_window_manager_finalize;
 
-	wm_class->change_settings          = compiz_change_settings;
-	wm_class->get_settings             = compiz_get_settings;
-	wm_class->get_settings_mask        = compiz_get_settings_mask;
-	wm_class->get_user_theme_folder    = compiz_get_user_theme_folder;
-	wm_class->get_theme_list           = compiz_get_theme_list;
-	wm_class->get_double_click_actions = compiz_get_double_click_actions;
+	wm_class->change_settings          = fusilli_change_settings;
+	wm_class->get_settings             = fusilli_get_settings;
+	wm_class->get_settings_mask        = fusilli_get_settings_mask;
+	wm_class->get_user_theme_folder    = fusilli_get_user_theme_folder;
+	wm_class->get_theme_list           = fusilli_get_theme_list;
+	wm_class->get_double_click_actions = fusilli_get_double_click_actions;
 
 	parent_class = g_type_class_peek_parent (class);
 }
 
 GType
-compiz_window_manager_get_type (void)
+fusilli_window_manager_get_type (void)
 {
-	static GType compiz_window_manager_type = 0;
+	static GType fusilli_window_manager_type = 0;
 
-	if (!compiz_window_manager_type)
+	if (!fusilli_window_manager_type)
 	{
-		static GTypeInfo compiz_window_manager_info = {
-			sizeof (CompizWindowManagerClass),
+		static GTypeInfo fusilli_window_manager_info = {
+			sizeof (FusilliWindowManagerClass),
 			NULL,
 			NULL,
-			(GClassInitFunc) compiz_window_manager_class_init,
+			(GClassInitFunc) fusilli_window_manager_class_init,
 			NULL,
 			NULL,
-			sizeof (CompizWindowManager),
+			sizeof (FusilliWindowManager),
 			0,
-			(GInstanceInitFunc) compiz_window_manager_init,
+			(GInstanceInitFunc) fusilli_window_manager_init,
 			NULL
 		};
 
-		compiz_window_manager_type =
+		fusilli_window_manager_type =
 		        g_type_register_static (gnome_window_manager_get_type (),
-		                                "CompizWindowManager",
-		                                &compiz_window_manager_info, 0);
+		                                "FusilliWindowManager",
+		                                &fusilli_window_manager_info, 0);
 	}
 
-	return compiz_window_manager_type;
+	return fusilli_window_manager_type;
 }

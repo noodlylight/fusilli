@@ -37,7 +37,7 @@
 #include <X11/SM/SMlib.h>
 #include <X11/ICE/ICElib.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 #define SM_DEBUG(x)
 
@@ -152,7 +152,7 @@ setProgramInfo (SmcConn    connection,
 	progProp.type     = SmARRAY8;
 	progProp.num_vals = 1;
 	progProp.vals     = &progVal;
-	progVal.value     = (SmPointer) "compiz";
+	progVal.value     = (SmPointer) "fusilli";
 	progVal.length    = strlen (progVal.value);
 
 	props[count++] = &progProp;

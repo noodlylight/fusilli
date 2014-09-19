@@ -23,10 +23,10 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
-#ifndef _COMPIZ_CORE_H
-#define _COMPIZ_CORE_H
+#ifndef _FUSILLI_CORE_H
+#define _FUSILLI_CORE_H
 
-#include <compiz-plugin.h>
+#include <fusilli-plugin.h>
 
 #define CORE_ABIVERSION 20091102
 
@@ -47,7 +47,7 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
-COMPIZ_BEGIN_DECLS
+FUSILLI_BEGIN_DECLS
 
 #if COMPOSITE_MAJOR > 0 || COMPOSITE_MINOR > 2
 #define USE_COW
@@ -780,7 +780,7 @@ removeFileWatch (CompFileWatchHandle handle);
 typedef void (*HandleEventProc) (CompDisplay *display,
                                  XEvent      *event);
 
-typedef void (*HandleCompizEventProc) (CompDisplay *display,
+typedef void (*HandleFusilliEventProc) (CompDisplay *display,
                                        const char  *pluginName,
                                        const char  *eventName,
                                        CompOption  *option,
@@ -1051,7 +1051,7 @@ struct _CompDisplay {
 	Bool            dirtyPluginList;
 
 	HandleEventProc       handleEvent;
-	HandleCompizEventProc handleCompizEvent;
+	HandleFusilliEventProc handleFusilliEvent;
 
 	FileToImageProc fileToImage;
 	ImageToFileProc imageToFile;
@@ -1244,7 +1244,7 @@ handleEvent (CompDisplay *display,
              XEvent      *event);
 
 void
-handleCompizEvent (CompDisplay *display,
+handleFusilliEvent (CompDisplay *display,
                    const char  *pluginName,
                    const char  *eventName,
                    CompOption  *option,
@@ -3102,7 +3102,7 @@ getWindowMovementForOffset (CompWindow *w,
 
 /* plugin.c */
 
-#define HOME_PLUGINDIR ".compiz/plugins"
+#define HOME_PLUGINDIR ".fusilli/plugins"
 
 typedef CompPluginVTable *(*PluginGetInfoProc) (void);
 
@@ -3496,6 +3496,6 @@ compReadXmlChunkFromMetadataOptionInfo (const CompMetadataOptionInfo *info,
                                         int                          length);
 
 
-COMPIZ_END_DECLS
+FUSILLI_END_DECLS
 
 #endif

@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static void
 matchResetOps (CompDisplay *display,

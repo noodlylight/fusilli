@@ -32,7 +32,7 @@
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
 
-#include <compiz-scale.h>
+#include <fusilli-scale.h>
 
 #define EDGE_STATE (CompActionStateInitEdge)
 
@@ -157,7 +157,7 @@ scaleActivateEvent (CompScreen *s,
 	o[1].name = "active";
 	o[1].value.b = activating;
 
-	(*s->display->handleCompizEvent) (s->display, "scale", "activate", o, 2);
+	(*s->display->handleFusilliEvent) (s->display, "scale", "activate", o, 2);
 }
 
 static void

@@ -239,7 +239,7 @@ KWD::Switcher::updateBlurProperty (int topOffset,
                                    int leftOffset,
                                    int rightOffset)
 {
-	Atom    atom = Atoms::compizWindowBlurDecor;
+	Atom    atom = Atoms::fusilliWindowBlurDecor;
 	QRegion topQRegion, bottomQRegion, leftQRegion, rightQRegion;
 	Region  topRegion = NULL;
 	Region  bottomRegion = NULL;

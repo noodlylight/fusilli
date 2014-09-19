@@ -27,7 +27,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 #include <decoration.h>
 
 #include <X11/Xatom.h>
@@ -2839,7 +2839,7 @@ blurInitDisplay (CompPlugin  *p,
 	}
 
 	bd->blurAtom[BLUR_STATE_CLIENT] =
-		XInternAtom (d->display, "_COMPIZ_WM_WINDOW_BLUR", 0);
+		XInternAtom (d->display, "_FUSILLI_WM_WINDOW_BLUR", 0);
 	bd->blurAtom[BLUR_STATE_DECOR] =
 		XInternAtom (d->display, DECOR_BLUR_ATOM_NAME, 0);
 

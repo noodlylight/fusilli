@@ -23,7 +23,7 @@
  * Author: Danny Baumann <dannybaumann@web.de>
  */
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata gnomeMetadata;
 

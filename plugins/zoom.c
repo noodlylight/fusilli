@@ -31,7 +31,7 @@
 
 #include <X11/cursorfont.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata zoomMetadata;
 
@@ -185,7 +185,7 @@ zoomInEvent (CompScreen *s)
 	o[5].name    = "y2";
 	o[5].value.i = zs->current[zs->zoomOutput].y2;
 
-	(*s->display->handleCompizEvent) (s->display, "zoom", "in", o, 6);
+	(*s->display->handleFusilliEvent) (s->display, "zoom", "in", o, 6);
 }
 
 static void
@@ -203,7 +203,7 @@ zoomOutEvent (CompScreen *s)
 	o[1].name    = "output";
 	o[1].value.i = zs->zoomOutput;
 
-	(*s->display->handleCompizEvent) (s->display, "zoom", "out", o, 2);
+	(*s->display->handleFusilliEvent) (s->display, "zoom", "out", o, 2);
 }
 
 static void

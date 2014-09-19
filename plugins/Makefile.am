@@ -112,7 +112,7 @@ libinotify_module = libinotify.la
 endif
 
 INCLUDES =					\
-	@COMPIZ_CFLAGS@				\
+	@FUSILLI_CFLAGS@				\
 	@LIBPNG_CFLAGS@				\
 	@LIBRSVG_CFLAGS@			\
 	@ANNOTATE_CFLAGS@			\

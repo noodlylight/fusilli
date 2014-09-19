@@ -30,7 +30,7 @@
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static CompMetadata resizeMetadata;
 
@@ -1569,9 +1569,9 @@ resizeInitDisplay (CompPlugin  *p,
 	rd->releaseButton = 0;
 
 	rd->resizeNotifyAtom      = XInternAtom (d->display,
-	                                 "_COMPIZ_RESIZE_NOTIFY", 0);
+	                                 "_FUSILLI_RESIZE_NOTIFY", 0);
 	rd->resizeInformationAtom = XInternAtom (d->display,
-	                                 "_COMPIZ_RESIZE_INFORMATION", 0);
+	                                 "_FUSILLI_RESIZE_INFORMATION", 0);
 
 	for (i = 0; i < NUM_KEYS; i++)
 		rd->key[i] = XKeysymToKeycode (d->display,

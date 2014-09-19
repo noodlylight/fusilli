@@ -34,7 +34,7 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 char *programName;
 char **programArgv;
@@ -193,7 +193,7 @@ readCoreXmlCallback (void *context,
 	int           offset = ctx->offset;
 	int           i, j;
 
-	i = compReadXmlChunk ("<compiz><core><display>", &offset, buffer, length);
+	i = compReadXmlChunk ("<fusilli><core><display>", &offset, buffer, length);
 
 	for (j = 0; j < COMP_DISPLAY_OPTION_NUM; j++)
 	{
@@ -238,7 +238,7 @@ readCoreXmlCallback (void *context,
 		                                             length - i);
 	}
 
-	i += compReadXmlChunk ("</screen></core></compiz>", &offset, buffer + i,
+	i += compReadXmlChunk ("</screen></core></fusilli>", &offset, buffer + i,
 	                       length - i);
 
 	if (!offset && length > i)

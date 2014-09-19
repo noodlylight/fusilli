@@ -1,7 +1,7 @@
-<compiz>
+<fusilli>
     <plugin name="inotify">
 	<_short>Inotify</_short>
 	<_long>File change notification plugin</_long>
 	<category>Utility</category>
     </plugin>
-</compiz>
+</fusilli>

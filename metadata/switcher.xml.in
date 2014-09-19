@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="switcher">
 	<_short>Application Switcher</_short>
 	<_long>Application Switcher</_long>
@@ -154,4 +154,4 @@
 	    </option>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>

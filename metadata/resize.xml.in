@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="resize">
 	<_short>Resize Window</_short>
 	<_long>Resize window</_long>
@@ -102,4 +102,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

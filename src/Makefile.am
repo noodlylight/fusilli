@@ -1,5 +1,5 @@
 INCLUDES =			     \
-	@COMPIZ_CFLAGS@		     \
+	@FUSILLI_CFLAGS@		     \
 	@GL_CFLAGS@		     \
 	-I$(top_srcdir)/include	     \
 	-I$(top_builddir)/include    \
@@ -7,11 +7,11 @@ INCLUDES =			     \
 	-DIMAGEDIR=\"$(imagedir)\"   \
 	-DMETADATADIR=\"$(metadatadir)\"
 
-bin_PROGRAMS = compiz
+bin_PROGRAMS = fusilli
 
-compiz_LDADD = @COMPIZ_LIBS@ @GL_LIBS@ -lm -ldl
-compiz_LDFLAGS = -export-dynamic -pthread
-compiz_SOURCES =   \
+fusilli_LDADD = @FUSILLI_LIBS@ @GL_LIBS@ -lm -ldl
+fusilli_LDFLAGS = -export-dynamic -pthread
+fusilli_SOURCES =   \
 	main.c	   \
 	privates.c \
 	object.c   \

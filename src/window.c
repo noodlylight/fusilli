@@ -36,7 +36,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 #define MwmHintsFunctions   (1L << 0)
 #define MwmHintsDecorations (1L << 1)

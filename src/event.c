@@ -32,7 +32,7 @@
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/Xfixes.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static Window xdndWindow = None;
 static Window edgeWindow = None;
@@ -1207,7 +1207,7 @@ handleActionEvent (CompDisplay *d,
 }
 
 void
-handleCompizEvent (CompDisplay *d,
+handleFusilliEvent (CompDisplay *d,
                    const char  *pluginName,
                    const char  *eventName,
                    CompOption  *option,

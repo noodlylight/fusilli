@@ -42,7 +42,7 @@
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/shape.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
 static unsigned int virtualModMask[] = {
 	CompAltMask, CompMetaMask, CompSuperMask, CompHyperMask,
@@ -1942,7 +1942,7 @@ addDisplay (const char *name)
 	updateModifierMappings (d);
 
 	d->handleEvent       = handleEvent;
-	d->handleCompizEvent = handleCompizEvent;
+	d->handleFusilliEvent = handleFusilliEvent;
 
 	d->fileToImage = fileToImage;
 	d->imageToFile = imageToFile;
@@ -2095,11 +2095,11 @@ addDisplay (const char *name)
 	d->xBackgroundAtom[1] = XInternAtom (dpy, "_XROOTPMAP_ID", 0);
 
 	d->toolkitActionAtom            =
-	        XInternAtom (dpy, "_COMPIZ_TOOLKIT_ACTION", 0);
+	        XInternAtom (dpy, "_FUSILLI_TOOLKIT_ACTION", 0);
 	d->toolkitActionWindowMenuAtom  =
-	        XInternAtom (dpy, "_COMPIZ_TOOLKIT_ACTION_WINDOW_MENU", 0);
+	        XInternAtom (dpy, "_FUSILLI_TOOLKIT_ACTION_WINDOW_MENU", 0);
 	d->toolkitActionForceQuitDialogAtom  =
-	        XInternAtom (dpy, "_COMPIZ_TOOLKIT_ACTION_FORCE_QUIT_DIALOG", 0);
+	        XInternAtom (dpy, "_FUSILLI_TOOLKIT_ACTION_FORCE_QUIT_DIALOG", 0);
 
 	d->mwmHintsAtom = XInternAtom (dpy, "_MOTIF_WM_HINTS", 0);
 
@@ -2794,7 +2794,7 @@ clearTargetOutput (CompDisplay  *display,
 		                   mask);
 }
 
-#define HOME_IMAGEDIR ".compiz/images"
+#define HOME_IMAGEDIR ".fusilli/images"
 
 Bool
 readImageFromFile (CompDisplay *display,

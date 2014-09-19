@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<compiz>
+<fusilli>
     <plugin name="obs">
 	<_short>Opacity, Brightness and Saturation</_short>
 	<_long>Opacity, Brightness and Saturation adjustments</_long>
@@ -165,5 +165,5 @@
 	    </group>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>
 

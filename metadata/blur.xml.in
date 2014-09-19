@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="blur">
 	<_short>Blur Windows</_short>
 	<_long>Blur windows</_long>
@@ -108,4 +108,4 @@
 	    </option>
 	</screen>
     </plugin>
-</compiz>
+</fusilli>

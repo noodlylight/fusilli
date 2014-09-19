@@ -1,4 +1,4 @@
-<compiz>
+<fusilli>
     <plugin name="water">
 	<_short>Water Effect</_short>
 	<_long>Adds water effects to different desktop actions</_long>
@@ -55,4 +55,4 @@
 	    </option>
 	</display>
     </plugin>
-</compiz>
+</fusilli>

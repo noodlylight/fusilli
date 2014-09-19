@@ -57,8 +57,8 @@ main (int argc, char **argv)
 	                 ki18n ("KDE Window Decorator"),
 	                 "0.0.1", KLocalizedString(), KAboutData::License_GPL,
 	                 KLocalizedString(), KLocalizedString(), 
-	                 "http://www.compiz.org", 
-	                 "dev@lists.compiz-fusion.org");
+	                 "http://github.com/noodylight", 
+	                 "noodlylight@gmail.com");
 	KCmdLineArgs::init (argc, argv,
 	                    "kde-window-decorator",
 	                    "kwin",

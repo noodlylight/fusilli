@@ -1,17 +1,17 @@
 [Desktop Entry]
 Type=Application
 Encoding=UTF-8
-_Name=Compiz
-Exec=compiz
+_Name=Fusilli
+Exec=fusilli
 # name of loadable control center module
-X-GNOME-WMSettingsModule=compiz
+X-GNOME-WMSettingsModule=fusilli
 # autostart phase
 X-GNOME-Autostart-Phase=WindowManager
 X-GNOME-Provides=windowmanager
 # name we put on the WM spec check window
-X-GNOME-WMName=compiz
+X-GNOME-WMName=fusilli
 # back compat only 
-X-GnomeWMSettingsLibrary=compiz
+X-GnomeWMSettingsLibrary=fusilli
 
 [Window Manager]
 SessionManaged=false

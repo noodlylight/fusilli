@@ -1,7 +1,7 @@
-<compiz>
+<fusilli>
     <core>
 	<_short>General Options</_short>
-	<_long>General compiz options</_long>
+	<_long>General Fusilli Options</_long>
 	<category>General</category>
 	<display>
 	    <option name="abi" type="int" read_only="true"/>
@@ -332,4 +332,4 @@
 	    </option>
 	</screen>
     </core>
-</compiz>
+</fusilli>
