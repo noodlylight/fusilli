@@ -431,44 +431,6 @@ if test -n "$MAX_DESKTOPS"; then
   AC_DEFINE_UNQUOTED(MAX_DESKTOPS, $MAX_DESKTOPS, [Max reasonable desktops])
 fi
 
-AC_CONFIG_COMMANDS([include/fusilli-common.h],
-[
-	commonfile=include/fusilli-common.h
-	outfile=$commonfile.tmp
-	AC_MSG_NOTICE([creating $commonfile])
-	cat > $outfile <<_EOF
-#ifndef FUSILLI_COMMON_H
-#define FUSILLI_COMMON_H
-
-#ifdef  __cplusplus
-# define FUSILLI_BEGIN_DECLS  extern "C" {
-# define FUSILLI_END_DECLS    }
-#else
-# define FUSILLI_BEGIN_DECLS
-# define FUSILLI_END_DECLS
-#endif
-
-#define FUSILLI_VERSION_MAJOR $FUSILLI_VERSION_MAJOR
-#define FUSILLI_VERSION_MINOR $FUSILLI_VERSION_MINOR
-#define FUSILLI_VERSION_MICRO $FUSILLI_VERSION_MICRO
-
-#define FUSILLI_VERSION_STRING "$FUSILLI_VERSION_MAJOR.$FUSILLI_VERSION_MINOR.$FUSILLI_VERSION_MICRO"
-
-_EOF
-	echo '#endif' >> $outfile
-
-	if cmp -s $outfile $commonfile; then
-	  AC_MSG_NOTICE([$commonfile is unchanged])
-	  rm -f $outfile
-	else
-	  mv $outfile $commonfile
-	fi
-],[
-	FUSILLI_VERSION_MAJOR=$FUSILLI_VERSION_MAJOR
-	FUSILLI_VERSION_MINOR=$FUSILLI_VERSION_MINOR
-	FUSILLI_VERSION_MICRO=$FUSILLI_VERSION_MICRO
-])
-
 AC_OUTPUT([
 fusilli.pc
 fusilli-cube.pc

@@ -28,7 +28,9 @@
 
 #include <fusilli-core.h>
 
-FUSILLI_BEGIN_DECLS
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 #define CUBE_ABIVERSION 20080424
 
@@ -225,6 +227,8 @@ typedef struct _CubeScreen {
 #define CUBE_SCREEN(s) \
         CubeScreen *cs = GET_CUBE_SCREEN (s, GET_CUBE_DISPLAY (s->display))
 
-FUSILLI_END_DECLS
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

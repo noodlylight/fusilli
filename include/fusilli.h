@@ -28,9 +28,9 @@
 
 #include <libxml/parser.h>
 
-#include <fusilli-common.h>
-
-FUSILLI_BEGIN_DECLS
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 typedef int CompBool;
 typedef int CompTimeoutHandle;
@@ -175,6 +175,8 @@ compReadXmlChunk (const char *src,
                   int        length);
 
 
-FUSILLI_END_DECLS
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

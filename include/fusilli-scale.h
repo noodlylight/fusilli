@@ -28,7 +28,9 @@
 
 #include <fusilli-core.h>
 
-FUSILLI_BEGIN_DECLS
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 #define SCALE_ABIVERSION 20081007
 
@@ -206,6 +208,8 @@ typedef struct _ScaleWindow {
                           GET_SCALE_SCREEN  (w->screen, \
                           GET_SCALE_DISPLAY (w->screen->display)))
 
-FUSILLI_END_DECLS
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

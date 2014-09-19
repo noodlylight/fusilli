@@ -28,7 +28,9 @@
 
 #include <fusilli.h>
 
-FUSILLI_BEGIN_DECLS
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
 typedef void (*FiniPluginProc) (CompPlugin *plugin);
@@ -66,6 +68,8 @@ typedef struct _CompPluginVTable {
 CompPluginVTable *
 getCompPluginInfo20070830 (void);
 
-FUSILLI_END_DECLS
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

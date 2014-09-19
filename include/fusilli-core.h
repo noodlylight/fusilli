@@ -47,7 +47,9 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
-FUSILLI_BEGIN_DECLS
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 #if COMPOSITE_MAJOR > 0 || COMPOSITE_MINOR > 2
 #define USE_COW
@@ -3496,6 +3498,8 @@ compReadXmlChunkFromMetadataOptionInfo (const CompMetadataOptionInfo *info,
                                         int                          length);
 
 
-FUSILLI_END_DECLS
+#ifdef  __cplusplus
+}
+#endif
 
 #endif
