@@ -90,13 +90,6 @@ libglib_la_SOURCES = glib.c
 libglib_module = libglib.la
 endif
 
-if DBUS_PLUGIN
-libdbus_la_LDFLAGS = -module -avoid-version -no-undefined
-libdbus_la_LIBADD = @DBUS_LIBS@
-libdbus_la_SOURCES = dbus.c
-libdbus_module = libdbus.la
-endif
-
 if INOTIFY_PLUGIN
 libinotify_la_LDFLAGS = -module -avoid-version -no-undefined
 libinotify_la_SOURCES = inotify.c
@@ -108,7 +101,6 @@ AM_CPPFLAGS =					\
 	@LIBPNG_CFLAGS@				\
 	@LIBRSVG_CFLAGS@			\
 	@ANNOTATE_CFLAGS@			\
-	@DBUS_CFLAGS@				\
 	@GLIB_CFLAGS@				\
 	-DALL_LINGUAS="\"@ALL_LINGUAS@\""	\
 	-DLOCALEDIR="\"@datadir@/locale\""	\
@@ -133,7 +125,6 @@ module_LTLIBRARIES =		\
 	libmove.la		\
 	libresize.la		\
 	libplace.la             \
-	$(libdbus_module)	\
 	libswitcher.la		\
 	libwater.la		\
 	libscreenshot.la	\

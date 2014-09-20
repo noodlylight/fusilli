@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<fusilli>
-	<plugin name="dbus">
-		<_short>Dbus</_short>
-		<_long>Dbus Control Backend</_long>
-		<category>Utility</category>
-	</plugin>
-</fusilli>
