@@ -4,7 +4,6 @@
 		<_short>Desktop Cube</_short>
 		<_long>Place windows on cube</_long>
 		<category>Desktop</category>
-		<feature>largedesktop</feature>
 		<deps>
 			<relation type="before">
 				<plugin>switcher</plugin>

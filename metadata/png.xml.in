@@ -4,7 +4,6 @@
 		<_short>Png</_short>
 		<_long>Png image loader</_long>
 		<category>Image Loading</category>
-		<feature>imageext:png</feature>
-		<feature>imagemime:image/png</feature>
+
 	</plugin>
 </fusilli>

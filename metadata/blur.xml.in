@@ -5,7 +5,6 @@
 		<_long>Blur windows</_long>
 		<category>Effects</category>
 
-		<feature>blur</feature>
 		<deps>
 			<relation type="after">
 				<plugin>decoration</plugin>

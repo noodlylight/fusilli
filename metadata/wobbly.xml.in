@@ -4,7 +4,6 @@
 		<_short>Wobbly Windows</_short>
 		<_long>Use spring model for wobbly window effect</_long>
 		<category>Effects</category>
-		<feature>edgeresistance</feature>
 		<deps>
 			<relation type="before">
 				<plugin>fade</plugin>

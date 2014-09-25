@@ -5,7 +5,6 @@
 		<_long>Window decorations</_long>
 		<category>Effects</category>
 
-		<feature>decorations</feature>
 		<deps>
 			<relation type="before">
 				<plugin>fade</plugin>
