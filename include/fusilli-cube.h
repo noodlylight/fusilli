@@ -35,7 +35,7 @@ extern "C" {
 #define CUBE_ABIVERSION 20080424
 
 typedef struct _CubeCore {
-	SetOptionForPluginProc setOptionForPlugin;
+	//SetOptionForPluginProc setOptionForPlugin;
 } CubeCore;
 
 #define CUBE_MOMODE_AUTO  0
@@ -43,38 +43,10 @@ typedef struct _CubeCore {
 #define CUBE_MOMODE_ONE   2
 #define CUBE_MOMODE_LAST  CUBE_MOMODE_ONE
 
-#define CUBE_DISPLAY_OPTION_ABI        0
-#define CUBE_DISPLAY_OPTION_INDEX      1
-#define CUBE_DISPLAY_OPTION_UNFOLD_KEY 2
-#define CUBE_DISPLAY_OPTION_NEXT_KEY   3
-#define CUBE_DISPLAY_OPTION_PREV_KEY   4
-#define CUBE_DISPLAY_OPTION_NUM        5
-
 typedef struct _CubeDisplay {
-	int	screenPrivateIndex;
-
-	CompOption opt[CUBE_DISPLAY_OPTION_NUM];
+	int             screenPrivateIndex;
+	HandleEventProc handleEvent;
 } CubeDisplay;
-
-#define CUBE_SCREEN_OPTION_COLOR                   0
-#define CUBE_SCREEN_OPTION_IN                      1
-#define CUBE_SCREEN_OPTION_SCALE_IMAGE             2
-#define CUBE_SCREEN_OPTION_IMAGES                  3
-#define CUBE_SCREEN_OPTION_SKYDOME                 4
-#define CUBE_SCREEN_OPTION_SKYDOME_IMG             5
-#define CUBE_SCREEN_OPTION_SKYDOME_ANIM            6
-#define CUBE_SCREEN_OPTION_SKYDOME_GRAD_START      7
-#define CUBE_SCREEN_OPTION_SKYDOME_GRAD_END        8
-#define CUBE_SCREEN_OPTION_ACCELERATION            9
-#define CUBE_SCREEN_OPTION_SPEED                   10
-#define CUBE_SCREEN_OPTION_TIMESTEP                11
-#define CUBE_SCREEN_OPTION_MIPMAP                  12
-#define CUBE_SCREEN_OPTION_ADJUST_IMAGE	           13
-#define CUBE_SCREEN_OPTION_ACTIVE_OPACITY          14
-#define CUBE_SCREEN_OPTION_INACTIVE_OPACITY        15
-#define CUBE_SCREEN_OPTION_TRANSPARENT_MANUAL_ONLY 16
-#define CUBE_SCREEN_OPTION_MULTIOUTPUT_MODE        17
-#define CUBE_SCREEN_OPTION_NUM                     18
 
 typedef enum _PaintOrder {
 	BTF = 0,
@@ -136,8 +108,8 @@ typedef Bool (*CubeShouldPaintViewportProc) (CompScreen              *s,
 typedef struct _CubeScreen {
 	PreparePaintScreenProc       preparePaintScreen;
 	DonePaintScreenProc	         donePaintScreen;
-	PaintScreenProc	         paintScreen;
-	PaintOutputProc	         paintOutput;
+	PaintScreenProc              paintScreen;
+	PaintOutputProc              paintOutput;
 	PaintTransformedOutputProc   paintTransformedOutput;
 	EnableOutputClippingProc     enableOutputClipping;
 	PaintWindowProc              paintWindow;
@@ -153,8 +125,6 @@ typedef struct _CubeScreen {
 	CubeCheckOrientationProc     checkOrientation;
 	CubePaintViewportProc        paintViewport;
 	CubeShouldPaintViewportProc  shouldPaintViewport;
-
-	CompOption opt[CUBE_SCREEN_OPTION_NUM];
 
 	int       invert;
 	int       xRotations;
@@ -184,8 +154,6 @@ typedef struct _CubeScreen {
 	unsigned int skyW, skyH;
 	CompTexture  texture, sky;
 
-	int	imgCurFile;
-
 	int nOutput;
 	int output[64];
 	int outputMask[64];
@@ -203,7 +171,7 @@ typedef struct _CubeScreen {
 
 	float desktopOpacity;
 	float toOpacity;
-	int   lastOpacityIndex;
+	float lastOpacity;
 
 	int  moMode;
 	Bool recalcOutput;

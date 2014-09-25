@@ -109,21 +109,6 @@ finiCorePluginForObject (CompPlugin *p,
 {
 }
 
-static CompBool
-setOptionForPlugin (CompObject      *object,
-                    const char      *plugin,
-                    const char      *name,
-                    CompOptionValue *value)
-{
-	CompPlugin *p;
-
-	p = findActivePlugin (plugin);
-	if (p && p->vTable->setObjectOption)
-		return (*p->vTable->setObjectOption) (p, object, name, value);
-
-	return FALSE;
-}
-
 static void
 coreObjectAdd (CompObject *parent,
                CompObject *object)
@@ -185,8 +170,6 @@ initCore (void)
 
 	core.initPluginForObject = initCorePluginForObject;
 	core.finiPluginForObject = finiCorePluginForObject;
-
-	core.setOptionForPlugin = setOptionForPlugin;
 
 	core.objectAdd    = coreObjectAdd;
 	core.objectRemove = coreObjectRemove;
@@ -302,4 +285,10 @@ removeFileWatch (CompFileWatchHandle handle)
 
 		free (w);
 	}
+}
+
+int
+getCoreABI (void)
+{
+	return CORE_ABIVERSION;
 }

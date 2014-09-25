@@ -4288,14 +4288,18 @@ lowerWindow (CompWindow *w)
 {
 	XWindowChanges xwc;
 	int            mask;
-	CompDisplay    *d = w->screen->display;
 
 	mask = addWindowStackChanges (w, &xwc, findLowestSiblingBelow (w));
 	if (mask)
 		configureXWindow (w, mask, &xwc);
 
 	/* when lowering a window, focus the topmost window if the click-to-focus option is on */
-	if (d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b)
+	const BananaValue *
+	option_click_to_focus = bananaGetOption (coreBananaIndex,
+	                                         "click_to_focus",
+	                                         -1);
+
+	if (option_click_to_focus->b)
 	{
 		Window     aboveId = w->prev ? w->prev->id : None;
 		CompWindow *focusedWindow;
@@ -4641,7 +4645,6 @@ constrainNewWindowSize (CompWindow *w,
                         int        *newWidth,
                         int        *newHeight)
 {
-	CompDisplay      *d = w->screen->display;
 	const XSizeHints *hints = &w->sizeHints;
 	int              oldWidth = width;
 	int              oldHeight = height;
@@ -4656,7 +4659,11 @@ constrainNewWindowSize (CompWindow *w,
 	long             flags = hints->flags;
 	long             resizeIncFlags = (flags & PResizeInc) ? ~0 : 0;
 
-	if (d->opt[COMP_DISPLAY_OPTION_IGNORE_HINTS_WHEN_MAXIMIZED].value.b)
+	const BananaValue *
+	option_ignore_hints_when_maximized = 
+	      bananaGetOption (coreBananaIndex, "ignore_hints_when_maximized", -1);
+
+	if (option_ignore_hints_when_maximized->b)
 	{
 		if (w->state & MAXIMIZE_STATE)
 		{
@@ -5070,17 +5077,19 @@ isWindowFocusAllowed (CompWindow   *w,
 	CompScreen   *s = w->screen;
 	CompWindow   *active;
 	Time         aUserTime;
-	CompMatch    *match;
 	int          level, vx, vy;
 
-	level = s->opt[COMP_SCREEN_OPTION_FOCUS_PREVENTION_LEVEL].value.i;
+	const BananaValue *
+	option_focus_prevention_level = bananaGetOption (
+	    coreBananaIndex, "focus_prevention_level", s->screenNum);
+
+	level = option_focus_prevention_level->i;
 
 	if (level == FOCUS_PREVENTION_LEVEL_NONE)
 		return TRUE;
 
 	/* allow focus for excluded windows */
-	match = &s->opt[COMP_SCREEN_OPTION_FOCUS_PREVENTION_MATCH].value.match;
-	if (!matchEval (match, w))
+	if (!matchEval (&s->focus_prevention_match, w))
 		return TRUE;
 
 	if (level == FOCUS_PREVENTION_LEVEL_VERYHIGH)

@@ -23,6 +23,10 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+// TODO:
+// Actions 
+// Allow different colors per screen
+
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -30,29 +34,19 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata annoMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
+
+static CompKeyBinding    clear_key;
+static CompButtonBinding initiate_button, erase_button, clear_button;
 
 static int annoLastPointerX = 0;
 static int annoLastPointerY = 0;
 
-#define ANNO_DISPLAY_OPTION_INITIATE_BUTTON 0
-#define ANNO_DISPLAY_OPTION_DRAW_BUTTON	    1
-#define ANNO_DISPLAY_OPTION_ERASE_BUTTON    2
-#define ANNO_DISPLAY_OPTION_CLEAR_KEY       3
-#define ANNO_DISPLAY_OPTION_CLEAR_BUTTON    4
-#define ANNO_DISPLAY_OPTION_FILL_COLOR      5
-#define ANNO_DISPLAY_OPTION_STROKE_COLOR    6
-#define ANNO_DISPLAY_OPTION_LINE_WIDTH      7
-#define ANNO_DISPLAY_OPTION_STROKE_WIDTH    8
-#define ANNO_DISPLAY_OPTION_NUM	            9
-
 typedef struct _AnnoDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
-
-	CompOption opt[ANNO_DISPLAY_OPTION_NUM];
 } AnnoDisplay;
 
 typedef struct _AnnoScreen {
@@ -79,11 +73,6 @@ typedef struct _AnnoScreen {
 
 #define ANNO_SCREEN(s) \
         AnnoScreen *as = GET_ANNO_SCREEN (s, GET_ANNO_DISPLAY (s->display))
-
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
-
-#define NUM_TOOLS (sizeof (tools) / sizeof (tools[0]))
 
 static void
 annoCairoClear (CompScreen *s,
@@ -154,7 +143,7 @@ annoSetSourceColor (cairo_t	       *cr,
 	                       (double) color[2] / 0xffff,
 	                       (double) color[3] / 0xffff);
 }
-
+/*
 static void
 annoDrawCircle (CompScreen     *s,
                 double         xc,
@@ -193,8 +182,8 @@ annoDrawCircle (CompScreen     *s,
 		as->content = TRUE;
 		damageScreenRegion (s, &reg);
 	}
-}
-
+}*/
+/*
 static void
 annoDrawRectangle (CompScreen *s,
                    double     x,
@@ -234,7 +223,7 @@ annoDrawRectangle (CompScreen *s,
 		as->content = TRUE;
 		damageScreenRegion (s, &reg);
 	}
-}
+}*/
 
 static void
 annoDrawLine (CompScreen     *s,
@@ -275,7 +264,7 @@ annoDrawLine (CompScreen     *s,
 		damageScreenRegion (s, &reg);
 	}
 }
-
+/*
 static void
 annoDrawText (CompScreen     *s,
               double         x,
@@ -324,7 +313,8 @@ annoDrawText (CompScreen     *s,
 		damageScreenRegion (s, &reg);
 	}
 }
-
+*/
+/*
 static Bool
 annoDraw (CompDisplay     *d,
           CompAction      *action,
@@ -356,19 +346,19 @@ annoDraw (CompDisplay     *d,
 			cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 			cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
 
-			fillColor = ad->opt[ANNO_DISPLAY_OPTION_FILL_COLOR].value.c;
+			//fillColor = ad->opt[ANNO_DISPLAY_OPTION_FILL_COLOR].value.c;
 			fillColor = getColorOptionNamed (option, nOption, "fill_color",
 			                                 fillColor);
 
-			strokeColor = ad->opt[ANNO_DISPLAY_OPTION_STROKE_COLOR].value.c;
+			//strokeColor = ad->opt[ANNO_DISPLAY_OPTION_STROKE_COLOR].value.c;
 			strokeColor = getColorOptionNamed (option, nOption,
 			                                   "stroke_color", strokeColor);
 
-			strokeWidth = ad->opt[ANNO_DISPLAY_OPTION_STROKE_WIDTH].value.f;
+			//strokeWidth = ad->opt[ANNO_DISPLAY_OPTION_STROKE_WIDTH].value.f;
 			strokeWidth = getFloatOptionNamed (option, nOption, "stroke_width",
 			                                   strokeWidth);
 
-			lineWidth = ad->opt[ANNO_DISPLAY_OPTION_LINE_WIDTH].value.f;
+			//lineWidth = ad->opt[ANNO_DISPLAY_OPTION_LINE_WIDTH].value.f;
 			lineWidth = getFloatOptionNamed (option, nOption, "line_width",
 			                                 lineWidth);
 
@@ -442,20 +432,24 @@ annoDraw (CompDisplay     *d,
 
 	return FALSE;
 }
+*/
+
 
 static Bool
-annoInitiate (CompDisplay     *d,
-              CompAction      *action,
-              CompActionState state,
-              CompOption      *option,
-              int             nOption)
+annoInitiate (BananaArgument     *arg,
+              int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		ANNO_SCREEN (s);
@@ -465,12 +459,6 @@ annoInitiate (CompDisplay     *d,
 
 		if (!as->grabIndex)
 			as->grabIndex = pushScreenGrab (s, None, "annotate");
-
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
-
-		if (state & CompActionStateInitKey)
-			action->state |= CompActionStateTermKey;
 
 		annoLastPointerX = pointerX;
 		annoLastPointerY = pointerY;
@@ -482,18 +470,20 @@ annoInitiate (CompDisplay     *d,
 }
 
 static Bool
-annoTerminate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+annoTerminate (BananaArgument     *arg,
+               int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		ANNO_SCREEN (s);
 
@@ -507,24 +497,24 @@ annoTerminate (CompDisplay     *d,
 		}
 	}
 
-	action->state &= ~(CompActionStateTermKey | CompActionStateTermButton);
-
 	return FALSE;
 }
 
 static Bool
-annoEraseInitiate (CompDisplay     *d,
-                   CompAction      *action,
-                   CompActionState state,
-                   CompOption      *option,
-                   int             nOption)
+annoEraseInitiate (BananaArgument     *arg,
+                   int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		ANNO_SCREEN (s);
@@ -534,12 +524,6 @@ annoEraseInitiate (CompDisplay     *d,
 
 		if (!as->grabIndex)
 			as->grabIndex = pushScreenGrab (s, None, "annotate");
-
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
-
-		if (state & CompActionStateInitKey)
-			action->state |= CompActionStateTermKey;
 
 		annoLastPointerX = pointerX;
 		annoLastPointerY = pointerY;
@@ -551,18 +535,20 @@ annoEraseInitiate (CompDisplay     *d,
 }
 
 static Bool
-annoClear (CompDisplay     *d,
-           CompAction      *action,
-           CompActionState state,
-           CompOption      *option,
-           int             nOption)
+annoClear (BananaArgument     *arg,
+           int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		ANNO_SCREEN (s);
@@ -670,13 +656,25 @@ annoHandleMotionEvent (CompScreen *s,
 		}
 		else
 		{
-			ANNO_DISPLAY(s->display);
+			const BananaValue *
+			option_line_width = bananaGetOption (bananaIndex,
+			                                     "line_width",
+			                                     -1);
+
+			const BananaValue *
+			option_fill_color = bananaGetOption (bananaIndex,
+			                                     "fill_color",
+			                                     -1);
+
+			static unsigned short color[] = { 0, 0, 0, 0 };
+
+			stringToColor (option_fill_color->s, color);
 
 			annoDrawLine (s,
 			              annoLastPointerX, annoLastPointerY,
 			              xRoot, yRoot,
-			              ad->opt[ANNO_DISPLAY_OPTION_LINE_WIDTH].value.f,
-			              ad->opt[ANNO_DISPLAY_OPTION_FILL_COLOR].value.c);
+			              option_line_width->f,
+			              color);
 		}
 
 		annoLastPointerX = xRoot;
@@ -703,6 +701,49 @@ annoHandleEvent (CompDisplay *d,
 		s = findScreenAtDisplay (d, event->xcrossing.root);
 		if (s)
 			annoHandleMotionEvent (s, pointerX, pointerY);
+	case KeyPress:
+		if (isKeyPressEvent (event, &clear_key))
+		{
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+			annoClear (&arg, 1);
+		}
+		break;
+	case KeyRelease:
+		break;
+	case ButtonPress:
+		if (isButtonPressEvent (event, &initiate_button))
+		{
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+			annoInitiate (&arg, 1);
+		}
+
+		if (isButtonPressEvent (event, &erase_button))
+		{
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+			annoEraseInitiate (&arg, 1);
+		}
+		break;
+	case ButtonRelease:
+		if (initiate_button.button == event->xbutton.button ||
+		    erase_button.button == event->xbutton.button)
+		{
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+			annoTerminate (&arg, 1);
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -712,73 +753,19 @@ annoHandleEvent (CompDisplay *d,
 	WRAP (ad, d, handleEvent, annoHandleEvent);
 }
 
-static CompOption *
-annoGetDisplayOptions (CompPlugin  *plugin,
-                       CompDisplay *display,
-                       int         *count)
-{
-	ANNO_DISPLAY (display);
-
-	*count = NUM_OPTIONS (ad);
-	return ad->opt;
-}
-
-static Bool
-annoSetDisplayOption (CompPlugin      *plugin,
-                      CompDisplay     *display,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	CompOption *o;
-
-	ANNO_DISPLAY (display);
-
-	o = compFindOption (ad->opt, NUM_OPTIONS (ad), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static const CompMetadataOptionInfo annoDisplayOptionInfo[] = {
-	{ "initiate_button", "button", 0, annoInitiate, annoTerminate },
-	{ "draw", "action", 0, annoDraw, 0 },
-	{ "erase_button", "button", 0, annoEraseInitiate, annoTerminate },
-	{ "clear_key", "key", 0, annoClear, 0 },
-	{ "clear_button", "button", 0, annoClear, 0 },
-	{ "fill_color", "color", 0, 0, 0 },
-	{ "stroke_color", "color", 0, 0, 0 },
-	{ "line_width", "float", 0, 0, 0 },
-	{ "stroke_width", "float", 0, 0, 0 }
-};
-
 static Bool
 annoInitDisplay (CompPlugin  *p,
                  CompDisplay *d)
 {
 	AnnoDisplay *ad;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	ad = malloc (sizeof (AnnoDisplay));
 	if (!ad)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                         &annoMetadata,
-	                                         annoDisplayOptionInfo,
-	                                         ad->opt,
-	                                         ANNO_DISPLAY_OPTION_NUM))
-	{
-		free (ad);
-		return FALSE;
-	}
-
 	ad->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (ad->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 		free (ad);
 		return FALSE;
 	}
@@ -799,8 +786,6 @@ annoFiniDisplay (CompPlugin  *p,
 	freeScreenPrivateIndex (d, ad->screenPrivateIndex);
 
 	UNWRAP (ad, d, handleEvent);
-
-	compFiniDisplayOptions (d, ad->opt, ANNO_DISPLAY_OPTION_NUM);
 
 	free (ad);
 }
@@ -880,54 +865,72 @@ annoFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-annoGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
+static void
+annoChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) annoGetDisplayOptions
-	};
+	if (strcasecmp (optionName, "initiate_button") == 0)
+		updateButton (optionValue->s, &initiate_button);
 
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
+	else if (strcasecmp (optionName, "erase_button") == 0)
+		updateButton (optionValue->s, &erase_button);
 
-static CompBool
-annoSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) annoSetDisplayOption
-	};
+	else if (strcasecmp (optionName, "clear_button") == 0)
+		updateButton (optionValue->s, &clear_button);
 
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
+	else if (strcasecmp (optionName, "clear_key") == 0)
+		updateKey (optionValue->s, &clear_key);
 }
 
 static Bool
 annoInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&annoMetadata,
-	                                     p->vTable->name,
-	                                     annoDisplayOptionInfo,
-	                                     ANNO_DISPLAY_OPTION_NUM,
-	                                     0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&annoMetadata);
+		compLogMessage ("annotate", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&annoMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("annotate");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, annoChangeNotify);
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button", -1);
+
+	const BananaValue *
+	option_erase_button = bananaGetOption (bananaIndex,
+	                                       "erase_button", -1);
+
+	const BananaValue *
+	option_clear_button = bananaGetOption (bananaIndex,
+	                                       "clear_button", -1);
+
+	const BananaValue *
+	option_clear_key = bananaGetOption (bananaIndex,
+	                                    "clear_key", -1);
+
+	registerButton (option_initiate_button->s, &initiate_button);
+	registerButton (option_erase_button->s, &erase_button);
+	registerButton (option_clear_button->s, &clear_button);
+
+	registerKey (option_clear_key->s, &clear_key);
 
 	return TRUE;
 }
@@ -936,28 +939,20 @@ static void
 annoFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&annoMetadata);
-}
 
-static CompMetadata *
-annoGetMetadata (CompPlugin *plugin)
-{
-	return &annoMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable annoVTable = {
 	"annotate",
-	annoGetMetadata,
 	annoInit,
 	annoFini,
 	annoInitObject,
-	annoFiniObject,
-	annoGetObjectOptions,
-	annoSetObjectOption
+	annoFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &annoVTable;
 }

@@ -31,18 +31,15 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata cloneMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
 
-#define CLONE_DISPLAY_OPTION_INITIATE_BUTTON 0
-#define CLONE_DISPLAY_OPTION_NUM             1
+static CompButtonBinding initiate_button;
 
 typedef struct _CloneDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
-
-	CompOption opt[CLONE_DISPLAY_OPTION_NUM];
 } CloneDisplay;
 
 typedef struct _CloneClone {
@@ -446,18 +443,20 @@ clonePaintWindow (CompWindow              *w,
 }
 
 static Bool
-cloneInitiate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+cloneInitiate (BananaArgument     *arg,
+               int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		int i;
@@ -472,8 +471,18 @@ cloneInitiate (CompDisplay     *d,
 
 		cs->grab = TRUE;
 
-		cs->x = getIntOptionNamed (option, nOption, "x", 0);
-		cs->y = getIntOptionNamed (option, nOption, "y", 0);
+		BananaValue *x = getArgNamed ("x", arg, nArg);
+		BananaValue *y = getArgNamed ("y", arg, nArg);
+
+		if (x != NULL)
+			cs->x = x->i;
+		else
+			cs->x = 0;
+
+		if (y != NULL)
+			cs->y = y->i;
+		else
+			cs->y = 0;
 
 		cs->src = cs->grabbedOutput = outputDeviceForPoint (s, cs->x, cs->y);
 
@@ -491,27 +500,26 @@ cloneInitiate (CompDisplay     *d,
 				i++;
 			}
 		}
-
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
 	}
 
 	return FALSE;
 }
 
 static Bool
-cloneTerminate (CompDisplay     *d,
-                CompAction      *action,
-                CompActionState state,
-                CompOption      *option,
-                int             nOption)
+cloneTerminate (BananaArgument     *arg,
+                int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		CLONE_SCREEN (s);
 
@@ -525,16 +533,24 @@ cloneTerminate (CompDisplay     *d,
 			removeScreenGrab (s, cs->grabIndex, NULL);
 			cs->grabIndex = 0;
 
-			x = getIntOptionNamed (option, nOption, "x", 0);
-			y = getIntOptionNamed (option, nOption, "y", 0);
+			BananaValue *arg_x = getArgNamed ("x", arg, nArg);
+			BananaValue *arg_y = getArgNamed ("y", arg, nArg);
+
+			if (arg_x != NULL)
+				x = arg_x->i;
+			else
+				x = 0;
+
+			if (arg_y != NULL)
+				y = arg_y->i;
+			else
+				y = 0;
 
 			cs->dst = outputDeviceForPoint (s, x, y);
 
 			damageScreen (s);
 		}
 	}
-
-	action->state &= ~(CompActionStateTermKey | CompActionStateTermButton);
 
 	return FALSE;
 }
@@ -559,8 +575,8 @@ cloneSetStrutsForCloneWindow (CompScreen *s,
 	if (w->struts)
 		free (w->struts);
 
-	struts->left.x	= 0;
-	struts->left.y	= 0;
+	struts->left.x      = 0;
+	struts->left.y      = 0;
 	struts->left.width  = 0;
 	struts->left.height = s->height;
 
@@ -591,8 +607,8 @@ cloneSetStrutsForCloneWindow (CompScreen *s,
 
 	if (rect)
 	{
-		rect->x	     = output->region.extents.x1;
-		rect->y	     = output->region.extents.y1;
+		rect->x      = output->region.extents.x1;
+		rect->y      = output->region.extents.y1;
 		rect->width  = output->width;
 		rect->height = output->height;
 	}
@@ -635,6 +651,44 @@ cloneHandleEvent (CompDisplay *d,
 		s = findScreenAtDisplay (d, event->xcrossing.root);
 		if (s)
 			cloneHandleMotionEvent (s, pointerX, pointerY);
+	case ButtonPress:
+		if (isButtonPressEvent (event, &initiate_button))
+		{
+			BananaArgument arg[3];
+			arg[0].name = "root";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.root;
+
+			arg[1].name = "x";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.x_root;
+
+			arg[2].name = "y";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.y_root;
+
+			cloneInitiate (&arg[0], 3);
+		}
+		break;
+	case ButtonRelease:
+		if (initiate_button.button == event->xbutton.button)
+		{
+			BananaArgument arg[3];
+			arg[0].name = "root";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.root;
+
+			arg[1].name = "x";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.x_root;
+
+			arg[2].name = "y";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.y_root;
+
+			cloneTerminate (&arg[0], 3);
+		}
+		break;
 	default:
 		break;
 	}
@@ -685,65 +739,19 @@ cloneOutputChangeNotify (CompScreen *s)
 	WRAP (cs, s, outputChangeNotify, cloneOutputChangeNotify);
 }
 
-static CompOption *
-cloneGetDisplayOptions (CompPlugin  *plugin,
-                        CompDisplay *display,
-                        int         *count)
-{
-	CLONE_DISPLAY (display);
-
-	*count = NUM_OPTIONS (cd);
-	return cd->opt;
-}
-
-static Bool
-cloneSetDisplayOption (CompPlugin      *plugin,
-                       CompDisplay     *display,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	CompOption *o;
-
-	CLONE_DISPLAY (display);
-
-	o = compFindOption (cd->opt, NUM_OPTIONS (cd), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static const CompMetadataOptionInfo cloneDisplayOptionInfo[] = {
-	{ "initiate_button", "button", 0, cloneInitiate, cloneTerminate }
-};
-
 static Bool
 cloneInitDisplay (CompPlugin  *p,
                   CompDisplay *d)
 {
 	CloneDisplay *cd;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	cd = malloc (sizeof (CloneDisplay));
 	if (!cd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &cloneMetadata,
-	                                 cloneDisplayOptionInfo,
-	                                 cd->opt,
-	                                 CLONE_DISPLAY_OPTION_NUM))
-	{
-		free (cd);
-		return FALSE;
-	}
-
 	cd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (cd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, cd->opt, CLONE_DISPLAY_OPTION_NUM);
 		free (cd);
 		return FALSE;
 	}
@@ -764,8 +772,6 @@ cloneFiniDisplay (CompPlugin  *p,
 	freeScreenPrivateIndex (d, cd->screenPrivateIndex);
 
 	UNWRAP (cd, d, handleEvent);
-
-	compFiniDisplayOptions (d, cd->opt, CLONE_DISPLAY_OPTION_NUM);
 
 	free (cd);
 }
@@ -854,54 +860,48 @@ cloneFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-cloneGetObjectOptions (CompPlugin *plugin,
-                       CompObject *object,
-                       int        *count)
+static void
+cloneChangeNotify (const char        *optionName,
+                   BananaType        optionType,
+                   const BananaValue *optionValue,
+                   int               screenNum)
 {
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) cloneGetDisplayOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-cloneSetObjectOption (CompPlugin      *plugin,
-                      CompObject      *object,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) cloneSetDisplayOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
+	if (strcasecmp (optionName, "initiate_button") == 0)
+		updateButton (optionValue->s, &initiate_button);
 }
 
 static Bool
 cloneInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&cloneMetadata,
-	                             p->vTable->name,
-	                             cloneDisplayOptionInfo,
-	                             CLONE_DISPLAY_OPTION_NUM,
-	                             0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&cloneMetadata);
+		compLogMessage ("clone", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&cloneMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("clone");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, cloneChangeNotify);
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button",
+	                                          -1);
+
+	registerButton (option_initiate_button->s, &initiate_button);
 
 	return TRUE;
 }
@@ -910,28 +910,20 @@ static void
 cloneFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&cloneMetadata);
-}
 
-static CompMetadata *
-cloneGetMetadata (CompPlugin *plugin)
-{
-	return &cloneMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 CompPluginVTable cloneVTable = {
 	"clone",
-	cloneGetMetadata,
 	cloneInit,
 	cloneFini,
 	cloneInitObject,
-	cloneFiniObject,
-	cloneGetObjectOptions,
-	cloneSetObjectOption
+	cloneFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &cloneVTable;
 }

@@ -31,8 +31,6 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata pngMetadata;
-
 #define PNG_SIG_SIZE 8
 
 static int displayPrivateIndex;
@@ -466,9 +464,6 @@ pngInitDisplay (CompPlugin  *p,
 	PngDisplay *pd;
 	CompScreen *s;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	pd = malloc (sizeof (PngDisplay));
 	if (!pd)
 		return FALSE;
@@ -528,18 +523,21 @@ pngFiniObject (CompPlugin *p,
 static Bool
 pngInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&pngMetadata, p->vTable->name,
-	                             0, 0, 0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&pngMetadata);
+		compLogMessage ("png", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&pngMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
 
 	return TRUE;
 }
@@ -548,28 +546,18 @@ static void
 pngFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&pngMetadata);
-}
-
-static CompMetadata *
-pngGetMetadata (CompPlugin *plugin)
-{
-	return &pngMetadata;
 }
 
 CompPluginVTable pngVTable = {
 	"png",
-	pngGetMetadata,
 	pngInit,
 	pngFini,
 	pngInitObject,
-	pngFiniObject,
-	0, /* GetObjectOptions */
-	0  /* SetObjectOption */
+	pngFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &pngVTable;
 }

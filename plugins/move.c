@@ -31,7 +31,10 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata moveMetadata;
+static int bananaIndex;
+
+static CompKeyBinding initiate_key;
+static CompButtonBinding initiate_button;
 
 struct _MoveKeys {
 	char *name;
@@ -53,19 +56,9 @@ struct _MoveKeys {
 
 static int displayPrivateIndex;
 
-#define MOVE_DISPLAY_OPTION_INITIATE_BUTTON   0
-#define MOVE_DISPLAY_OPTION_INITIATE_KEY      1
-#define MOVE_DISPLAY_OPTION_OPACITY           2
-#define MOVE_DISPLAY_OPTION_CONSTRAIN_Y       3
-#define MOVE_DISPLAY_OPTION_SNAPOFF_MAXIMIZED 4
-#define MOVE_DISPLAY_OPTION_LAZY_POSITIONING  5
-#define MOVE_DISPLAY_OPTION_NUM               6
-
 typedef struct _MoveDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
-
-	CompOption opt[MOVE_DISPLAY_OPTION_NUM];
 
 	CompWindow *w;
 	int	       savedX;
@@ -110,20 +103,22 @@ typedef struct _MoveScreen {
 #define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
 
 static Bool
-moveInitiate (CompDisplay     *d,
-              CompAction      *action,
-              CompActionState state,
-              CompOption      *option,
-              int             nOption)
+moveInitiate (BananaArgument     *arg,
+              int                nArg)
 {
 	CompWindow *w;
 	Window     xid;
 
-	MOVE_DISPLAY (d);
+	MOVE_DISPLAY (core.displays);
 
-	xid = getIntOptionNamed (option, nOption, "window", 0);
+	BananaValue *window = getArgNamed ("window", arg, nArg);
 
-	w = findWindowAtDisplay (d, xid);
+	if (window != NULL)
+		xid = window->i;
+	else
+		xid = 0;
+
+	w = findWindowAtDisplay (core.displays, xid);
 	if (w && (w->actions & CompWindowActionMoveMask))
 	{
 		XRectangle   workArea;
@@ -133,14 +128,29 @@ moveInitiate (CompDisplay     *d,
 
 		MOVE_SCREEN (w->screen);
 
-		mods = getIntOptionNamed (option, nOption, "modifiers", 0);
+		BananaValue *modifiers = getArgNamed ("modifiers", arg, nArg);
+		if (modifiers != NULL)
+			mods = modifiers->i;
+		else
+			mods = 0;
 
-		x = getIntOptionNamed (option, nOption, "x",
-		                       w->attrib.x + (w->width / 2));
-		y = getIntOptionNamed (option, nOption, "y",
-		                       w->attrib.y + (w->height / 2));
+		BananaValue *arg_x = getArgNamed ("x", arg, nArg);
+		if (arg_x != NULL)
+			x = arg_x->i;
+		else
+			x = w->attrib.x + (w->width / 2);
 
-		button = getIntOptionNamed (option, nOption, "button", -1);
+		BananaValue *arg_y = getArgNamed ("y", arg, nArg);
+		if (arg_y != NULL)
+			y = arg_y->i;
+		else
+			y = w->attrib.y + (w->height / 2);
+
+		BananaValue *arg_button = getArgNamed ("button", arg, nArg);
+		if (arg_button != NULL)
+			button = arg_button->i;
+		else
+			button = -1;
 
 		if (otherScreenGrabExist (w->screen, "move", NULL))
 			return FALSE;
@@ -156,9 +166,6 @@ moveInitiate (CompDisplay     *d,
 		if (w->attrib.override_redirect)
 			return FALSE;
 
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
-
 		if (md->region)
 		{
 			XDestroyRegion (md->region);
@@ -173,10 +180,17 @@ moveInitiate (CompDisplay     *d,
 		md->x = 0;
 		md->y = 0;
 
-		sourceExternalApp = getBoolOptionNamed (option, nOption, "external",
-		                            FALSE);
-		md->constrainY = sourceExternalApp &&
-		                 md->opt[MOVE_DISPLAY_OPTION_CONSTRAIN_Y].value.b;
+		BananaValue *arg_external = getArgNamed ("external", arg, nArg);
+
+		if (arg_external != NULL)
+			sourceExternalApp = arg_external->b;
+		else
+			sourceExternalApp = FALSE;
+
+		const BananaValue *
+		option_constrain_y = bananaGetOption (bananaIndex, "constrain_y", -1);
+
+		md->constrainY = sourceExternalApp && option_constrain_y->b;
 
 		lastPointerX = x;
 		lastPointerY = y;
@@ -207,11 +221,17 @@ moveInitiate (CompDisplay     *d,
 
 			(w->screen->windowGrabNotify) (w, x, y, mods, grabMask);
 
-			if (d->opt[COMP_DISPLAY_OPTION_RAISE_ON_CLICK].value.b)
+			const BananaValue *option_raise_on_click = bananaGetOption (
+			    coreBananaIndex, "raise_on_click", -1);
+
+			if (option_raise_on_click->b)
 				updateWindowAttributes (w,
 				                  CompStackingUpdateModeAboveFullscreen);
 
-			if (state & CompActionStateInitKey)
+			BananaValue *arg_cursor_at_center = getArgNamed ("cursor_at_center",
+			                                                 arg, nArg);
+
+			if (arg_cursor_at_center != NULL && arg_cursor_at_center->b)
 			{
 				int xRoot, yRoot;
 
@@ -230,19 +250,18 @@ moveInitiate (CompDisplay     *d,
 }
 
 static Bool
-moveTerminate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+moveTerminate (BananaArgument     *arg,
+              int                 nArg)
 {
-	MOVE_DISPLAY (d);
+	MOVE_DISPLAY (core.displays);
 
 	if (md->w)
 	{
 		MOVE_SCREEN (md->w->screen);
 
-		if (state & CompActionStateCancel)
+		BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
+
+		if (cancel != NULL && cancel->b)
 			moveWindow (md->w,
 			            md->savedX - md->w->attrib.x,
 			            md->savedY - md->w->attrib.y,
@@ -269,8 +288,6 @@ moveTerminate (CompDisplay     *d,
 		md->w             = 0;
 		md->releaseButton = 0;
 	}
-
-	action->state &= ~(CompActionStateTermKey | CompActionStateTermButton);
 
 	return FALSE;
 }
@@ -376,9 +393,9 @@ moveHandleMotionEvent (CompScreen *s,
 	if (ms->grabIndex)
 	{
 		CompWindow *w;
-		int	   dx, dy;
-		int	   wX, wY;
-		int	   wWidth, wHeight;
+		int        dx, dy;
+		int        wX, wY;
+		int        wWidth, wHeight;
 
 		MOVE_DISPLAY (s->display);
 
@@ -464,7 +481,10 @@ moveHandleMotionEvent (CompScreen *s,
 				}
 			}
 
-			if (md->opt[MOVE_DISPLAY_OPTION_SNAPOFF_MAXIMIZED].value.b)
+			const BananaValue *option_snapoff_maximized = bananaGetOption (
+			    bananaIndex, "snapoff_maximized", -1);
+
+			if (option_snapoff_maximized->b)
 			{
 				if (w->state & CompWindowStateMaximizedVertMask)
 				{
@@ -554,7 +574,10 @@ moveHandleMotionEvent (CompScreen *s,
 			            wY + dy - w->attrib.y,
 			            TRUE, FALSE);
 
-			if (md->opt[MOVE_DISPLAY_OPTION_LAZY_POSITIONING].value.b)
+			const BananaValue *option_lazy_positioning = bananaGetOption (
+			        bananaIndex, "lazy_positioning", -1);
+
+			if (option_lazy_positioning->b)
 			{
 				/* FIXME: This form of lazy positioning is broken and should
 				   be replaced asap. Current code exists just to avoid a
@@ -583,6 +606,33 @@ moveHandleEvent (CompDisplay *d,
 
 	switch (event->type) {
 	case ButtonPress:
+		if (isButtonPressEvent (event, &initiate_button))
+		{
+			BananaArgument arg[5];
+
+			arg[0].name = "window";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.window;
+
+			arg[1].name = "modifiers";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.state;
+
+			arg[2].name = "x";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.x_root;
+
+			arg[3].name = "y";
+			arg[3].type = BananaInt;
+			arg[3].value.i = event->xbutton.y_root;
+
+			arg[4].name = "button";
+			arg[4].type = BananaInt;
+			arg[4].value.i = event->xbutton.button;
+
+			moveInitiate (&arg[0], 5);
+		}
+		break;
 	case ButtonRelease:
 		s = findScreenAtDisplay (d, event->xbutton.root);
 		if (s)
@@ -592,19 +642,46 @@ moveHandleEvent (CompDisplay *d,
 			if (ms->grabIndex)
 			{
 				if (md->releaseButton == -1 ||
-					md->releaseButton == event->xbutton.button)
+				    initiate_button.button == event->xbutton.button)
 				{
-					CompAction *action;
-					int        opt = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
+					BananaArgument arg;
 
-					action = &md->opt[opt].value.action;
-					moveTerminate (d, action, CompActionStateTermButton,
-					               NULL, 0);
+					arg.name = "cancel";
+					arg.type = BananaBool;
+					arg.value.b = FALSE;
+
+					moveTerminate (&arg, 1);
 				}
 			}
 		}
 		break;
 	case KeyPress:
+		if (isKeyPressEvent (event, &initiate_key))
+		{
+			BananaArgument arg[5];
+
+			arg[0].name = "window";
+			arg[0].type = BananaInt;
+			arg[0].value.i = d->activeWindow;
+
+			arg[1].name = "modifiers";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.state;
+
+			arg[2].name = "x";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xkey.x_root;
+
+			arg[3].name = "y";
+			arg[3].type = BananaInt;
+			arg[3].value.i = event->xkey.y_root;
+
+			arg[4].name = "cursor_at_center";
+			arg[4].type = BananaBool;
+			arg[4].value.b = TRUE;
+
+			moveInitiate (&arg[0], 5);
+		}
 		s = findScreenAtDisplay (d, event->xkey.root);
 		if (s)
 		{
@@ -623,6 +700,16 @@ moveHandleEvent (CompDisplay *d,
 						          mKeys[i].dy * KEY_MOVE_INC);
 						break;
 					}
+				}
+				if (event->xkey.keycode == d->escapeKeyCode)
+				{
+					BananaArgument arg;
+
+					arg.name = "cancel";
+					arg.type = BananaBool;
+					arg.value.b = TRUE;
+
+					moveTerminate (&arg, 1);
 				}
 			}
 		}
@@ -649,62 +736,63 @@ moveHandleEvent (CompDisplay *d,
 				w = findWindowAtDisplay (d, event->xclient.window);
 				if (w)
 				{
-					CompOption o[6];
-					int        xRoot, yRoot;
-					int        option;
-
-					o[0].type    = CompOptionTypeInt;
-					o[0].name    = "window";
-					o[0].value.i = event->xclient.window;
-
-					o[1].type    = CompOptionTypeBool;
-					o[1].name    = "external";
-					o[1].value.b = TRUE;
-
 					if (event->xclient.data.l[2] == WmMoveResizeMoveKeyboard)
 					{
-						option = MOVE_DISPLAY_OPTION_INITIATE_KEY;
+						BananaArgument arg[2];
 
-						moveInitiate (d, &md->opt[option].value.action,
-						          CompActionStateInitKey,
-						          o, 2);
+						arg[0].name = "window";
+						arg[0].type = BananaInt;
+						arg[0].value.i = event->xclient.window;
+
+						arg[1].name = "external";
+						arg[1].type = BananaBool;
+						arg[1].value.b = TRUE;
+
+						moveInitiate (&arg[0], 1);
 					}
 					else
 					{
 						unsigned int mods;
 						Window       root, child;
 						int          i;
-
-						option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
+						int        xRoot, yRoot;
 
 						XQueryPointer (d->display, w->screen->root,
 						           &root, &child, &xRoot, &yRoot,
 						           &i, &i, &mods);
 
 						/* TODO: not only button 1 */
+
 						if (mods & Button1Mask)
 						{
-							o[2].type    = CompOptionTypeInt;
-							o[2].name    = "modifiers";
-							o[2].value.i = mods;
+							BananaArgument arg[6];
 
-							o[3].type    = CompOptionTypeInt;
-							o[3].name    = "x";
-							o[3].value.i = event->xclient.data.l[0];
+							arg[0].name = "window";
+							arg[0].type = BananaInt;
+							arg[0].value.i = event->xclient.window;
 
-							o[4].type    = CompOptionTypeInt;
-							o[4].name    = "y";
-							o[4].value.i = event->xclient.data.l[1];
+							arg[1].name = "external";
+							arg[1].type = BananaBool;
+							arg[1].value.b = TRUE;
 
-							o[5].type    = CompOptionTypeInt;
-							o[5].name    = "button";
-							o[5].value.i = event->xclient.data.l[3] ?
-							           event->xclient.data.l[3] : -1;
+							arg[2].name    = "modifiers";
+							arg[2].type    = BananaInt;
+							arg[2].value.i = mods;
 
-							moveInitiate (d,
-							      &md->opt[option].value.action,
-							      CompActionStateInitButton,
-							      o, 6);
+							arg[3].name    = "x";
+							arg[3].type    = BananaInt;
+							arg[3].value.i = event->xclient.data.l[0];
+
+							arg[4].name    = "y";
+							arg[4].type    = BananaInt;
+							arg[4].value.i = event->xclient.data.l[1];
+
+							//arg[5].name    = "button";
+							//arg[5].type    = BananaInt;
+							//arg[5].value.i = event->xclient.data.l[3] ?
+							//           event->xclient.data.l[3] : -1;
+
+							moveInitiate (&arg[0], 5);
 
 							moveHandleMotionEvent (w->screen, xRoot, yRoot);
 						}
@@ -715,49 +803,25 @@ moveHandleEvent (CompDisplay *d,
 			{
 				if (md->w->id == event->xclient.window)
 				{
-					int option;
+					BananaArgument arg;
 
-					option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
-					moveTerminate (d,
-					           &md->opt[option].value.action,
-					           CompActionStateCancel, NULL, 0);
-					option = MOVE_DISPLAY_OPTION_INITIATE_KEY;
-					moveTerminate (d,
-					           &md->opt[option].value.action,
-					           CompActionStateCancel, NULL, 0);
+					arg.name = "cancel";
+					arg.type = BananaBool;
+					arg.value.b = TRUE;
+
+					moveTerminate (&arg, 1);
 				}
 			}
 		}
 		break;
 	case DestroyNotify:
 		if (md->w && md->w->id == event->xdestroywindow.window)
-		{
-			int option;
-
-			option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
-			moveTerminate (d,
-			               &md->opt[option].value.action,
-			               0, NULL, 0);
-			option = MOVE_DISPLAY_OPTION_INITIATE_KEY;
-			moveTerminate (d,
-			               &md->opt[option].value.action,
-			               0, NULL, 0);
-		}
+			moveTerminate (NULL, 0);
 		break;
 	case UnmapNotify:
 		if (md->w && md->w->id == event->xunmap.window)
-		{
-			int option;
-
-			option = MOVE_DISPLAY_OPTION_INITIATE_BUTTON;
-			moveTerminate (d,
-			               &md->opt[option].value.action,
-			               0, NULL, 0);
-			option = MOVE_DISPLAY_OPTION_INITIATE_KEY;
-			moveTerminate (d,
-			               &md->opt[option].value.action,
-			               0, NULL, 0);
-		}
+			moveTerminate (NULL, 0);
+		break;
 	default:
 		break;
 	}
@@ -801,55 +865,21 @@ movePaintWindow (CompWindow              *w,
 	return status;
 }
 
-static CompOption *
-moveGetDisplayOptions (CompPlugin  *plugin,
-                       CompDisplay *display,
-                       int         *count)
+static void
+moveChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	MOVE_DISPLAY (display);
+	MOVE_DISPLAY (core.displays);
 
-	*count = NUM_OPTIONS (md);
-	return md->opt;
+	if (strcasecmp (optionName, "opacity") == 0)
+		md->moveOpacity = (optionValue->i * OPAQUE) / 100;
+	else if (strcasecmp (optionName, "initiate_button") == 0)
+		updateButton (optionValue->s, &initiate_button);
+	else if (strcasecmp (optionName, "initiate_key") == 0)
+		updateKey (optionValue->s, &initiate_key);
 }
-
-static Bool
-moveSetDisplayOption (CompPlugin      *plugin,
-                      CompDisplay     *display,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	CompOption *o;
-	int        index;
-
-	MOVE_DISPLAY (display);
-
-	o = compFindOption (md->opt, NUM_OPTIONS (md), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case MOVE_DISPLAY_OPTION_OPACITY:
-		if (compSetIntOption (o, value))
-		{
-			md->moveOpacity = (o->value.i * OPAQUE) / 100;
-			return TRUE;
-		}
-		break;
-	default:
-		return compSetDisplayOption (display, o, value);
-	}
-
-	return FALSE;
-}
-
-static const CompMetadataOptionInfo moveDisplayOptionInfo[] = {
-	{ "initiate_button", "button", 0, moveInitiate, moveTerminate },
-	{ "initiate_key", "key", 0, moveInitiate, moveTerminate },
-	{ "opacity", "int", "<min>0</min><max>100</max>", 0, 0 },
-	{ "constrain_y", "bool", 0, 0, 0 },
-	{ "snapoff_maximized", "bool", 0, 0, 0 },
-	{ "lazy_positioning", "bool", 0, 0, 0 }
-};
 
 static Bool
 moveInitDisplay (CompPlugin  *p,
@@ -858,33 +888,21 @@ moveInitDisplay (CompPlugin  *p,
 	MoveDisplay *md;
 	int         i;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	md = malloc (sizeof (MoveDisplay));
 	if (!md)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &moveMetadata,
-	                                 moveDisplayOptionInfo,
-	                                 md->opt,
-	                                 MOVE_DISPLAY_OPTION_NUM))
-	{
-		free (md);
-		return FALSE;
-	}
-
 	md->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (md->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, md->opt, MOVE_DISPLAY_OPTION_NUM);
 		free (md);
 		return FALSE;
 	}
 
-	md->moveOpacity =
-		(md->opt[MOVE_DISPLAY_OPTION_OPACITY].value.i * OPAQUE) / 100;
+	const BananaValue *
+	option_opacity = bananaGetOption (bananaIndex, "opacity", -1);
+
+	md->moveOpacity = (option_opacity->i * OPAQUE) / 100;
 
 	md->w             = 0;
 	md->region        = NULL;
@@ -912,8 +930,6 @@ moveFiniDisplay (CompPlugin  *p,
 	freeScreenPrivateIndex (d, md->screenPrivateIndex);
 
 	UNWRAP (md, d, handleEvent);
-
-	compFiniDisplayOptions (d, md->opt, MOVE_DISPLAY_OPTION_NUM);
 
 	if (md->region)
 		XDestroyRegion (md->region);
@@ -984,54 +1000,44 @@ moveFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-moveGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) moveGetDisplayOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-moveSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) moveSetDisplayOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
 static Bool
 moveInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&moveMetadata,
-	                             p->vTable->name,
-	                             moveDisplayOptionInfo,
-	                             MOVE_DISPLAY_OPTION_NUM,
-	                             0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&moveMetadata);
+		compLogMessage ("move", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&moveMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("move");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, moveChangeNotify);
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button",
+	                                          -1);
+
+	const BananaValue *
+	option_initiate_key = bananaGetOption (bananaIndex,
+	                                       "initiate_key",
+	                                       -1);
+
+	registerKey (option_initiate_key->s, &initiate_key);
+	registerButton (option_initiate_button->s, &initiate_button);
 
 	return TRUE;
 }
@@ -1040,28 +1046,20 @@ static void
 moveFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&moveMetadata);
-}
 
-static CompMetadata *
-moveGetMetadata (CompPlugin *plugin)
-{
-	return &moveMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 CompPluginVTable moveVTable = {
 	"move",
-	moveGetMetadata,
 	moveInit,
 	moveFini,
 	moveInitObject,
-	moveFiniObject,
-	moveGetObjectOptions,
-	moveSetObjectOption
+	moveFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &moveVTable;
 }

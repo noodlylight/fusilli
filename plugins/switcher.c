@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include <fusilli-core.h>
+
 #include <decoration.h>
 
 #include <X11/Xatom.h>
@@ -39,56 +40,23 @@
 #define ZOOMED_WINDOW_MASK (1 << 0)
 #define NORMAL_WINDOW_MASK (1 << 1)
 
-static CompMetadata switchMetadata;
+static int bananaIndex;
+
+static CompKeyBinding next_key, prev_key, next_all_key, prev_all_key;
 
 static int displayPrivateIndex;
-
-#define SWITCH_DISPLAY_OPTION_NEXT_BUTTON          0
-#define SWITCH_DISPLAY_OPTION_NEXT_KEY             1
-#define SWITCH_DISPLAY_OPTION_PREV_BUTTON          2
-#define SWITCH_DISPLAY_OPTION_PREV_KEY             3
-#define SWITCH_DISPLAY_OPTION_NEXT_ALL_BUTTON      4
-#define SWITCH_DISPLAY_OPTION_NEXT_ALL_KEY         5
-#define SWITCH_DISPLAY_OPTION_PREV_ALL_BUTTON      6
-#define SWITCH_DISPLAY_OPTION_PREV_ALL_KEY         7
-#define SWITCH_DISPLAY_OPTION_NEXT_NO_POPUP_BUTTON 8
-#define SWITCH_DISPLAY_OPTION_NEXT_NO_POPUP_KEY    9
-#define SWITCH_DISPLAY_OPTION_PREV_NO_POPUP_BUTTON 10
-#define SWITCH_DISPLAY_OPTION_PREV_NO_POPUP_KEY    11
-#define SWITCH_DISPLAY_OPTION_NEXT_PANEL_BUTTON    12
-#define SWITCH_DISPLAY_OPTION_NEXT_PANEL_KEY       13
-#define SWITCH_DISPLAY_OPTION_PREV_PANEL_BUTTON    14
-#define SWITCH_DISPLAY_OPTION_PREV_PANEL_KEY       15
-#define SWITCH_DISPLAY_OPTION_NUM                  16
 
 typedef struct _SwitchDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
 
-	CompOption opt[SWITCH_DISPLAY_OPTION_NUM];
-
 	Atom selectWinAtom;
 	Atom selectFgColorAtom;
 } SwitchDisplay;
 
-#define SWITCH_SCREEN_OPTION_SPEED        0
-#define SWITCH_SCREEN_OPTION_TIMESTEP     1
-#define SWITCH_SCREEN_OPTION_WINDOW_MATCH 2
-#define SWITCH_SCREEN_OPTION_MIPMAP       3
-#define SWITCH_SCREEN_OPTION_SATURATION   4
-#define SWITCH_SCREEN_OPTION_BRIGHTNESS   5
-#define SWITCH_SCREEN_OPTION_OPACITY      6
-#define SWITCH_SCREEN_OPTION_BRINGTOFRONT 7
-#define SWITCH_SCREEN_OPTION_ZOOM         8
-#define SWITCH_SCREEN_OPTION_ICON         9
-#define SWITCH_SCREEN_OPTION_MINIMIZED    10
-#define SWITCH_SCREEN_OPTION_AUTO_ROTATE  11
-#define SWITCH_SCREEN_OPTION_NUM          12
-
 typedef enum {
 	CurrentViewport = 0,
-	AllViewports,
-	Panels
+	AllViewports
 } SwitchWindowSelection;
 
 typedef struct _SwitchScreen {
@@ -97,8 +65,6 @@ typedef struct _SwitchScreen {
 	PaintOutputProc        paintOutput;
 	PaintWindowProc        paintWindow;
 	DamageWindowRectProc   damageWindowRect;
-
-	CompOption opt[SWITCH_SCREEN_OPTION_NUM];
 
 	Window popupWindow;
 
@@ -133,6 +99,8 @@ typedef struct _SwitchScreen {
 	SwitchWindowSelection selection;
 
 	unsigned int fgColor[4];
+
+	CompMatch window_match;
 } SwitchScreen;
 
 #define MwmHintsDecorations (1L << 1)
@@ -192,57 +160,56 @@ static float _boxVertices[] =
 #define SWITCH_SCREEN(s) \
         SwitchScreen *ss = GET_SWITCH_SCREEN (s, GET_SWITCH_DISPLAY (s->display))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
-static CompOption *
-switchGetScreenOptions (CompPlugin *plugin,
-                        CompScreen *screen,
-                        int        *count)
+static void
+switchChangeNotify (const char        *optionName,
+                    BananaType        optionType,
+                    const BananaValue *optionValue,
+                    int               screenNum)
 {
-	SWITCH_SCREEN (screen);
+	if (strcasecmp (optionName, "zoom") == 0)
+	{
+		CompScreen *screen;
 
-	*count = NUM_OPTIONS (ss);
-	return ss->opt;
-}
+		screen = getScreenFromScreenNum (screenNum);
 
-static Bool
-switchSetScreenOption (CompPlugin      *plugin,
-                       CompScreen      *screen,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	CompOption  *o;
-	int         index;
+		SWITCH_SCREEN (screen);
 
-	SWITCH_SCREEN (screen);
-
-	o = compFindOption (ss->opt, NUM_OPTIONS (ss), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case SWITCH_SCREEN_OPTION_ZOOM:
-		if (compSetFloatOption (o, value))
+		if (optionValue->f < 0.05f)
 		{
-			if (o->value.f < 0.05f)
-			{
-				ss->zooming = FALSE;
-				ss->zoom    = 0.0f;
-			}
-			else
-			{
-				ss->zooming = TRUE;
-				ss->zoom    = o->value.f / 30.0f;
-			}
-
-			return TRUE;
+			ss->zooming = FALSE;
+			ss->zoom    = 0.0f;
 		}
-		break;
-	default:
-		return compSetScreenOption (screen, o, value);
+		else
+		{
+			ss->zooming = TRUE;
+			ss->zoom    = optionValue->f / 30.0f;
+		}
 	}
+	else if (strcasecmp (optionName, "next_key") == 0)
+		updateKey (optionValue->s, &next_key);
 
-	return FALSE;
+	else if (strcasecmp (optionName, "prev_key") == 0)
+		updateKey (optionValue->s, &prev_key);
+
+	else if (strcasecmp (optionName, "next_all_key") == 0)
+		updateKey (optionValue->s, &next_all_key);
+
+	else if (strcasecmp (optionName, "prev_all_key") == 0)
+		updateKey (optionValue->s, &prev_all_key);
+
+	else if (strcasecmp (optionName, "window_match") == 0)
+	{
+		CompScreen *screen;
+
+		screen = getScreenFromScreenNum (screenNum);
+
+		SWITCH_SCREEN (screen);
+
+		matchFini (&ss->window_match);
+		matchInit (&ss->window_match);
+		matchAddFromString (&ss->window_match, optionValue->s);
+		matchUpdate (core.displays, &ss->window_match);
+	}
 }
 
 static void
@@ -271,7 +238,12 @@ isSwitchWin (CompWindow *w)
 
 	if (!w->mapNum || w->attrib.map_state != IsViewable)
 	{
-		if (ss->opt[SWITCH_SCREEN_OPTION_MINIMIZED].value.b)
+		const BananaValue *
+		option_minimized = bananaGetOption (bananaIndex,
+		                                    "minimized",
+		                                    w->screen->screenNum);
+
+		if (option_minimized->b)
 		{
 			if (!w->minimized && !w->inShowDesktopMode && !w->shaded)
 				return FALSE;
@@ -288,26 +260,14 @@ isSwitchWin (CompWindow *w)
 	if (w->attrib.override_redirect)
 		return FALSE;
 
-	if (ss->selection == Panels)
-	{
-		if (!(w->type & (CompWindowTypeDockMask | CompWindowTypeDesktopMask)))
-			return FALSE;
-	}
-	else
-	{
-		CompMatch *match;
+	if (w->wmType & (CompWindowTypeDockMask | CompWindowTypeDesktopMask))
+		return FALSE;
 
-		if (w->wmType & (CompWindowTypeDockMask | CompWindowTypeDesktopMask))
-			return FALSE;
+	if (w->state & CompWindowStateSkipTaskbarMask)
+		return FALSE;
 
-		if (w->state & CompWindowStateSkipTaskbarMask)
-			return FALSE;
-
-		match = &ss->opt[SWITCH_SCREEN_OPTION_WINDOW_MATCH].value.match;
-		if (!matchEval (match, w))
-			return FALSE;
-
-	}
+	if (!matchEval (&ss->window_match, w))
+		return FALSE;
 
 	if (ss->selection == CurrentViewport)
 	{
@@ -333,17 +293,17 @@ static void
 switchActivateEvent (CompScreen *s,
                      Bool       activating)
 {
-	CompOption o[2];
+	BananaArgument arg[2];
 
-	o[0].type = CompOptionTypeInt;
-	o[0].name = "root";
-	o[0].value.i = s->root;
+	arg[0].type = BananaInt;
+	arg[0].name = "root";
+	arg[0].value.i = s->root;
 
-	o[1].type = CompOptionTypeBool;
-	o[1].name = "active";
-	o[1].value.b = activating;
+	arg[1].type = BananaBool;
+	arg[1].name = "active";
+	arg[1].value.b = activating;
 
-	(*s->display->handleFusilliEvent) (s->display, "switcher", "activate", o, 2);
+	(*s->display->handleFusilliEvent) (s->display, "switcher", "activate", arg, 2);
 }
 
 static int
@@ -471,8 +431,13 @@ switchToWindow (CompScreen *s,
 	{
 		CompWindow *old = ss->selectedWindow;
 
+		const BananaValue *
+		option_auto_rotate = bananaGetOption (bananaIndex,
+		                                      "auto_rotate",
+		                                      s->screenNum);
+
 		if (ss->selection == AllViewports &&
-		    ss->opt[SWITCH_SCREEN_OPTION_AUTO_ROTATE].value.b)
+		    option_auto_rotate->b)
 		{
 			XEvent xev;
 			int    x, y;
@@ -717,18 +682,20 @@ switchInitiate (CompScreen            *s,
 }
 
 static Bool
-switchTerminate (CompDisplay     *d,
-                 CompAction      *action,
-                 CompActionState state,
-                 CompOption      *option,
-                 int             nOption)
+switchTerminate (BananaArgument     *arg,
+                 int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		SWITCH_SCREEN (s);
 
@@ -755,13 +722,15 @@ switchTerminate (CompDisplay     *d,
 
 			ss->switching = FALSE;
 
-			if (state & CompActionStateCancel)
+			//check if ESC was pressed
+			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
+			if (cancel != NULL && cancel->b)
 			{
 				ss->selectedWindow = NULL;
 				ss->zoomedWindow   = NULL;
 			}
 
-			if (state && ss->selectedWindow && !ss->selectedWindow->destroyed)
+			if (ss->selectedWindow && !ss->selectedWindow->destroyed)
 				sendWindowActivationRequest (s, ss->selectedWindow->id);
 
 			removeScreenGrab (s, ss->grabIndex, 0);
@@ -788,18 +757,12 @@ switchTerminate (CompDisplay     *d,
 		}
 	}
 
-	if (action)
-		action->state &= ~(CompActionStateTermKey | CompActionStateTermButton);
-
 	return FALSE;
 }
 
 static Bool
-switchInitiateCommon (CompDisplay           *d,
-                      CompAction            *action,
-                      CompActionState       state,
-                      CompOption            *option,
-                      int                   nOption,
+switchInitiateCommon (BananaArgument        *arg,
+                      int                   nArg,
                       SwitchWindowSelection selection,
                       Bool                  showPopup,
                       Bool                  nextWindow)
@@ -807,118 +770,26 @@ switchInitiateCommon (CompDisplay           *d,
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
+
 	if (s)
 	{
 		SWITCH_SCREEN (s);
 
 		if (!ss->switching)
-		{
 			switchInitiate (s, selection, showPopup);
-
-			if (state & CompActionStateInitKey)
-				action->state |= CompActionStateTermKey;
-
-			if (state & CompActionStateInitEdge)
-				action->state |= CompActionStateTermEdge;
-			else if (state & CompActionStateInitButton)
-				action->state |= CompActionStateTermButton;
-		}
 
 		switchToWindow (s, nextWindow);
 	}
 
 	return FALSE;
-}
-
-static Bool
-switchNext (CompDisplay     *d,
-            CompAction      *action,
-            CompActionState state,
-            CompOption      *option,
-            int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                             CurrentViewport, TRUE, TRUE);
-}
-
-static Bool
-switchPrev (CompDisplay     *d,
-            CompAction      *action,
-            CompActionState state,
-            CompOption      *option,
-            int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                         CurrentViewport, TRUE, FALSE);
-}
-
-static Bool
-switchNextAll (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                        AllViewports, TRUE, TRUE);
-}
-
-static Bool
-switchPrevAll (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                        AllViewports, TRUE, FALSE);
-}
-
-static Bool
-switchNextNoPopup (CompDisplay     *d,
-                   CompAction      *action,
-                   CompActionState state,
-                   CompOption      *option,
-                   int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                         CurrentViewport, FALSE, TRUE);
-}
-
-static Bool
-switchPrevNoPopup (CompDisplay     *d,
-                   CompAction      *action,
-                   CompActionState state,
-                   CompOption      *option,
-                   int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                         CurrentViewport, FALSE, FALSE);
-}
-
-static Bool
-switchNextPanel (CompDisplay     *d,
-                 CompAction      *action,
-                 CompActionState state,
-                 CompOption      *option,
-                 int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                         Panels, FALSE, TRUE);
-}
-
-static Bool
-switchPrevPanel (CompDisplay     *d,
-                 CompAction      *action,
-                 CompActionState state,
-                 CompOption      *option,
-                 int             nOption)
-{
-	return switchInitiateCommon (d, action, state, option, nOption,
-	                         Panels, FALSE, FALSE);
 }
 
 static void
@@ -984,13 +855,13 @@ switchWindowRemove (CompDisplay *d,
 
 		if (ss->nWindows == 0)
 		{
-			CompOption o;
+			BananaArgument arg;
 
-			o.type    = CompOptionTypeInt;
-			o.name    = "root";
-			o.value.i = w->screen->root;
+			arg.type    = BananaInt;
+			arg.name    = "root";
+			arg.value.i = w->screen->root;
 
-			switchTerminate (d, NULL, 0, &o, 1);
+			switchTerminate (&arg, 1);
 			return;
 		}
 
@@ -1088,6 +959,70 @@ switchHandleEvent (CompDisplay *d,
 	SWITCH_DISPLAY (d);
 
 	switch (event->type) {
+	case KeyPress:
+		if (isKeyPressEvent (event, &next_key))
+		{
+			const BananaValue *
+			option_show_popup = bananaGetOption (bananaIndex,
+			                                     "show_popup",
+			                                     -1);
+
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+			switchInitiateCommon (&arg, 1, CurrentViewport,
+			                      option_show_popup->b, TRUE);
+		}
+		else if (isKeyPressEvent (event, &prev_key))
+		{
+			const BananaValue *
+			option_show_popup = bananaGetOption (bananaIndex, "show_popup", -1);
+
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+			switchInitiateCommon (&arg, 1, CurrentViewport, 
+			                      option_show_popup->b, FALSE);
+		}
+		else if (isKeyPressEvent (event, &next_all_key))
+		{
+			const BananaValue *
+			option_show_popup = bananaGetOption (bananaIndex, "show_popup", -1);
+
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+
+			switchInitiateCommon (&arg, 1, AllViewports,
+			                      option_show_popup->b, TRUE);
+		}
+		else if (isKeyPressEvent (event, &prev_all_key))
+		{
+			const BananaValue *
+			option_show_popup = bananaGetOption (bananaIndex, "show_popup", -1);
+
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+
+			switchInitiateCommon (&arg, 1, AllViewports, 
+			                      option_show_popup->b, FALSE);
+		}
+		if (event->xkey.keycode == d->escapeKeyCode)
+		{
+			BananaArgument arg;
+
+			arg.name = "cancel";
+			arg.type = BananaBool;
+			arg.value.b = TRUE;
+
+			switchTerminate (&arg, 1);
+		}
+		break;
 	case MapNotify:
 		w = findWindowAtDisplay (d, event->xmap.window);
 		if (w)
@@ -1114,6 +1049,24 @@ switchHandleEvent (CompDisplay *d,
 		   CompWindow after that. */
 		w = findWindowAtDisplay (d, event->xdestroywindow.window);
 		break;
+	default:
+		if (event->type == d->xkbEvent)
+		{
+			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
+
+			if (xkbEvent->xkb_type == XkbStateNotify)
+			{
+				XkbStateNotifyEvent *stateEvent = (XkbStateNotifyEvent *) event;
+				if (stateEvent->event_type == KeyRelease)
+				{
+					//unsigned int modMask = REAL_MOD_MASK & ~d->ignoredModMask;
+					//unsigned int bindMods = virtualToRealModMask (d, next_key.modifiers);
+					//if ((stateEvent->mods & modMask & bindMods) != bindMods)
+						switchTerminate (NULL, 0);
+
+				}
+			}
+		}
 	}
 
 	UNWRAP (sd, d, handleEvent);
@@ -1230,10 +1183,19 @@ switchPreparePaintScreen (CompScreen *s,
 		int   steps, m;
 		float amount, chunk;
 
-		amount = msSinceLastPaint * 0.05f *
-		    ss->opt[SWITCH_SCREEN_OPTION_SPEED].value.f;
-		steps  = amount /
-		    (0.5f * ss->opt[SWITCH_SCREEN_OPTION_TIMESTEP].value.f);
+		const BananaValue *
+		option_speed = bananaGetOption (bananaIndex,
+		                                "speed",
+		                                s->screenNum);
+
+		const BananaValue *
+		option_timestep = bananaGetOption (bananaIndex,
+		                                   "timestep",
+		                                   s->screenNum);
+
+		amount = msSinceLastPaint * 0.05f * option_speed->f;
+		steps  = amount / (0.5f * option_timestep->f);
+
 		if (!steps) steps = 1;
 		chunk  = amount / (float) steps;
 
@@ -1341,7 +1303,12 @@ switchPaintOutput (CompScreen              *s,
 			switcher->destroyed = TRUE;
 		}
 
-		if (ss->opt[SWITCH_SCREEN_OPTION_BRINGTOFRONT].value.b)
+		const BananaValue *
+		option_bring_to_front = bananaGetOption (bananaIndex,
+		                                         "bring_to_front",
+		                                         s->screenNum);
+
+		if (option_bring_to_front->b)
 		{
 			zoomed = ss->zoomedWindow;
 			if (zoomed && !zoomed->destroyed)
@@ -1480,8 +1447,6 @@ switchPaintThumb (CompWindow              *w,
 		int                   ww, wh;
 		GLenum                filter;
 
-		SWITCH_SCREEN (w->screen);
-
 		width  = WIDTH  - (SPACE << 1);
 		height = HEIGHT - (SPACE << 1);
 
@@ -1529,7 +1494,12 @@ switchPaintThumb (CompWindow              *w,
 
 		filter = w->screen->display->textureFilter;
 
-		if (ss->opt[SWITCH_SCREEN_OPTION_MIPMAP].value.b)
+		const BananaValue *
+		option_mipmap = bananaGetOption (bananaIndex,
+		                                 "mipmap",
+		                                 w->screen->screenNum);
+
+		if (option_mipmap->b)
 			w->screen->display->textureFilter = GL_LINEAR_MIPMAP_LINEAR;
 
 		/* XXX: replacing the addWindowGeometry function like this is
@@ -1545,7 +1515,12 @@ switchPaintThumb (CompWindow              *w,
 
 		glPopMatrix ();
 
-		if (ss->opt[SWITCH_SCREEN_OPTION_ICON].value.b)
+		const BananaValue *
+		option_icon = bananaGetOption (bananaIndex,
+		                               "icon",
+		                               w->screen->screenNum);
+
+		if (option_icon->b)
 		{
 			icon = getWindowIcon (w, MAX_ICON_SIZE, MAX_ICON_SIZE);
 			if (icon)
@@ -1642,8 +1617,8 @@ switchPaintThumb (CompWindow              *w,
 			glLoadMatrixf (wTransform.m);
 
 			(*w->screen->drawWindowTexture) (w,
-								     &icon->texture, &fragment,
-								     mask);
+			                         &icon->texture, &fragment,
+			                         mask);
 
 			glPopMatrix ();
 		}
@@ -1730,7 +1705,12 @@ switchPaintWindow (CompWindow              *w,
 	}
 	else if (w == ss->selectedWindow)
 	{
-		if (ss->opt[SWITCH_SCREEN_OPTION_BRINGTOFRONT].value.b &&
+		const BananaValue *
+		option_bring_to_front = bananaGetOption (bananaIndex,
+		                                         "bring_to_front",
+		                                         w->screen->screenNum);
+
+		if (option_bring_to_front->b &&
 			ss->selectedWindow == ss->zoomedWindow)
 			zoomType = ZOOMED_WINDOW_MASK;
 
@@ -1747,22 +1727,42 @@ switchPaintWindow (CompWindow              *w,
 		WindowPaintAttrib sAttrib = *attrib;
 		GLuint            value;
 
-		value = ss->opt[SWITCH_SCREEN_OPTION_SATURATION].value.i;
+		const BananaValue *
+		option_saturation = bananaGetOption (bananaIndex,
+		                                     "saturation",
+		                                     w->screen->screenNum);
+
+		value = option_saturation->i;
 		if (value != 100)
 			sAttrib.saturation = sAttrib.saturation * value / 100;
 
-		value = ss->opt[SWITCH_SCREEN_OPTION_BRIGHTNESS].value.i;
+		const BananaValue *
+		option_brightness = bananaGetOption (bananaIndex,
+		                                     "brightness",
+		                                     w->screen->screenNum);
+
+		value = option_brightness->i;
 		if (value != 100)
 			sAttrib.brightness = sAttrib.brightness * value / 100;
 
 		if (w->wmType & ~(CompWindowTypeDockMask | CompWindowTypeDesktopMask))
 		{
-			value = ss->opt[SWITCH_SCREEN_OPTION_OPACITY].value.i;
+			const BananaValue *
+			option_opacity = bananaGetOption (bananaIndex,
+			                                  "opacity",
+			                                  w->screen->screenNum);
+
+			value = option_opacity->i;
 			if (value != 100)
 				sAttrib.opacity = sAttrib.opacity * value / 100;
 		}
 
-		if (ss->opt[SWITCH_SCREEN_OPTION_BRINGTOFRONT].value.b &&
+		const BananaValue *
+		option_bring_to_front = bananaGetOption (bananaIndex,
+		                                         "bring_to_front",
+		                                         w->screen->screenNum);
+
+		if (option_bring_to_front->b &&
 			w == ss->zoomedWindow)
 			zoomType = ZOOMED_WINDOW_MASK;
 
@@ -1822,82 +1822,19 @@ switchDamageWindowRect (CompWindow *w,
 	return status;
 }
 
-static CompOption *
-switchGetDisplayOptions (CompPlugin  *plugin,
-                         CompDisplay *display,
-                         int         *count)
-{
-	SWITCH_DISPLAY (display);
-
-	*count = NUM_OPTIONS (sd);
-	return sd->opt;
-}
-
-static Bool
-switchSetDisplayOption (CompPlugin      *plugin,
-                        CompDisplay     *display,
-                        const char      *name,
-                        CompOptionValue *value)
-{
-	CompOption *o;
-
-	SWITCH_DISPLAY (display);
-
-	o = compFindOption (sd->opt, NUM_OPTIONS (sd), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static const CompMetadataOptionInfo switchDisplayOptionInfo[] = {
-	{ "next_button", "button", 0, switchNext, switchTerminate },
-	{ "next_key", "key", 0, switchNext, switchTerminate },
-	{ "prev_button", "button", 0, switchPrev, switchTerminate },
-	{ "prev_key", "key", 0, switchPrev, switchTerminate },
-	{ "next_all_button", "button", 0, switchNextAll, switchTerminate },
-	{ "next_all_key", "key", 0, switchNextAll, switchTerminate },
-	{ "prev_all_button", "button", 0, switchPrevAll, switchTerminate },
-	{ "prev_all_key", "key", 0, switchPrevAll, switchTerminate },
-	{ "next_no_popup_button", "button", 0, switchNextNoPopup,
-	  switchTerminate },
-	{ "next_no_popup_key", "key", 0, switchNextNoPopup, switchTerminate },
-	{ "prev_no_popup_button", "button", 0, switchPrevNoPopup,
-	  switchTerminate },
-	{ "prev_no_popup_key", "key", 0, switchPrevNoPopup, switchTerminate },
-	{ "next_panel_button", "button", 0, switchNextPanel, switchTerminate },
-	{ "next_panel_key", "key", 0, switchNextPanel, switchTerminate },
-	{ "prev_panel_button", "button", 0, switchPrevPanel, switchTerminate },
-	{ "prev_panel_key", "key", 0, switchPrevPanel, switchTerminate }
-};
-
 static Bool
 switchInitDisplay (CompPlugin  *p,
                    CompDisplay *d)
 {
 	SwitchDisplay *sd;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	sd = malloc (sizeof (SwitchDisplay));
 	if (!sd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &switchMetadata,
-	                                 switchDisplayOptionInfo,
-	                                 sd->opt,
-	                                 SWITCH_DISPLAY_OPTION_NUM))
-	{
-		free (sd);
-		return FALSE;
-	}
-
 	sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (sd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, sd->opt, SWITCH_DISPLAY_OPTION_NUM);
 		free (sd);
 		return FALSE;
 	}
@@ -1924,25 +1861,8 @@ switchFiniDisplay (CompPlugin  *p,
 
 	UNWRAP (sd, d, handleEvent);
 
-	compFiniDisplayOptions (d, sd->opt, SWITCH_DISPLAY_OPTION_NUM);
-
 	free (sd);
 }
-
-static const CompMetadataOptionInfo switchScreenOptionInfo[] = {
-	{ "speed", "float", "<min>0.1</min>", 0, 0 },
-	{ "timestep", "float", "<min>0.1</min>", 0, 0 },
-	{ "window_match", "match", 0, 0, 0 },
-	{ "mipmap", "bool", 0, 0, 0 },
-	{ "saturation", "int", "<min>0</min><max>100</max>", 0, 0 },
-	{ "brightness", "int", "<min>0</min><max>100</max>", 0, 0 },
-	{ "opacity", "int", "<min>0</min><max>100</max>", 0, 0 },
-	{ "bring_to_front", "bool", 0, 0, 0 },
-	{ "zoom", "float", "<min>0</min>", 0, 0 },
-	{ "icon", "bool", 0, 0, 0 },
-	{ "minimized", "bool", 0, 0, 0 },
-	{ "auto_rotate", "bool", 0, 0, 0 }
-};
 
 static Bool
 switchInitScreen (CompPlugin *p,
@@ -1955,16 +1875,6 @@ switchInitScreen (CompPlugin *p,
 	ss = malloc (sizeof (SwitchScreen));
 	if (!ss)
 		return FALSE;
-
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &switchMetadata,
-	                                switchScreenOptionInfo,
-	                                ss->opt,
-	                                SWITCH_SCREEN_OPTION_NUM))
-	{
-		free (ss);
-		return FALSE;
-	}
 
 	ss->popupWindow = None;
 
@@ -1983,9 +1893,14 @@ switchInitScreen (CompPlugin *p,
 
 	ss->grabIndex = 0;
 
-	ss->zoom = ss->opt[SWITCH_SCREEN_OPTION_ZOOM].value.f / 30.0f;
+	const BananaValue *
+	option_zoom = bananaGetOption (bananaIndex,
+	                               "zoom",
+	                               s->screenNum);
 
-	ss->zooming = (ss->opt[SWITCH_SCREEN_OPTION_ZOOM].value.f > 0.05f);
+	ss->zoom = option_zoom->f / 30.0f;
+
+	ss->zooming = (option_zoom->f > 0.05f);
 
 	ss->zoomMask = ~0;
 
@@ -2004,6 +1919,15 @@ switchInitScreen (CompPlugin *p,
 	ss->fgColor[1] = 0;
 	ss->fgColor[2] = 0;
 	ss->fgColor[3] = 0xffff;
+
+	const BananaValue *
+	option_window_match = bananaGetOption (bananaIndex,
+	                                       "window_match",
+	                                       s->screenNum);
+
+	matchInit (&ss->window_match);
+	matchAddFromString (&ss->window_match, option_window_match->s);
+	matchUpdate (core.displays, &ss->window_match);
 
 	WRAP (ss, s, preparePaintScreen, switchPreparePaintScreen);
 	WRAP (ss, s, donePaintScreen, switchDonePaintScreen);
@@ -2034,8 +1958,7 @@ switchFiniScreen (CompPlugin *p,
 	if (ss->windows)
 		free (ss->windows);
 
-	compFiniScreenOptions (s, ss->opt, SWITCH_SCREEN_OPTION_NUM);
-
+	matchFini (&ss->window_match);
 	free (ss);
 }
 
@@ -2065,57 +1988,48 @@ switchFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-switchGetObjectOptions (CompPlugin *plugin,
-                        CompObject *object,
-                        int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) switchGetDisplayOptions,
-		(GetPluginObjectOptionsProc) switchGetScreenOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-switchSetObjectOption (CompPlugin      *plugin,
-                       CompObject      *object,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) switchSetDisplayOption,
-		(SetPluginObjectOptionProc) switchSetScreenOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-					 (plugin, object, name, value));
-}
-
 static Bool
 switchInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&switchMetadata,
-	                             p->vTable->name,
-	                             switchDisplayOptionInfo,
-	                             SWITCH_DISPLAY_OPTION_NUM,
-	                             switchScreenOptionInfo,
-	                             SWITCH_SCREEN_OPTION_NUM))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&switchMetadata);
+		compLogMessage ("switcher", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&switchMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("switcher");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, switchChangeNotify);
+
+	const BananaValue *
+	option_next_key = bananaGetOption (bananaIndex, "next_key", -1);
+
+	const BananaValue *
+	option_prev_key = bananaGetOption (bananaIndex, "prev_key", -1);
+
+	const BananaValue *
+	option_next_all_key = bananaGetOption (bananaIndex, "next_all_key", -1);
+
+	const BananaValue *
+	option_prev_all_key = bananaGetOption (bananaIndex, "prev_all_key", -1);
+
+	registerKey (option_next_key->s, &next_key);
+	registerKey (option_prev_key->s, &prev_key);
+	registerKey (option_next_all_key->s, &next_all_key);
+	registerKey (option_prev_all_key->s, &prev_all_key);
 
 	return TRUE;
 }
@@ -2124,28 +2038,20 @@ static void
 switchFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&switchMetadata);
-}
 
-static CompMetadata *
-switchGetMetadata (CompPlugin *plugin)
-{
-	return &switchMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 CompPluginVTable switchVTable = {
 	"switcher",
-	switchGetMetadata,
 	switchInit,
 	switchFini,
 	switchInitObject,
-	switchFiniObject,
-	switchGetObjectOptions,
-	switchSetObjectOption
+	switchFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &switchVTable;
 }

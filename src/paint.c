@@ -341,8 +341,13 @@ paintOutputRegion (CompScreen          *screen,
 					XSubtractRegion (tmpRegion, w->region, tmpRegion);
 
 				/* unredirect top most fullscreen windows. */
+				const BananaValue *
+				option_unredirect_fs = bananaGetOption (
+				    coreBananaIndex, "unredirect_fullscreen_windows", 
+				    screen->screenNum);
+
 				if (count == 0 &&
-				    screen->opt[COMP_SCREEN_OPTION_UNREDIRECT_FS].value.b)
+				    option_unredirect_fs->b)
 				{
 					if (XEqualRegion (w->region, &screen->region) &&
 					    !REGION_NOT_EMPTY (tmpRegion))

@@ -48,53 +48,12 @@ coreFini (CompPlugin *p)
 {
 }
 
-static CompMetadata *
-coreGetMetadata (CompPlugin *plugin)
-{
-	return &coreMetadata;
-}
-
-static CompOption *
-coreGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-	    (GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-	    (GetPluginObjectOptionsProc) getDisplayOptions,
-	    (GetPluginObjectOptionsProc) getScreenOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 NULL, (plugin, object, count));
-}
-
-static Bool
-coreSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-	    (SetPluginObjectOptionProc) 0, /* SetCoreOption */
-	    (SetPluginObjectOptionProc) setDisplayOption,
-	    (SetPluginObjectOptionProc) setScreenOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                (plugin, object, name, value));
-}
-
 static CompPluginVTable coreVTable = {
 	"core",
-	coreGetMetadata,
 	coreInit,
 	coreFini,
 	0, /* InitObject */
 	0, /* FiniObject */
-	coreGetObjectOptions,
-	coreSetObjectOption
 };
 
 static Bool
@@ -186,7 +145,7 @@ dlloaderLoadPlugin (CompPlugin *p,
 		dlerror ();
 
 		getInfo = (PluginGetInfoProc) dlsym (dlhand,
-		                      "getCompPluginInfo20070830");
+		                      "getCompPluginInfo20140724");
 
 		error = dlerror ();
 		if (error)
@@ -544,6 +503,9 @@ findActivePlugin (const char *name)
 void
 unloadPlugin (CompPlugin *p)
 {
+	compLogMessage("core", CompLogLevelInfo,
+	               "Unloading plugin: %s", p->vTable->name);
+
 	(*loaderUnloadPlugin) (p);
 	free (p);
 }
@@ -554,6 +516,10 @@ loadPlugin (const char *name)
 	CompPlugin *p;
 	char       *home, *plugindir;
 	Bool       status;
+
+	compLogMessage("core", CompLogLevelInfo,
+	               "Loading plugin: %s",
+	               name);
 
 	p = malloc (sizeof (CompPlugin));
 	if (!p)
@@ -726,69 +692,4 @@ availablePlugins (int *n)
 	*n = j;
 
 	return list;
-}
-
-int
-getPluginABI (const char *name)
-{
-	CompPlugin *p = findActivePlugin (name);
-	CompOption *option;
-	int        nOption;
-
-	if (!p || !p->vTable->getObjectOptions)
-		return 0;
-
-	/* MULTIDPYERROR: ABI options should be moved into core */
-	option = (*p->vTable->getObjectOptions) (p, &core.displays->base,
-	                            &nOption);
-
-	return getIntOptionNamed (option, nOption, "abi", 0);
-}
-
-Bool
-checkPluginABI (const char *name,
-                int        abi)
-{
-	int pluginABI;
-
-	pluginABI = getPluginABI (name);
-	if (!pluginABI)
-	{
-		compLogMessage ("core", CompLogLevelError,
-		                "Plugin '%s' not loaded.\n", name);
-		return FALSE;
-	}
-	else if (pluginABI != abi)
-	{
-		compLogMessage ("core", CompLogLevelError,
-		                "Plugin '%s' has ABI version '%d', expected "
-		                "ABI version '%d'.\n",
-		                name, pluginABI, abi);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-Bool
-getPluginDisplayIndex (CompDisplay *d,
-                       const char  *name,
-                       int         *index)
-{
-	CompPlugin *p = findActivePlugin (name);
-	CompOption *option;
-	int        nOption, value;
-
-	if (!p || !p->vTable->getObjectOptions)
-		return FALSE;
-
-	option = (*p->vTable->getObjectOptions) (p, &d->base, &nOption);
-
-	value = getIntOptionNamed (option, nOption, "index", -1);
-	if (value < 0)
-		return FALSE;
-
-	*index = value;
-
-	return TRUE;
 }

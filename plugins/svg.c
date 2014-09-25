@@ -23,6 +23,8 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+// TODO: Actions!!
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -36,16 +38,9 @@
 #include <fusilli-core.h>
 #include <decoration.h>
 
-static CompMetadata svgMetadata;
-
-#define SVG_DISPLAY_OPTION_SET 0
-#define SVG_DISPLAY_OPTION_NUM 1
-
 static int displayPrivateIndex;
 
 typedef struct _SvgDisplay {
-	CompOption opt[SVG_DISPLAY_OPTION_NUM];
-
 	int	screenPrivateIndex;
 
 	HandleFusilliEventProc handleFusilliEvent;
@@ -113,8 +108,6 @@ typedef struct _SvgWindow {
         SvgWindow *sw = GET_SVG_WINDOW  (w, \
                         GET_SVG_SCREEN  (w->screen, \
                         GET_SVG_DISPLAY (w->screen->display)))
-
-#define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
 
 static void
 renderSvg (CompScreen *s,
@@ -472,18 +465,21 @@ updateWindowSvgContext (CompWindow *w,
 }
 
 static Bool
-svgSet (CompDisplay     *d,
-        CompAction      *action,
-        CompActionState state,
-        CompOption      *option,
-        int             nOption)
+svgSet (BananaArgument     *arg,
+        int                nArg)
 {
 	CompWindow *w;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "window", 0);
+	BananaValue *window = getArgNamed ("window", arg, nArg);
 
-	w = findWindowAtDisplay (d, xid);
+	if (window != NULL)
+		xid = window->i;
+	else
+		xid = 0;
+
+	w = findWindowAtDisplay (core.displays, xid);
+
 	if (w)
 	{
 		decor_point_t p[2];
@@ -495,19 +491,48 @@ svgSet (CompDisplay     *d,
 
 		memset (p, 0, sizeof (p));
 
-		p[0].gravity = getIntOptionNamed (option, nOption, "gravity0",
-		                          GRAVITY_NORTH | GRAVITY_WEST);
+		BananaValue *gravity0 = getArgNamed ("gravity0", arg, nArg);
+		if (gravity0 != NULL)
+			p[0].gravity = gravity0->i;
+		else
+			p[0].gravity =  GRAVITY_NORTH | GRAVITY_WEST;
 
-		p[0].x = getIntOptionNamed (option, nOption, "x0", 0);
-		p[0].y = getIntOptionNamed (option, nOption, "y0", 0);
+		BananaValue *x0 = getArgNamed ("x0", arg, nArg);
+		if (x0 != NULL)
+			p[0].x = x0->i;
+		else
+			p[0].x =  0;
 
-		p[1].gravity = getIntOptionNamed (option, nOption, "gravity1",
-		                          GRAVITY_SOUTH | GRAVITY_EAST);
+		BananaValue *y0 = getArgNamed ("y0", arg, nArg);
+		if (y0 != NULL)
+			p[0].y = y0->i;
+		else
+			p[0].y =  0;
 
-		p[1].x = getIntOptionNamed (option, nOption, "x1", 0);
-		p[1].y = getIntOptionNamed (option, nOption, "y1", 0);
+		BananaValue *gravity1 = getArgNamed ("gravity1", arg, nArg);
+		if (gravity1 != NULL)
+			p[1].gravity = gravity1->i;
+		else
+			p[1].gravity =  GRAVITY_SOUTH | GRAVITY_EAST;
 
-		data = getStringOptionNamed (option, nOption, "data", 0);
+		BananaValue *x1 = getArgNamed ("x1", arg, nArg);
+		if (x0 != NULL)
+			p[1].x = x1->i;
+		else
+			p[1].x =  0;
+
+		BananaValue *y1 = getArgNamed ("y1", arg, nArg);
+		if (y1 != NULL)
+			p[1].y = y1->i;
+		else
+			p[1].y =  0;
+
+		BananaValue *b_data = getArgNamed ("data", arg, nArg);
+		if (b_data != NULL)
+			data = b_data->s;
+		else
+			data = NULL;
+
 		if (data)
 			svg = rsvg_handle_new_from_data ((guint8 *) data, strlen (data),
 			                          &error);
@@ -756,38 +781,6 @@ svgFileToImage (CompDisplay *d,
 	return status;
 }
 
-static CompOption *
-svgGetDisplayOptions (CompPlugin  *plugin,
-                      CompDisplay *display,
-                      int         *count)
-{
-	SVG_DISPLAY (display);
-
-	*count = NUM_OPTIONS (sd);
-	return sd->opt;
-}
-
-static Bool
-svgSetDisplayOption (CompPlugin      *plugin,
-                     CompDisplay     *display,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	CompOption *o;
-
-	SVG_DISPLAY (display);
-
-	o = compFindOption (sd->opt, NUM_OPTIONS (sd), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static const CompMetadataOptionInfo svgDisplayOptionInfo[] = {
-	{ "set", "action", 0, svgSet, NULL }
-};
-
 static Bool
 svgInitDisplay (CompPlugin  *p,
                 CompDisplay *d)
@@ -795,27 +788,13 @@ svgInitDisplay (CompPlugin  *p,
 	SvgDisplay *sd;
 	CompScreen *s;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	sd = malloc (sizeof (SvgDisplay));
 	if (!sd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &svgMetadata,
-	                                 svgDisplayOptionInfo,
-	                                 sd->opt,
-	                                 SVG_DISPLAY_OPTION_NUM))
-	{
-		free (sd);
-		return FALSE;
-	}
-
 	sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (sd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, sd->opt, SVG_DISPLAY_OPTION_NUM);
 		free (sd);
 		return FALSE;
 	}
@@ -966,56 +945,26 @@ svgFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-svgGetObjectOptions (CompPlugin *plugin,
-                     CompObject *object,
-                     int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) svgGetDisplayOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-svgSetObjectOption (CompPlugin      *plugin,
-                    CompObject      *object,
-                    const char      *name,
-                    CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) svgSetDisplayOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
 static Bool
 svgInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&svgMetadata,
-	                             p->vTable->name,
-	                             svgDisplayOptionInfo,
-	                             SVG_DISPLAY_OPTION_NUM,
-	                             0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&svgMetadata);
+		compLogMessage ("svg", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	rsvg_init ();
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
 
-	compAddMetadataFromFile (&svgMetadata, p->vTable->name);
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	rsvg_init ();
 
 	return TRUE;
 }
@@ -1024,30 +973,20 @@ static void
 svgFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&svgMetadata);
 
 	rsvg_term ();
 }
 
-static CompMetadata *
-svgGetMetadata (CompPlugin *plugin)
-{
-	return &svgMetadata;
-}
-
 CompPluginVTable svgVTable = {
 	"svg",
-	svgGetMetadata,
 	svgInit,
 	svgFini,
 	svgInitObject,
-	svgFiniObject,
-	svgGetObjectOptions,
-	svgSetObjectOption
+	svgFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &svgVTable;
 }

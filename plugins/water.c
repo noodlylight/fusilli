@@ -59,27 +59,19 @@ typedef struct _WaterFunction {
 
 #define WATER_INITIATE_MODIFIERS_DEFAULT (ControlMask | CompSuperMask)
 
-static CompMetadata waterMetadata;
+static int bananaIndex;
+
+static int initiate_key_modifiers;
 
 static int displayPrivateIndex;
+
+static CompKeyBinding toggle_rain_key, toggle_wiper_key;
 
 static int waterLastPointerX = 0;
 static int waterLastPointerY = 0;
 
-#define WATER_DISPLAY_OPTION_INITIATE_KEY     0
-#define WATER_DISPLAY_OPTION_TOGGLE_RAIN_KEY  1
-#define WATER_DISPLAY_OPTION_TOGGLE_WIPER_KEY 2
-#define WATER_DISPLAY_OPTION_OFFSET_SCALE     3
-#define WATER_DISPLAY_OPTION_RAIN_DELAY	      4
-#define WATER_DISPLAY_OPTION_TITLE_WAVE       5
-#define WATER_DISPLAY_OPTION_POINT            6
-#define WATER_DISPLAY_OPTION_LINE             7
-#define WATER_DISPLAY_OPTION_NUM              8
-
 typedef struct _WaterDisplay {
 	int             screenPrivateIndex;
-
-	CompOption      opt[WATER_DISPLAY_OPTION_NUM];
 
 	HandleEventProc handleEvent;
 
@@ -388,7 +380,7 @@ getBumpMapFragmentFunction (CompScreen  *s,
 
 static void
 allocTexture (CompScreen *s,
-			  int	 index)
+              int        index)
 {
 	WATER_SCREEN (s);
 
@@ -1247,18 +1239,15 @@ waterHandleMotionEvent (CompDisplay *d,
 }
 
 static Bool
-waterInitiate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+waterInitiate (BananaArgument     *arg,
+               int                nArg)
 {
 	CompScreen   *s;
 	unsigned int ui;
 	Window       root, child;
-	int	         xRoot, yRoot, i;
+	int          xRoot, yRoot, i;
 
-	for (s = d->screens; s; s = s->next)
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		WATER_SCREEN (s);
 
@@ -1268,8 +1257,8 @@ waterInitiate (CompDisplay     *d,
 		if (!ws->grabIndex)
 			ws->grabIndex = pushScreenGrab (s, None, "water");
 
-		if (XQueryPointer (d->display, s->root, &root, &child, &xRoot, &yRoot,
-		                   &i, &i, &ui))
+		if (XQueryPointer (core.displays->display, s->root, &root, &child, 
+		           &xRoot, &yRoot, &i, &i, &ui))
 		{
 			XPoint p;
 
@@ -1282,25 +1271,16 @@ waterInitiate (CompDisplay     *d,
 		}
 	}
 
-	if (state & CompActionStateInitButton)
-		action->state |= CompActionStateTermButton;
-
-	if (state & CompActionStateInitKey)
-		action->state |= CompActionStateTermKey;
-
 	return FALSE;
 }
 
 static Bool
-waterTerminate (CompDisplay     *d,
-                CompAction      *action,
-                CompActionState state,
-                CompOption      *option,
-                int             nOption)
+waterTerminate (BananaArgument     *arg,
+                int                nArg)
 {
 	CompScreen *s;
 
-	for (s = d->screens; s; s = s->next)
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		WATER_SCREEN (s);
 
@@ -1315,17 +1295,20 @@ waterTerminate (CompDisplay     *d,
 }
 
 static Bool
-waterToggleRain (CompDisplay     *d,
-                 CompAction      *action,
-                 CompActionState state,
-                 CompOption      *option,
-                 int             nOption)
+waterToggleRain (BananaArgument     *arg,
+                 int                nArg)
 {
 	CompScreen *s;
+	Window     xid;
 
-	WATER_DISPLAY (d);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, getIntOptionNamed (option, nOption, "root", 0));
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		WATER_SCREEN (s);
@@ -1334,7 +1317,12 @@ waterToggleRain (CompDisplay     *d,
 		{
 			int delay;
 
-			delay = wd->opt[WATER_DISPLAY_OPTION_RAIN_DELAY].value.i;
+			const BananaValue *
+			option_rain_delay = bananaGetOption (bananaIndex,
+			                                     "rain_delay",
+			                                     -1);
+
+			delay = option_rain_delay->i;
 			ws->rainHandle = compAddTimeout (delay, (float) delay * 1.2,
 			                         waterRainTimeout, s);
 		}
@@ -1349,15 +1337,20 @@ waterToggleRain (CompDisplay     *d,
 }
 
 static Bool
-waterToggleWiper (CompDisplay     *d,
-                  CompAction      *action,
-                  CompActionState state,
-                  CompOption      *option,
-                  int             nOption)
+waterToggleWiper (BananaArgument     *arg,
+                  int                nArg)
 {
 	CompScreen *s;
+	Window     xid;
 
-	s = findScreenAtDisplay (d, getIntOptionNamed (option, nOption, "root", 0));
+	BananaValue *root = getArgNamed ("root", arg, nArg);
+
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		WATER_SCREEN (s);
@@ -1377,18 +1370,20 @@ waterToggleWiper (CompDisplay     *d,
 }
 
 static Bool
-waterTitleWave (CompDisplay     *d,
-                CompAction      *action,
-                CompActionState state,
-                CompOption      *option,
-                int             nOption)
+waterTitleWave (BananaArgument     *arg,
+                int                nArg)
 {
 	CompWindow *w;
 	int        xid;
 
-	xid = getIntOptionNamed (option, nOption, "window", d->activeWindow);
+	BananaValue *window = getArgNamed ("window", arg, nArg);
 
-	w = findWindowAtDisplay (d, xid);
+	if (window != NULL)
+		xid = window->i;
+	else
+		xid = core.displays->activeWindow;
+
+	w = findWindowAtDisplay (core.displays, xid);
 	if (w)
 	{
 		XPoint p[2];
@@ -1406,13 +1401,10 @@ waterTitleWave (CompDisplay     *d,
 
 	return FALSE;
 }
-
+/* TODO: needs fixing
 static Bool
-waterPoint (CompDisplay     *d,
-            CompAction      *action,
-            CompActionState state,
-            CompOption      *option,
-            int             nOption)
+waterPoint (BananaArgument     *arg,
+            int                nArg)
 {
 	CompScreen *s;
 	int        xid;
@@ -1439,11 +1431,8 @@ waterPoint (CompDisplay     *d,
 }
 
 static Bool
-waterLine (CompDisplay     *d,
-           CompAction      *action,
-           CompActionState state,
-           CompOption      *option,
-           int             nOption)
+waterLine (BananaArgument     *arg,
+           int                nArg)
 {
 	CompScreen *s;
 	int        xid;
@@ -1473,6 +1462,7 @@ waterLine (CompDisplay     *d,
 
 	return FALSE;
 }
+*/
 
 static void
 waterHandleEvent (CompDisplay *d,
@@ -1483,6 +1473,24 @@ waterHandleEvent (CompDisplay *d,
 	WATER_DISPLAY (d);
 
 	switch (event->type) {
+	case KeyPress:
+		if (isKeyPressEvent (event, &toggle_wiper_key))
+		{
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+			waterToggleWiper (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &toggle_rain_key))
+		{
+			BananaArgument arg;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+			waterToggleRain (&arg, 1);
+		}
+		break;
 	case ButtonPress:
 		s = findScreenAtDisplay (d, event->xbutton.root);
 		if (s)
@@ -1508,7 +1516,56 @@ waterHandleEvent (CompDisplay *d,
 	case MotionNotify:
 		waterHandleMotionEvent (d, event->xmotion.root);
 	default:
-		break;
+		if (event->type == d->xkbEvent)
+		{
+			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
+
+			if (xkbEvent->xkb_type == XkbStateNotify)
+			{
+				XkbStateNotifyEvent *stateEvent = (XkbStateNotifyEvent *) event;
+
+				if (stateEvent->event_type == KeyPress)
+				{
+					unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
+
+					unsigned int bindMods = virtualToRealModMask (core.displays, 
+					                           initiate_key_modifiers);
+
+					if ((stateEvent->mods & modMask & bindMods) == bindMods)
+					{
+						waterInitiate (NULL, 0);
+					}
+				}
+				else
+				{
+					unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
+
+					unsigned int bindMods = virtualToRealModMask (core.displays, 
+					                           initiate_key_modifiers);
+
+					if ((stateEvent->mods & modMask & bindMods) != bindMods)
+						waterTerminate (NULL, 0);
+				}
+			}
+			else if (xkbEvent->xkb_type == XkbBellNotify)
+			{
+				const BananaValue *
+				option_title_wave = bananaGetOption (bananaIndex,
+				                                     "title_wave",
+				                                     -1);
+
+				if (option_title_wave->b)
+				{
+					BananaArgument arg;
+
+					arg.name = "window";
+					arg.type = BananaInt;
+					arg.value.i = d->activeWindow;
+
+					waterTitleWave (&arg, 1);
+				}
+			}
+		}
 	}
 
 	UNWRAP (wd, d, handleEvent);
@@ -1516,77 +1573,7 @@ waterHandleEvent (CompDisplay *d,
 	WRAP (wd, d, handleEvent, waterHandleEvent);
 }
 
-static CompOption *
-waterGetDisplayOptions (CompPlugin  *plugin,
-                        CompDisplay *display,
-                        int         *count)
-{
-	WATER_DISPLAY (display);
 
-	*count = NUM_OPTIONS (wd);
-	return wd->opt;
-}
-
-static Bool
-waterSetDisplayOption (CompPlugin      *plugin,
-                       CompDisplay     *display,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	CompOption *o;
-	int	       index;
-
-	WATER_DISPLAY (display);
-
-	o = compFindOption (wd->opt, NUM_OPTIONS (wd), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case WATER_DISPLAY_OPTION_OFFSET_SCALE:
-		if (compSetFloatOption (o, value))
-		{
-			wd->offsetScale = o->value.f * 50.0f;
-			return TRUE;
-		}
-		break;
-	case WATER_DISPLAY_OPTION_RAIN_DELAY:
-		if (compSetIntOption (o, value))
-		{
-			CompScreen *s;
-
-			for (s = display->screens; s; s = s->next)
-			{
-				WATER_SCREEN (s);
-
-				if (!ws->rainHandle)
-					continue;
-
-				compRemoveTimeout (ws->rainHandle);
-				ws->rainHandle = compAddTimeout (value->i,
-				                    (float)value->i * 1.2,
-				                    waterRainTimeout, s);
-			}
-			return TRUE;
-		}
-		break;
-	default:
-		return compSetDisplayOption (display, o, value);
-	}
-
-	return FALSE;
-}
-
-static const CompMetadataOptionInfo waterDisplayOptionInfo[] = {
-	{ "initiate_key", "key", 0, waterInitiate, waterTerminate },
-	{ "toggle_rain_key", "key", 0, waterToggleRain, 0 },
-	{ "toggle_wiper_key", "key", 0, waterToggleWiper, 0 },
-	{ "offset_scale", "float", "<min>0</min>", 0, 0 },
-	{ "rain_delay", "int", "<min>1</min>", 0, 0 },
-	{ "title_wave", "bell", 0, waterTitleWave, 0 },
-	{ "point", "action", 0, waterPoint, 0 },
-	{ "line", "action", 0, waterLine, 0 }
-};
 
 static Bool
 waterInitDisplay (CompPlugin  *p,
@@ -1594,32 +1581,23 @@ waterInitDisplay (CompPlugin  *p,
 {
 	WaterDisplay *wd;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	wd = malloc (sizeof (WaterDisplay));
 	if (!wd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &waterMetadata,
-	                                 waterDisplayOptionInfo,
-	                                 wd->opt,
-	                                 WATER_DISPLAY_OPTION_NUM))
-	{
-		free (wd);
-		return FALSE;
-	}
-
 	wd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (wd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, wd->opt, WATER_DISPLAY_OPTION_NUM);
 		free (wd);
 		return FALSE;
 	}
 
-	wd->offsetScale = wd->opt[WATER_DISPLAY_OPTION_OFFSET_SCALE].value.f * 50.0f;
+	const BananaValue *
+	option_offset_scale = bananaGetOption (bananaIndex,
+	                                       "offset_scale",
+	                                       -1);
+
+	wd->offsetScale = option_offset_scale->f * 50.0f;
 
 	WRAP (wd, d, handleEvent, waterHandleEvent);
 
@@ -1637,8 +1615,6 @@ waterFiniDisplay (CompPlugin  *p,
 	freeScreenPrivateIndex (d, wd->screenPrivateIndex);
 
 	UNWRAP (wd, d, handleEvent);
-
-	compFiniDisplayOptions (d, wd->opt, WATER_DISPLAY_OPTION_NUM);
 
 	free (wd);
 }
@@ -1741,54 +1717,96 @@ waterFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-waterGetObjectOptions (CompPlugin *plugin,
-                       CompObject *object,
-                       int        *count)
+static void
+waterChangeNotify (const char        *optionName,
+                   BananaType        optionType,
+                   const BananaValue *optionValue,
+                   int               screenNum)
 {
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) waterGetDisplayOptions
-	};
+	if (strcasecmp (optionName, "initiate_key") == 0)
+		initiate_key_modifiers = stringToModifiers 
+	                         (core.displays, optionValue->s);
 
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
+	else if (strcasecmp (optionName, "toggle_rain_key") == 0)
+		updateKey (optionValue->s, &toggle_rain_key);
 
-static CompBool
-waterSetObjectOption (CompPlugin      *plugin,
-                      CompObject      *object,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) waterSetDisplayOption
-	};
+	else if (strcasecmp (optionName, "toggle_wiper_key") == 0)
+		updateKey (optionValue->s, &toggle_wiper_key);
 
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
+	else if (strcasecmp (optionName, "offset_scale") == 0)
+	{
+		WATER_DISPLAY (core.displays);
+
+		if (strcasecmp (optionName, "offset_scale") == 0)
+			wd->offsetScale = optionValue->f * 50.0f;
+	}
+
+	else if (strcasecmp (optionName, "rain_delay") == 0)
+	{
+		CompScreen *s;
+
+		for (s = core.displays->screens; s; s = s->next)
+		{
+			WATER_SCREEN (s);
+
+			if (!ws->rainHandle)
+				continue;
+
+			compRemoveTimeout (ws->rainHandle);
+			ws->rainHandle = compAddTimeout (optionValue->i,
+			                    (float)optionValue->i * 1.2,
+			                    waterRainTimeout, s);
+		}
+	}
 }
 
 static Bool
 waterInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&waterMetadata,
-	                             p->vTable->name,
-	                             waterDisplayOptionInfo,
-	                             WATER_DISPLAY_OPTION_NUM,
-	                             0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&waterMetadata);
+		compLogMessage ("water", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&waterMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("water");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, waterChangeNotify);
+
+	const BananaValue *
+	option_toggle_rain_key = bananaGetOption (bananaIndex,
+	                                          "toggle_rain_key",
+	                                          -1);
+
+	const BananaValue *
+	option_toggle_wiper_key = bananaGetOption (bananaIndex,
+	                                           "toggle_wiper_key",
+	                                           -1);
+
+	registerKey (option_toggle_rain_key->s, &toggle_rain_key);
+	registerKey (option_toggle_wiper_key->s, &toggle_wiper_key);
+
+	//initiate key is not a passive grab key
+	const BananaValue *
+	option_initiate_key = bananaGetOption (bananaIndex,
+	                                       "initiate_key",
+	                                       -1);
+
+	initiate_key_modifiers = stringToModifiers (core.displays,
+	                                   option_initiate_key->s);
 
 	return TRUE;
 }
@@ -1797,28 +1815,20 @@ static void
 waterFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&waterMetadata);
-}
 
-static CompMetadata *
-waterGetMetadata (CompPlugin *plugin)
-{
-	return &waterMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable waterVTable = {
 	"water",
-	waterGetMetadata,
 	waterInit,
 	waterFini,
 	waterInitObject,
-	waterFiniObject,
-	waterGetObjectOptions,
-	waterSetObjectOption
+	waterFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &waterVTable;
 }

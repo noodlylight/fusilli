@@ -47,8 +47,6 @@
 
 #include <fusilli-core.h>
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 static int
 reallocScreenPrivate (int  size,
                       void *closure)
@@ -331,7 +329,12 @@ static void
 updateOutputDevices (CompScreen	*s)
 {
 	CompOutput    *o, *output = NULL;
-	CompListValue *list = &s->opt[COMP_SCREEN_OPTION_OUTPUTS].value.list;
+
+	const BananaValue *
+	option_outputs = bananaGetOption (coreBananaIndex, "outputs", s->screenNum);
+
+	const BananaList *list = &option_outputs->list;
+
 	int           nOutput = 0;
 	int           x, y, i, j, bits;
 	unsigned int  width, height;
@@ -339,9 +342,9 @@ updateOutputDevices (CompScreen	*s)
 	Region        region;
 	CompWindow    *w;
 
-	for (i = 0; i < list->nValue; i++)
+	for (i = 0; i < list->nItem; i++)
 	{
-		if (!list->value[i].s)
+		if (!list->item[i].s)
 			continue;
 
 		x      = 0;
@@ -349,7 +352,7 @@ updateOutputDevices (CompScreen	*s)
 		width  = s->width;
 		height = s->height;
 
-		bits = XParseGeometry (list->value[i].s, &x, &y, &width, &height);
+		bits = XParseGeometry (list->item[i].s, &x, &y, &width, &height);
 
 		if (bits & XNegative)
 			x = s->width + x - width;
@@ -509,10 +512,13 @@ updateOutputDevices (CompScreen	*s)
 static void
 detectOutputDevices (CompScreen *s)
 {
-	if (!noDetection && s->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b)
+	const BananaValue *
+	option_detect_outputs = bananaGetOption (coreBananaIndex,
+	                                         "detect_outputs",
+	                                         s->screenNum);
+
+	if (option_detect_outputs->b)
 	{
-		char            *name;
-		CompOptionValue value;
 		char            output[1024];
 		int             i, size = sizeof (output);
 
@@ -520,10 +526,9 @@ detectOutputDevices (CompScreen *s)
 		{
 			int n = s->display->nScreenInfo;
 
-			value.list.nValue = n;
-			value.list.value  = malloc (sizeof (CompOptionValue) * n);
-			if (!value.list.value)
-				return;
+			BananaValue option_outputs;
+
+			initBananaValue (&option_outputs, BananaListString);
 
 			for (i = 0; i < n; i++)
 			{
@@ -533,32 +538,33 @@ detectOutputDevices (CompScreen *s)
 				          s->display->screenInfo[i].x_org,
 				          s->display->screenInfo[i].y_org);
 
-				value.list.value[i].s = strdup (output);
+				addItemToBananaList (output, BananaListString, &option_outputs);
 			}
+
+			bananaSetOption (coreBananaIndex,
+			                 "outputs",
+			                 s->screenNum,
+			                 &option_outputs);
+
+			finiBananaValue (&option_outputs, BananaListString);
 		}
 		else
 		{
-			value.list.nValue = 1;
-			value.list.value  = malloc (sizeof (CompOptionValue));
-			if (!value.list.value)
-				return;
+			BananaValue option_outputs;
+
+			initBananaValue (&option_outputs, BananaListString);
 
 			snprintf (output, size, "%dx%d+%d+%d", s->width, s->height, 0, 0);
 
-			value.list.value->s = strdup (output);
+			addItemToBananaList (output, BananaListString, &option_outputs);
+
+			bananaSetOption (coreBananaIndex,
+			                 "outputs",
+			                 s->screenNum,
+			                 &option_outputs);
+
+			finiBananaValue (&option_outputs, BananaListString);
 		}
-
-		name = s->opt[COMP_SCREEN_OPTION_OUTPUTS].name;
-
-		s->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b = FALSE;
-		(*core.setOptionForPlugin) (&s->base, "core", name, &value);
-		s->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b = TRUE;
-
-		for (i = 0; i < value.list.nValue; i++)
-			if (value.list.value[i].s)
-				free (value.list.value[i].s);
-
-		free (value.list.value);
 	}
 	else
 	{
@@ -566,152 +572,98 @@ detectOutputDevices (CompScreen *s)
 	}
 }
 
-CompOption *
-getScreenOptions (CompPlugin *plugin,
-                  CompScreen *screen,
-                  int        *count)
+void
+screenChangeNotify (const char        *optionName,
+                    BananaType        optionType,
+                    const BananaValue *optionValue,
+                    int               screenNum)
 {
-	*count = NUM_OPTIONS (screen);
-	return screen->opt;
-}
+	CompScreen *screen;
 
-Bool
-setScreenOption (CompPlugin      *plugin,
-                 CompScreen      *screen,
-                 const char      *name,
-                 CompOptionValue *value)
-{
-	CompOption *o;
-	int	       index;
+	if (screenNum != -1)
+		screen = getScreenFromScreenNum (screenNum);
+	else
+		return;
 
-	o = compFindOption (screen->opt, NUM_OPTIONS (screen), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case COMP_SCREEN_OPTION_DETECT_REFRESH_RATE:
-		if (compSetBoolOption (o, value))
-		{
-			if (value->b)
-				detectRefreshRateOfScreen (screen);
-
-			return TRUE;
-		}
-		break;
-	case COMP_SCREEN_OPTION_DETECT_OUTPUTS:
-		if (compSetBoolOption (o, value))
-		{
-			if (value->b)
-				detectOutputDevices (screen);
-
-			return TRUE;
-		}
-		break;
-	case COMP_SCREEN_OPTION_REFRESH_RATE:
-		if (screen->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b)
-			return FALSE;
-
-		if (compSetIntOption (o, value))
-		{
-			screen->redrawTime = 1000 / o->value.i;
-			screen->optimalRedrawTime = screen->redrawTime;
-			return TRUE;
-		}
-		break;
-	case COMP_SCREEN_OPTION_HSIZE:
-		if (compSetIntOption (o, value))
-		{
-			CompOption *vsize;
-
-			vsize = compFindOption (screen->opt, NUM_OPTIONS (screen),
-							    "vsize", NULL);
-
-			if (!vsize)
-				return FALSE;
-
-			if (o->value.i * screen->width > MAXSHORT)
-				return FALSE;
-
-			setVirtualScreenSize (screen, o->value.i, vsize->value.i);
-			return TRUE;
-		}
-		break;
-	case COMP_SCREEN_OPTION_VSIZE:
-		if (compSetIntOption (o, value))
-		{
-			CompOption *hsize;
-
-			hsize = compFindOption (screen->opt, NUM_OPTIONS (screen),
-			                       "hsize", NULL);
-
-			if (!hsize)
-				return FALSE;
-
-			if (o->value.i * screen->height > MAXSHORT)
-				return FALSE;
-
-			setVirtualScreenSize (screen, hsize->value.i, o->value.i);
-			return TRUE;
-		}
-		break;
-	case COMP_SCREEN_OPTION_NUMBER_OF_DESKTOPS:
-		if (compSetIntOption (o, value))
-		{
-			setNumberOfDesktops (screen, o->value.i);
-			return TRUE;
-		}
-		break;
-	case COMP_SCREEN_OPTION_DEFAULT_ICON:
-		if (compSetStringOption (o, value))
-			return updateDefaultIcon (screen);
-		break;
-	case COMP_SCREEN_OPTION_OUTPUTS:
-		if (!noDetection &&
-			screen->opt[COMP_SCREEN_OPTION_DETECT_OUTPUTS].value.b)
-			return FALSE;
-
-		if (compSetOptionList (o, value))
-		{
-			updateOutputDevices (screen);
-			return TRUE;
-		}
-		break;
-	 case COMP_SCREEN_OPTION_FORCE_INDEPENDENT:
-		if (compSetBoolOption (o, value))
-		{
-			updateOutputDevices (screen);
-			return TRUE;
-		}
-		break;
-	default:
-		if (compSetScreenOption (screen, o, value))
-			return TRUE;
-		break;
+	if (strcasecmp (optionName, "detect_refresh_rate") == 0)
+	{
+		if (optionValue->b)
+			detectRefreshRateOfScreen (screen);
 	}
+	else if (strcasecmp (optionName, "detect_outputs") == 0)
+	{
+		if (optionValue->b)
+			detectOutputDevices (screen);
+	}
+	else if (strcasecmp (optionName, "refresh_rate") == 0)
+	{
+		const BananaValue *
+		option_detect_refresh_rate = bananaGetOption (coreBananaIndex,
+		                                              "detect_refresh_rate",
+		                                              screen->screenNum);
 
-	return FALSE;
+		if (option_detect_refresh_rate->b)
+			return;
+
+		screen->redrawTime = 1000 / optionValue->i;
+		screen->optimalRedrawTime = screen->redrawTime;
+	}
+	else if (strcasecmp (optionName, "hsize") == 0)
+	{
+		const BananaValue *
+		option_vsize = bananaGetOption (coreBananaIndex,
+		                                "vsize",
+		                                screen->screenNum);
+
+		if (optionValue->i * screen->width > MAXSHORT)
+			return;
+
+		setVirtualScreenSize (screen, optionValue->i, option_vsize->i);
+	}
+	else if (strcasecmp (optionName, "vsize") == 0)
+	{
+		const BananaValue *
+		option_hsize = bananaGetOption (coreBananaIndex,
+		                                "hsize",
+		                                screen->screenNum);
+
+		if (optionValue->i * screen->height > MAXSHORT)
+			return;
+
+		setVirtualScreenSize (screen, option_hsize->i, optionValue->i);
+	}
+	else if (strcasecmp (optionName, "number_of_desktops") == 0)
+	{
+		setNumberOfDesktops (screen, optionValue->i);
+	}
+	else if (strcasecmp (optionName, "default_icon") == 0)
+	{
+		updateDefaultIcon (screen);
+	}
+	else if (strcasecmp (optionName, "outputs") == 0)
+	{
+		const BananaValue *
+		option_detect_outputs = bananaGetOption (coreBananaIndex, 
+		                                         "detect_outputs",
+		                                         screen->screenNum);
+
+		if (option_detect_outputs)
+			return;
+
+		updateOutputDevices (screen);
+	}
+	else if (strcasecmp (optionName, "force_independent_output_painting") == 0)
+	{
+		updateOutputDevices (screen);
+	}
+	else if (strcasecmp (optionName, "focus_prevention_match") == 0)
+	{
+		matchFini (&screen->focus_prevention_match);
+		matchInit (&screen->focus_prevention_match);
+		matchAddFromString (&screen->focus_prevention_match, optionValue->s);
+		matchUpdate (core.displays, &screen->focus_prevention_match);
+	}
 }
-
-const CompMetadataOptionInfo coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM] = {
-	{ "detect_refresh_rate", "bool", 0, 0, 0 },
-	{ "lighting", "bool", 0, 0, 0 },
-	{ "refresh_rate", "int", "<min>1</min>", 0, 0 },
-	{ "hsize", "int", "<min>1</min><max>32</max>", 0, 0 },
-	{ "vsize", "int", "<min>1</min><max>32</max>", 0, 0 },
-	{ "unredirect_fullscreen_windows", "bool", 0, 0, 0 },
-	{ "default_icon", "string", 0, 0, 0 },
-	{ "sync_to_vblank", "bool", 0, 0, 0 },
-	{ "number_of_desktops", "int", "<min>1</min>", 0, 0 },
-	{ "detect_outputs", "bool", 0, 0, 0 },
-	{ "outputs", "list", "<type>string</type>", 0, 0 },
-	{ "overlapping_outputs", "int",
-	  RESTOSTRING (0, OUTPUT_OVERLAP_MODE_LAST), 0, 0 },
-	{ "focus_prevention_level", "int",
-	  RESTOSTRING (0, FOCUS_PREVENTION_LEVEL_LAST), 0, 0 },
-	{ "focus_prevention_match", "match", 0, 0, 0 },
-	{ "texture_compression", "bool", 0, 0, 0 },
-	{ "force_independent_output_painting", "bool", 0, 0, 0 }
-};
 
 static void
 updateStartupFeedback (CompScreen *s)
@@ -1145,10 +1097,14 @@ updateScreenBackground (CompScreen  *screen,
 void
 detectRefreshRateOfScreen (CompScreen *s)
 {
-	if (!noDetection && s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b)
+	const BananaValue *
+	option_detect_refresh_rate = bananaGetOption (coreBananaIndex, 
+	                                              "detect_refresh_rate",
+	                                              s->screenNum);
+
+	if (option_detect_refresh_rate->b)
 	{
-		char            *name;
-		CompOptionValue value;
+		BananaValue value;
 
 		value.i = 0;
 
@@ -1163,17 +1119,18 @@ detectRefreshRateOfScreen (CompScreen *s)
 		}
 
 		if (value.i == 0)
-			value.i = defaultRefreshRate;
+			value.i = DEFAULT_REFRESH_RATE;
 
-		name = s->opt[COMP_SCREEN_OPTION_REFRESH_RATE].name;
-
-		s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b = FALSE;
-		(*core.setOptionForPlugin) (&s->base, "core", name, &value);
-		s->opt[COMP_SCREEN_OPTION_DETECT_REFRESH_RATE].value.b = TRUE;
+		bananaSetOption (coreBananaIndex, "refresh_rate", s->screenNum, &value);
 	}
 	else
 	{
-		s->redrawTime = 1000 / s->opt[COMP_SCREEN_OPTION_REFRESH_RATE].value.i;
+		const BananaValue *
+		option_refresh_rate = bananaGetOption (coreBananaIndex,
+		                                       "refresh_rate",
+		                                       s->screenNum);
+
+		s->redrawTime = 1000 / option_refresh_rate->i;
 		s->optimalRedrawTime = s->redrawTime;
 	}
 }
@@ -1533,11 +1490,13 @@ makeOutputWindow (CompScreen *s)
 static void
 enterShowDesktopMode (CompScreen *s)
 {
-	CompDisplay   *d = s->display;
 	CompWindow    *w;
 	unsigned long data = 1;
 	int           count = 0;
-	CompOption    *st = &d->opt[COMP_DISPLAY_OPTION_HIDE_SKIP_TASKBAR_WINDOWS];
+
+	const BananaValue *
+	option_hide_skip_taskbar_windows = bananaGetOption (
+	    coreBananaIndex, "hide_skip_taskbar_windows", -1);
 
 	s->showingDesktopMask = ~(CompWindowTypeDesktopMask |
 	                          CompWindowTypeDockMask);
@@ -1545,7 +1504,8 @@ enterShowDesktopMode (CompScreen *s)
 	for (w = s->windows; w; w = w->next)
 	{
 		if ((s->showingDesktopMask & w->wmType) &&
-		    (!(w->state & CompWindowStateSkipTaskbarMask) || st->value.b))
+		    (!(w->state & CompWindowStateSkipTaskbarMask) || 
+		    option_hide_skip_taskbar_windows->b))
 		{
 			if (!w->inShowDesktopMode && !w->grabbed &&
 			    w->managed && (*s->focusWindow) (w))
@@ -1697,8 +1657,6 @@ freeScreen (CompScreen *s)
 			if (s->saturateFunction[i][j])
 				destroyFragmentFunction (s, s->saturateFunction[i][j]);
 
-	compFiniScreenOptions (s, s->opt, COMP_SCREEN_OPTION_NUM);
-
 	if (s->windowPrivateIndices)
 		free (s->windowPrivateIndices);
 
@@ -1759,13 +1717,6 @@ addScreen (CompDisplay *display,
 
 	s->display = display;
 
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &coreMetadata,
-	                                coreScreenOptionInfo,
-	                                s->opt,
-	                                COMP_SCREEN_OPTION_NUM))
-		return FALSE;
-
 	s->snContext = NULL;
 
 	s->damage = XCreateRegion ();
@@ -1774,8 +1725,15 @@ addScreen (CompDisplay *display,
 
 	s->x     = 0;
 	s->y     = 0;
-	s->hsize = s->opt[COMP_SCREEN_OPTION_HSIZE].value.i;
-	s->vsize = s->opt[COMP_SCREEN_OPTION_VSIZE].value.i;
+
+	const BananaValue *
+	option_hsize = bananaGetOption (coreBananaIndex, "hsize", screenNum);
+
+	const BananaValue *
+	option_vsize = bananaGetOption (coreBananaIndex, "vsize", screenNum);
+
+	s->hsize = option_hsize->i;
+	s->vsize = option_vsize->i;
 
 	s->windowOffsetX = 0;
 	s->windowOffsetY = 0;
@@ -2390,7 +2348,7 @@ addScreen (CompDisplay *display,
 			s->canDoSlightlySaturated = TRUE;
 	}
 
-	s->redrawTime = 1000 / defaultRefreshRate;
+	s->redrawTime = 1000 / DEFAULT_REFRESH_RATE;
 	s->optimalRedrawTime = s->redrawTime;
 
 	reshape (s, s->attrib.width, s->attrib.height);
@@ -2491,6 +2449,17 @@ addScreen (CompDisplay *display,
 	s->filter[SCREEN_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
 	s->filter[WINDOW_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
 
+	const BananaValue *
+	option_focus_prevention_match = bananaGetOption (coreBananaIndex, 
+	                                                 "focus_prevention_match",
+	                                                 s->screenNum);
+
+	matchInit (&s->focus_prevention_match);
+	matchAddFromString (&s->focus_prevention_match,
+	                    option_focus_prevention_match->s);
+
+	matchUpdate (display, &s->focus_prevention_match);
+
 	return TRUE;
 }
 
@@ -2500,6 +2469,8 @@ removeScreen (CompScreen *s)
 	CompDisplay *d = s->display;
 	CompScreen  *p;
 	int         i;
+
+	matchFini (&s->focus_prevention_match);
 
 	for (p = d->screens; p; p = p->next)
 		if (p->next == s)
@@ -2596,7 +2567,12 @@ focusDefaultWindow (CompScreen *s)
 	CompWindow  *w;
 	CompWindow  *focus = NULL;
 
-	if (!d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b)
+	const BananaValue *
+	option_click_to_focus = bananaGetOption (coreBananaIndex,
+	                                         "click_to_focus",
+	                                         -1);
+
+	if (!option_click_to_focus->b)
 	{
 		w = findTopLevelWindowAtDisplay (d, d->below);
 
@@ -3198,56 +3174,37 @@ removePassiveButtonGrab (CompScreen        *s,
 }
 
 Bool
-addScreenAction (CompScreen *s,
-                 CompAction *action)
+addScreenKeyBinding (CompScreen     *s,
+                     CompKeyBinding *key)
 {
-	if (action->type & CompBindingTypeKey)
-	{
-		if (!addPassiveKeyGrab (s, &action->key))
-			return FALSE;
-	}
+	if (!addPassiveKeyGrab (s, key))
+		return FALSE;
 
-	if (action->type & CompBindingTypeButton)
-	{
-		if (!addPassiveButtonGrab (s, &action->button))
-		{
-			if (action->type & CompBindingTypeKey)
-				removePassiveKeyGrab (s, &action->key);
+	return TRUE;
+}
 
-			return FALSE;
-		}
-	}
-
-	if (action->edgeMask)
-	{
-		int i;
-
-		for (i = 0; i < SCREEN_EDGE_NUM; i++)
-			if (action->edgeMask & (1 << i))
-				enableScreenEdge (s, i);
-	}
+Bool
+addScreenButtonBinding (CompScreen        *s,
+                        CompButtonBinding *button)
+{
+	if (!addPassiveButtonGrab (s, button))
+		return FALSE;
 
 	return TRUE;
 }
 
 void
-removeScreenAction (CompScreen *s,
-                    CompAction *action)
+removeScreenKeyBinding (CompScreen     *s,
+                        CompKeyBinding *key)
 {
-	if (action->type & CompBindingTypeKey)
-		removePassiveKeyGrab (s, &action->key);
+	removePassiveKeyGrab (s, key);
+}
 
-	if (action->type & CompBindingTypeButton)
-		removePassiveButtonGrab (s, &action->button);
-
-	if (action->edgeMask)
-	{
-		int i;
-
-		for (i = 0; i < SCREEN_EDGE_NUM; i++)
-			if (action->edgeMask & (1 << i))
-				disableScreenEdge (s, i);
-	}
+void
+removeScreenButtonBinding (CompScreen        *s,
+                           CompButtonBinding *button)
+{
+	removePassiveButtonGrab (s, button);
 }
 
 void
@@ -3938,7 +3895,12 @@ screenLighting (CompScreen *s,
 {
 	if (s->lighting != lighting)
 	{
-		if (!s->opt[COMP_SCREEN_OPTION_LIGHTING].value.b)
+		const BananaValue *
+		option_lighting = bananaGetOption (coreBananaIndex,
+		                                   "lighting",
+		                                   s->screenNum);
+
+		if (!option_lighting->b)
 			lighting = FALSE;
 
 		if (lighting)
@@ -4239,7 +4201,12 @@ outputDeviceForGeometry (CompScreen *s,
 	if (s->nOutputDev == 1)
 		return 0;
 
-	strategy = s->opt[COMP_SCREEN_OPTION_OVERLAPPING_OUTPUTS].value.i;
+	const BananaValue *
+	option_overlapping_outputs = bananaGetOption (coreBananaIndex,
+	                                              "overlapping_outputs",
+	                                              s->screenNum);
+
+	strategy = option_overlapping_outputs->i;
 
 	if (strategy == OUTPUT_OVERLAP_MODE_SMART)
 	{
@@ -4341,7 +4308,13 @@ Bool
 updateDefaultIcon (CompScreen *screen)
 {
 	CompIcon *icon;
-	char     *file = screen->opt[COMP_SCREEN_OPTION_DEFAULT_ICON].value.s;
+
+	const BananaValue *
+	option_default_icon = bananaGetOption (coreBananaIndex,
+	                                       "default_icon",
+	                                       screen->screenNum);
+
+	char     *file = option_default_icon->s;
 	void     *data;
 	int      width, height;
 

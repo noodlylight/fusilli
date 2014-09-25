@@ -33,21 +33,18 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata zoomMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
 
-#define ZOOM_DISPLAY_OPTION_INITIATE_BUTTON 0
-#define ZOOM_DISPLAY_OPTION_IN_BUTTON       1
-#define ZOOM_DISPLAY_OPTION_OUT_BUTTON      2
-#define ZOOM_DISPLAY_OPTION_PAN_BUTTON      3
-#define ZOOM_DISPLAY_OPTION_NUM	            4
+static CompButtonBinding initiate_button;
+static CompButtonBinding zoom_in_button;
+static CompButtonBinding zoom_out_button;
+static CompButtonBinding zoom_pan_button;
 
 typedef struct _ZoomDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
-
-	CompOption opt[ZOOM_DISPLAY_OPTION_NUM];
 } ZoomDisplay;
 
 typedef struct _ZoomBox {
@@ -57,18 +54,10 @@ typedef struct _ZoomBox {
 	float y2;
 } ZoomBox;
 
-#define ZOOM_SCREEN_OPTION_SPEED         0
-#define ZOOM_SCREEN_OPTION_TIMESTEP      1
-#define ZOOM_SCREEN_OPTION_ZOOM_FACTOR   2
-#define ZOOM_SCREEN_OPTION_FILTER_LINEAR 3
-#define ZOOM_SCREEN_OPTION_NUM           4
-
 typedef struct _ZoomScreen {
 	PreparePaintScreenProc   preparePaintScreen;
 	DonePaintScreenProc      donePaintScreen;
 	PaintOutputProc          paintOutput;
-
-	CompOption opt[ZOOM_SCREEN_OPTION_NUM];
 
 	float pointerSensitivity;
 
@@ -105,36 +94,6 @@ typedef struct _ZoomScreen {
 #define ZOOM_SCREEN(s) \
         ZoomScreen *zs = GET_ZOOM_SCREEN (s, GET_ZOOM_DISPLAY (s->display))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
-static CompOption *
-zoomGetScreenOptions (CompPlugin *plugin,
-                      CompScreen *screen,
-                      int        *count)
-{
-	ZOOM_SCREEN (screen);
-
-	*count = NUM_OPTIONS (zs);
-	return zs->opt;
-}
-
-static Bool
-zoomSetScreenOption (CompPlugin      *plugin,
-                     CompScreen      *screen,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	CompOption *o;
-
-	ZOOM_SCREEN (screen);
-
-	o = compFindOption (zs->opt, NUM_OPTIONS (zs), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetScreenOption (screen, o, value);
-}
-
 static int
 adjustZoomVelocity (ZoomScreen *zs)
 {
@@ -157,53 +116,53 @@ adjustZoomVelocity (ZoomScreen *zs)
 static void
 zoomInEvent (CompScreen *s)
 {
-	CompOption o[6];
+	BananaArgument arg[6];
 
 	ZOOM_SCREEN (s);
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "root";
-	o[0].value.i = s->root;
+	arg[0].type    = BananaInt;
+	arg[0].name    = "root";
+	arg[0].value.i = s->root;
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "output";
-	o[1].value.i = zs->zoomOutput;
+	arg[1].type    = BananaInt;
+	arg[1].name    = "output";
+	arg[1].value.i = zs->zoomOutput;
 
-	o[2].type    = CompOptionTypeInt;
-	o[2].name    = "x1";
-	o[2].value.i = zs->current[zs->zoomOutput].x1;
+	arg[2].type    = BananaInt;
+	arg[2].name    = "x1";
+	arg[2].value.i = zs->current[zs->zoomOutput].x1;
 
-	o[3].type    = CompOptionTypeInt;
-	o[3].name    = "y1";
-	o[3].value.i = zs->current[zs->zoomOutput].y1;
+	arg[3].type    = BananaInt;
+	arg[3].name    = "y1";
+	arg[3].value.i = zs->current[zs->zoomOutput].y1;
 
-	o[4].type    = CompOptionTypeInt;
-	o[4].name    = "x2";
-	o[4].value.i = zs->current[zs->zoomOutput].x2;
+	arg[4].type    = BananaInt;
+	arg[4].name    = "x2";
+	arg[4].value.i = zs->current[zs->zoomOutput].x2;
 
-	o[5].type    = CompOptionTypeInt;
-	o[5].name    = "y2";
-	o[5].value.i = zs->current[zs->zoomOutput].y2;
+	arg[5].type    = BananaInt;
+	arg[5].name    = "y2";
+	arg[5].value.i = zs->current[zs->zoomOutput].y2;
 
-	(*s->display->handleFusilliEvent) (s->display, "zoom", "in", o, 6);
+	(*s->display->handleFusilliEvent) (s->display, "zoom", "in", arg, 6);
 }
 
 static void
 zoomOutEvent (CompScreen *s)
 {
-	CompOption o[2];
+	BananaArgument arg[2];
 
 	ZOOM_SCREEN (s);
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "root";
-	o[0].value.i = s->root;
+	arg[0].type    = BananaInt;
+	arg[0].name    = "root";
+	arg[0].value.i = s->root;
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "output";
-	o[1].value.i = zs->zoomOutput;
+	arg[1].type    = BananaInt;
+	arg[1].name    = "output";
+	arg[1].value.i = zs->zoomOutput;
 
-	(*s->display->handleFusilliEvent) (s->display, "zoom", "out", o, 2);
+	(*s->display->handleFusilliEvent) (s->display, "zoom", "out", arg, 2);
 }
 
 static void
@@ -217,9 +176,18 @@ zoomPreparePaintScreen (CompScreen *s,
 		int   steps;
 		float amount;
 
-		amount = msSinceLastPaint * 0.35f *
-		    zs->opt[ZOOM_SCREEN_OPTION_SPEED].value.f;
-		steps  = amount / (0.5f * zs->opt[ZOOM_SCREEN_OPTION_TIMESTEP].value.f);
+		const BananaValue *
+		option_speed = bananaGetOption (bananaIndex,
+		                                "speed",
+		                                s->screenNum);
+
+		const BananaValue *
+		option_timestep = bananaGetOption (bananaIndex,
+		                                   "timestep",
+		                                   s->screenNum);
+
+		amount = msSinceLastPaint * 0.35f * option_speed->f;
+		steps  = amount / (0.5f * option_timestep->f);
 		if (!steps) steps = 1;
 
 		while (steps--)
@@ -346,8 +314,13 @@ zoomPaintOutput (CompScreen              *s,
 
 		saveFilter = s->filter[SCREEN_TRANS_FILTER];
 
+		const BananaValue *
+		option_filter_linear = bananaGetOption (bananaIndex,
+		                                        "filter_linear",
+		                                        s->screenNum);
+
 		if ((zs->zoomOutput != output->id || !zs->adjust) && scale > 3.9f &&
-		    !zs->opt[ZOOM_SCREEN_OPTION_FILTER_LINEAR].value.b)
+		    !option_filter_linear->b)
 		    s->filter[SCREEN_TRANS_FILTER] = COMP_TEXTURE_FILTER_FAST;
 
 		UNWRAP (zs, s, paintOutput);
@@ -499,18 +472,20 @@ zoomInitiateForSelection (CompScreen *s,
 }
 
 static Bool
-zoomIn (CompDisplay     *d,
-        CompAction      *action,
-        CompActionState state,
-        CompOption      *option,
-        int             nOption)
+zoomIn (BananaArgument     *arg,
+        int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		float   w, h, x0, y0;
@@ -536,10 +511,13 @@ zoomIn (CompDisplay     *d,
 			box.y2 = s->outputDev[output].region.extents.y2;
 		}
 
-		w = (box.x2 - box.x1) /
-		    zs->opt[ZOOM_SCREEN_OPTION_ZOOM_FACTOR].value.f;
-		h = (box.y2 - box.y1) /
-		    zs->opt[ZOOM_SCREEN_OPTION_ZOOM_FACTOR].value.f;
+		const BananaValue *
+		option_zoom_factor = bananaGetOption (bananaIndex,
+		                                      "zoom_factor",
+		                                      s->screenNum);
+
+		w = (box.x2 - box.x1) / option_zoom_factor->f;
+		h = (box.y2 - box.y1) / option_zoom_factor->f;
 
 		x0 = (pointerX - s->outputDev[output].region.extents.x1) / (float)
 		    s->outputDev[output].width;
@@ -560,18 +538,20 @@ zoomIn (CompDisplay     *d,
 }
 
 static Bool
-zoomInitiate (CompDisplay     *d,
-              CompAction      *action,
-              CompActionState state,
-              CompOption      *option,
-              int             nOption)
+zoomInitiate (BananaArgument     *arg,
+              int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		int   output, x1, y1;
@@ -584,9 +564,6 @@ zoomInitiate (CompDisplay     *d,
 
 		if (!zs->grabIndex)
 			zs->grabIndex = pushScreenGrab (s, None, "zoom");
-
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
 
 		/* start selection zoom rectangle */
 
@@ -632,18 +609,20 @@ zoomInitiate (CompDisplay     *d,
 }
 
 static Bool
-zoomOut (CompDisplay     *d,
-         CompAction      *action,
-         CompActionState state,
-         CompOption      *option,
-         int             nOption)
+zoomOut (BananaArgument     *arg,
+         int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		int output;
@@ -679,18 +658,20 @@ zoomOut (CompDisplay     *d,
 }
 
 static Bool
-zoomTerminate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+zoomTerminate (BananaArgument     *arg,
+               int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		ZOOM_SCREEN (s);
 
@@ -715,34 +696,34 @@ zoomTerminate (CompDisplay     *d,
 		}
 		else
 		{
-			CompOption o;
+			BananaArgument arg;
 
-			o.type    = CompOptionTypeInt;
-			o.name    = "root";
-			o.value.i = s->root;
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = s->root;
 
-			zoomOut (d, action, state, &o, 1);
+			zoomOut (&arg, 1);
 		}
 	}
-
-	action->state &= ~(CompActionStateTermKey | CompActionStateTermButton);
 
 	return FALSE;
 }
 
 static Bool
-zoomInitiatePan (CompDisplay     *d,
-                 CompAction      *action,
-                 CompActionState state,
-                 CompOption      *option,
-                 int             nOption)
+zoomInitiatePan (BananaArgument     *arg,
+                 int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		int output;
@@ -757,9 +738,6 @@ zoomInitiatePan (CompDisplay     *d,
 		if (otherScreenGrabExist (s, "zoom", NULL))
 			return FALSE;
 
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
-
 		if (!zs->panGrabIndex)
 			zs->panGrabIndex = pushScreenGrab (s, zs->panCursor, "zoom-pan");
 
@@ -772,18 +750,20 @@ zoomInitiatePan (CompDisplay     *d,
 }
 
 static Bool
-zoomTerminatePan (CompDisplay     *d,
-                  CompAction      *action,
-                  CompActionState state,
-                  CompOption      *option,
-                  int             nOption)
+zoomTerminatePan (BananaArgument     *arg,
+                  int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		ZOOM_SCREEN (s);
 
@@ -800,8 +780,6 @@ zoomTerminatePan (CompDisplay     *d,
 
 		return TRUE;
 	}
-
-	action->state &= ~(CompActionStateTermKey | CompActionStateTermButton);
 
 	return FALSE;
 }
@@ -900,6 +878,82 @@ zoomHandleEvent (CompDisplay *d,
 	ZOOM_DISPLAY (d);
 
 	switch (event->type) {
+	case KeyPress:
+		if (event->xkey.keycode == d->escapeKeyCode)
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+
+			zoomTerminate (&arg, 1);
+		}
+	case ButtonPress:
+		if (isButtonPressEvent (event, &initiate_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			zoomInitiate (&arg, 1);
+		}
+		else if (isButtonPressEvent (event, &zoom_in_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			zoomIn (&arg, 1);
+		}
+		else if (isButtonPressEvent (event, &zoom_out_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			zoomOut (&arg, 1);
+		}
+		else if (isButtonPressEvent (event, &zoom_pan_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			zoomInitiatePan (&arg, 1);
+		}
+
+		break;
+	case ButtonRelease:
+		if (initiate_button.button == event->xbutton.button)
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			zoomTerminate (&arg, 1);
+		}
+		else if (zoom_pan_button.button == event->xbutton.button)
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			zoomTerminatePan (&arg, 1);
+		}
+		break;
 	case MotionNotify:
 		s = findScreenAtDisplay (d, event->xmotion.root);
 		if (s)
@@ -919,50 +973,12 @@ zoomHandleEvent (CompDisplay *d,
 	WRAP (zd, d, handleEvent, zoomHandleEvent);
 }
 
-static CompOption *
-zoomGetDisplayOptions (CompPlugin  *plugin,
-                       CompDisplay *display,
-                       int         *count)
-{
-	ZOOM_DISPLAY (display);
-
-	*count = NUM_OPTIONS (zd);
-	return zd->opt;
-}
-
-static Bool
-zoomSetDisplayOption (CompPlugin      *plugin,
-                      CompDisplay     *display,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	CompOption *o;
-	int        index;
-
-	ZOOM_DISPLAY (display);
-
-	o = compFindOption (zd->opt, NUM_OPTIONS (zd), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case ZOOM_DISPLAY_OPTION_OUT_BUTTON:
-		if (compSetActionOption (o, value))
-			return TRUE;
-		break;
-	default:
-		return compSetDisplayOption (display, o, value);
-	}
-
-	return FALSE;
-}
-
-static const CompMetadataOptionInfo zoomDisplayOptionInfo[] = {
+/*static const CompMetadataOptionInfo zoomDisplayOptionInfo[] = {
 	{ "initiate_button", "button", 0, zoomInitiate, zoomTerminate },
 	{ "zoom_in_button", "button", 0, zoomIn, 0 },
 	{ "zoom_out_button", "button", 0, zoomOut, 0 },
 	{ "zoom_pan_button", "button", 0, zoomInitiatePan, zoomTerminatePan }
-};
+};*/
 
 static Bool
 zoomInitDisplay (CompPlugin  *p,
@@ -970,27 +986,13 @@ zoomInitDisplay (CompPlugin  *p,
 {
 	ZoomDisplay *zd;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	zd = malloc (sizeof (ZoomDisplay));
 	if (!zd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &zoomMetadata,
-	                                 zoomDisplayOptionInfo,
-	                                 zd->opt,
-	                                 ZOOM_DISPLAY_OPTION_NUM))
-	{
-		free (zd);
-		return FALSE;
-	}
-
 	zd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (zd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, zd->opt, ZOOM_DISPLAY_OPTION_NUM);
 		free (zd);
 		return FALSE;
 	}
@@ -1012,17 +1014,8 @@ zoomFiniDisplay (CompPlugin  *p,
 
 	UNWRAP (zd, d, handleEvent);
 
-	compFiniDisplayOptions (d, zd->opt, ZOOM_DISPLAY_OPTION_NUM);
-
 	free (zd);
 }
-
-static const CompMetadataOptionInfo zoomScreenOptionInfo[] = {
-	{ "speed", "float", "<min>0.1</min>", 0, 0 },
-	{ "timestep", "float", "<min>0.1</min>", 0, 0 },
-	{ "zoom_factor", "float", "<min>1.01</min>", 0, 0 },
-	{ "filter_linear", "bool", 0, 0, 0 }
-};
 
 static Bool
 zoomInitScreen (CompPlugin *p,
@@ -1035,16 +1028,6 @@ zoomInitScreen (CompPlugin *p,
 	zs = malloc (sizeof (ZoomScreen));
 	if (!zs)
 		return FALSE;
-
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &zoomMetadata,
-	                                zoomScreenOptionInfo,
-	                                zs->opt,
-	                                ZOOM_SCREEN_OPTION_NUM))
-	{
-		free (zs);
-		return FALSE;
-	}
 
 	zs->grabIndex = 0;
 	zs->grab = FALSE;
@@ -1086,8 +1069,6 @@ zoomFiniScreen (CompPlugin *p,
 	UNWRAP (zs, s, donePaintScreen);
 	UNWRAP (zs, s, paintOutput);
 
-	compFiniScreenOptions (s, zs->opt, ZOOM_SCREEN_OPTION_NUM);
-
 	free (zs);
 }
 
@@ -1117,57 +1098,75 @@ zoomFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-zoomGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
+static void
+zoomChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) zoomGetDisplayOptions,
-		(GetPluginObjectOptionsProc) zoomGetScreenOptions
-	};
+	if (strcasecmp (optionName, "initiate_button") == 0)
+		updateButton (optionValue->s, &initiate_button);
 
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
+	else if (strcasecmp (optionName, "zoom_in_button") == 0)
+		updateButton (optionValue->s, &zoom_in_button);
 
-static CompBool
-zoomSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) zoomSetDisplayOption,
-		(SetPluginObjectOptionProc) zoomSetScreenOption
-	};
+	else if (strcasecmp (optionName, "zoom_out_button") == 0)
+		updateButton (optionValue->s, &zoom_out_button);
 
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
+	else if (strcasecmp (optionName, "zoom_pan_button") == 0)
+		updateButton (optionValue->s, &zoom_pan_button);
 }
 
 static Bool
 zoomInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&zoomMetadata,
-	                             p->vTable->name,
-	                             zoomDisplayOptionInfo,
-	                             ZOOM_DISPLAY_OPTION_NUM,
-	                             zoomScreenOptionInfo,
-	                             ZOOM_SCREEN_OPTION_NUM))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&zoomMetadata);
+		compLogMessage ("zoom", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&zoomMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("zoom");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, zoomChangeNotify);
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button",
+	                                          -1);
+
+	const BananaValue *
+	option_zoom_in_button = bananaGetOption (bananaIndex,
+	                                         "zoom_in_button",
+	                                         -1);
+
+	const BananaValue *
+	option_zoom_out_button = bananaGetOption (bananaIndex,
+	                                          "zoom_out_button",
+	                                          -1);
+
+	const BananaValue *
+	option_zoom_pan_button = bananaGetOption (bananaIndex,
+	                                          "zoom_pan_button",
+	                                          -1);
+
+	registerButton (option_initiate_button->s, &initiate_button);
+	registerButton (option_zoom_in_button->s, &zoom_in_button);
+	registerButton (option_zoom_out_button->s, &zoom_out_button);
+	registerButton (option_zoom_pan_button->s, &zoom_pan_button);
 
 	return TRUE;
 }
@@ -1176,28 +1175,20 @@ static void
 zoomFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&zoomMetadata);
-}
 
-static CompMetadata *
-zoomGetMetadata (CompPlugin *plugin)
-{
-	return &zoomMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 CompPluginVTable zoomVTable = {
 	"zoom",
-	zoomGetMetadata,
 	zoomInit,
 	zoomFini,
 	zoomInitObject,
-	zoomFiniObject,
-	zoomGetObjectOptions,
-	zoomSetObjectOption
+	zoomFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &zoomVTable;
 }

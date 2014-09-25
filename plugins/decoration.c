@@ -39,7 +39,10 @@
 #include <X11/Xatom.h>
 #include <X11/extensions/shape.h>
 
-static CompMetadata decorMetadata;
+static int bananaIndex;
+
+static CompMatch decoration_match;
+static CompMatch shadow_match;
 
 typedef struct _Vector {
 	int dx;
@@ -93,17 +96,6 @@ typedef struct _DecorCore {
 	ObjectRemoveProc objectRemove;
 } DecorCore;
 
-#define DECOR_DISPLAY_OPTION_SHADOW_RADIUS   0
-#define DECOR_DISPLAY_OPTION_SHADOW_OPACITY  1
-#define DECOR_DISPLAY_OPTION_SHADOW_COLOR    2
-#define DECOR_DISPLAY_OPTION_SHADOW_OFFSET_X 3
-#define DECOR_DISPLAY_OPTION_SHADOW_OFFSET_Y 4
-#define DECOR_DISPLAY_OPTION_COMMAND         5
-#define DECOR_DISPLAY_OPTION_MIPMAP          6
-#define DECOR_DISPLAY_OPTION_DECOR_MATCH     7
-#define DECOR_DISPLAY_OPTION_SHADOW_MATCH    8
-#define DECOR_DISPLAY_OPTION_NUM             9
-
 static int displayPrivateIndex;
 
 typedef struct _DecorDisplay {
@@ -115,8 +107,6 @@ typedef struct _DecorDisplay {
 	Atom                     winDecorAtom;
 	Atom                     requestFrameExtentsAtom;
 	Atom                     decorAtom[DECOR_NUM];
-
-	CompOption opt[DECOR_DISPLAY_OPTION_NUM];
 } DecorDisplay;
 
 typedef struct _DecorScreen {
@@ -271,7 +261,10 @@ decorGetTexture (CompScreen *screen,
 		return NULL;
 	}
 
-	if (!dd->opt[DECOR_DISPLAY_OPTION_MIPMAP].value.b)
+	const BananaValue *
+	option_mipmap = bananaGetOption (bananaIndex, "mipmap", -1);
+
+	if (!option_mipmap->b)
 		texture->texture.mipmap = FALSE;
 
 	texture->damage = XDamageCreate (screen->display->display, pixmap,
@@ -726,12 +719,10 @@ decorWindowUpdate (CompWindow *w,
 	WindowDecoration *wd;
 	Decoration       *old, *decor = NULL;
 	Bool             decorate = FALSE;
-	CompMatch        *match;
 	int              moveDx, moveDy;
 	int              oldShiftX = 0;
 	int              oldShiftY  = 0;
 
-	DECOR_DISPLAY (w->screen->display);
 	DECOR_SCREEN (w->screen);
 	DECOR_WINDOW (w);
 
@@ -758,8 +749,7 @@ decorWindowUpdate (CompWindow *w,
 
 	if (decorate)
 	{
-		match = &dd->opt[DECOR_DISPLAY_OPTION_DECOR_MATCH].value.match;
-		if (!matchEval (match, w))
+		if (!matchEval (&decoration_match, w))
 			decorate = FALSE;
 	}
 
@@ -779,8 +769,7 @@ decorWindowUpdate (CompWindow *w,
 	}
 	else
 	{
-		match = &dd->opt[DECOR_DISPLAY_OPTION_SHADOW_MATCH].value.match;
-		if (matchEval (match, w))
+		if (matchEval (&shadow_match, w))
 		{
 			if (w->region->numRects == 1)
 				decor = ds->decor[DECOR_BARE];
@@ -1173,111 +1162,80 @@ decorStartDecorator (void *closure)
 {
 	CompScreen *s = (CompScreen *) closure;
 
-	DECOR_DISPLAY (s->display);
 	DECOR_SCREEN (s);
 
 	ds->decoratorStartHandle = 0;
 
 	if (!ds->dmWin)
-		runCommand (s, dd->opt[DECOR_DISPLAY_OPTION_COMMAND].value.s);
+	{
+		const BananaValue *
+		option_command = bananaGetOption (bananaIndex, "command", -1);
 
-	return FALSE;
-}
-
-static CompOption *
-decorGetDisplayOptions (CompPlugin  *plugin,
-                        CompDisplay *display,
-                        int         *count)
-{
-	DECOR_DISPLAY (display);
-
-	*count = NUM_OPTIONS (dd);
-	return dd->opt;
-}
-
-static Bool
-decorSetDisplayOption (CompPlugin      *plugin,
-                       CompDisplay     *display,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	CompOption *o;
-	int        index;
-
-	DECOR_DISPLAY (display);
-
-	o = compFindOption (dd->opt, NUM_OPTIONS (dd), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case DECOR_DISPLAY_OPTION_COMMAND:
-		if (compSetStringOption (o, value))
-		{
-			CompScreen *s;
-
-			for (s = display->screens; s; s = s->next)
-			{
-				DECOR_SCREEN (s);
-
-				if (!ds->dmWin)
-					runCommand (s, o->value.s);
-			}
-
-			return TRUE;
-		}
-		break;
-	case DECOR_DISPLAY_OPTION_SHADOW_MATCH:
-		{
-			char *matchString;
-
-			/*
-			   Make sure RGBA matching is always present and disable shadows
-			   for RGBA windows by default if the user didn't specify an
-			   RGBA match.
-			   Reasoning for that is that shadows are desired for some RGBA
-			   windows (e.g. rectangular windows that just happen to have an
-			   RGBA colormap), while it's absolutely undesired for others
-			   (especially shaped ones) ... by enforcing no shadows for RGBA
-			   windows by default, we are flexible to user desires while still
-			   making sure we don't show ugliness by default
-			 */
-
-			matchString = matchToString (&value->match);
-			if (matchString)
-			{
-				if (!strstr (matchString, "rgba="))
-				{
-					CompMatch rgbaMatch;
-
-					matchInit (&rgbaMatch);
-					matchAddFromString (&rgbaMatch, "rgba=0");
-					matchAddGroup (&value->match, MATCH_OP_AND_MASK,
-					               &rgbaMatch);
-					matchFini (&rgbaMatch);
-				}
-				free (matchString);
-			}
-		}
-		/* fall-through intended */
-	case DECOR_DISPLAY_OPTION_DECOR_MATCH:
-		if (compSetMatchOption (o, value))
-		{
-			CompScreen *s;
-			CompWindow *w;
-
-			for (s = display->screens; s; s = s->next)
-				for (w = s->windows; w; w = w->next)
-					decorWindowUpdate (w, TRUE);
-		}
-		break;
-	default:
-		if (compSetOption (o, value))
-			return TRUE;
-		break;
+		runCommand (s, option_command->s);
 	}
 
 	return FALSE;
+}
+
+static void
+decorChangeNotify (const char        *optionName,
+                   BananaType        optionType,
+                   const BananaValue *optionValue,
+                   int               screenNum)
+{
+	if (strcasecmp (optionName, "command") == 0)
+	{
+		CompScreen *s;
+
+		for (s = core.displays->screens; s; s = s->next)
+		{
+			DECOR_SCREEN (s);
+
+			if (!ds->dmWin)
+				runCommand (s, optionValue->s);
+		}
+	}
+	else if (strcasecmp (optionName, "shadow_match") == 0)
+	{
+		matchFini (&shadow_match);
+		matchInit (&shadow_match);
+		matchAddFromString (&shadow_match, optionValue->s);
+
+		/* DISABLED
+		   Make sure RGBA matching is always present and disable shadows
+		   for RGBA windows by default if the user didn't specify an
+		   RGBA match.
+		   Reasoning for that is that shadows are desired for some RGBA
+		   windows (e.g. rectangular windows that just happen to have an
+		   RGBA colormap), while it's absolutely undesired for others
+		   (especially shaped ones) ... by enforcing no shadows for RGBA
+		   windows by default, we are flexible to user desires while still
+		   making sure we don't show ugliness by default
+		 
+
+		if (!strstr (optionValue->s, "rgba="))
+			matchAddFromString (&shadow_match, "rgba=0");
+		*/
+		matchUpdate (core.displays, &shadow_match);
+	}
+	else if (strcasecmp (optionName, "decoration_match") == 0)
+	{
+		matchFini (&decoration_match);
+		matchInit (&decoration_match);
+		matchAddFromString (&decoration_match, optionValue->s);
+		matchUpdate (core.displays, &decoration_match);
+	}
+
+	if (strcasecmp (optionName, "shadow_match") == 0 ||
+	    strcasecmp (optionName, "decoration_match") == 0)
+	{
+		CompScreen *s;
+		CompWindow *w;
+
+		for (s = core.displays->screens; s; s = s->next)
+			for (w = s->windows; w; w = w->next)
+				decorWindowUpdate (w, TRUE);
+	}
 }
 
 static void
@@ -1447,9 +1405,6 @@ decorInitCore (CompPlugin *p,
 {
 	DecorCore *dc;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	dc = malloc (sizeof (DecorCore));
 	if (!dc)
 		return FALSE;
@@ -1483,18 +1438,6 @@ decorFiniCore (CompPlugin *p,
 	free (dc);
 }
 
-static const CompMetadataOptionInfo decorDisplayOptionInfo[] = {
-	{ "shadow_radius", "float", "<min>0.0</min><max>48.0</max>", 0, 0 },
-	{ "shadow_opacity", "float", "<min>0.0</min>", 0, 0 },
-	{ "shadow_color", "color", 0, 0, 0 },
-	{ "shadow_x_offset", "int", "<min>-16</min><max>16</max>", 0, 0 },
-	{ "shadow_y_offset", "int", "<min>-16</min><max>16</max>", 0, 0 },
-	{ "command", "string", 0, 0, 0 },
-	{ "mipmap", "bool", 0, 0, 0 },
-	{ "decoration_match", "match", 0, 0, 0 },
-	{ "shadow_match", "match", 0, 0, 0 }
-};
-
 static Bool
 decorInitDisplay (CompPlugin  *p,
                   CompDisplay *d)
@@ -1505,20 +1448,9 @@ decorInitDisplay (CompPlugin  *p,
 	if (!dd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &decorMetadata,
-	                                 decorDisplayOptionInfo,
-	                                 dd->opt,
-	                                 DECOR_DISPLAY_OPTION_NUM))
-	{
-		free (dd);
-		return FALSE;
-	}
-
 	dd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (dd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, dd->opt, DECOR_DISPLAY_OPTION_NUM);
 		free (dd);
 		return FALSE;
 	}
@@ -1556,8 +1488,6 @@ decorFiniDisplay (CompPlugin  *p,
 
 	UNWRAP (dd, d, handleEvent);
 	UNWRAP (dd, d, matchPropertyChanged);
-
-	compFiniDisplayOptions (d, dd->opt, DECOR_DISPLAY_OPTION_NUM);
 
 	free (dd);
 }
@@ -1713,54 +1643,49 @@ decorFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-decorGetObjectOptions (CompPlugin *plugin,
-                       CompObject *object,
-                       int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) decorGetDisplayOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-decorSetObjectOption (CompPlugin      *plugin,
-                      CompObject      *object,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) decorSetDisplayOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
 static Bool
 decorInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&decorMetadata,
-	                             p->vTable->name,
-	                             decorDisplayOptionInfo,
-	                             DECOR_DISPLAY_OPTION_NUM,
-	                             0, 0))
-		return FALSE;
-
-	corePrivateIndex = allocateCorePrivateIndex ();
-	if (corePrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&decorMetadata);
+		compLogMessage ("decoration", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&decorMetadata, p->vTable->name);
+	corePrivateIndex = allocateCorePrivateIndex ();
+
+	if (corePrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("decoration");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, decorChangeNotify);
+
+	const BananaValue *
+	option_decoration_match = bananaGetOption (bananaIndex,
+	                                           "decoration_match", 
+	                                           -1);
+
+	const BananaValue *
+	option_shadow_match = bananaGetOption (bananaIndex,
+	                                       "shadow_match",
+	                                       -1);
+
+	matchInit (&decoration_match);
+	matchAddFromString (&decoration_match, option_decoration_match->s);
+	matchUpdate (core.displays, &decoration_match);
+
+	matchInit (&shadow_match);
+	matchAddFromString (&shadow_match, option_shadow_match->s);
+	matchUpdate (core.displays, &shadow_match);
 
 	return TRUE;
 }
@@ -1768,29 +1693,24 @@ decorInit (CompPlugin *p)
 static void
 decorFini (CompPlugin *p)
 {
-	freeCorePrivateIndex (corePrivateIndex);
-	compFiniMetadata (&decorMetadata);
-}
+	matchFini (&decoration_match);
+	matchFini (&shadow_match);
 
-static CompMetadata *
-decorGetMetadata (CompPlugin *plugin)
-{
-	return &decorMetadata;
+	freeCorePrivateIndex (corePrivateIndex);
+
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable decorVTable = {
 	"decoration",
-	decorGetMetadata,
 	decorInit,
 	decorFini,
 	decorInitObject,
-	decorFiniObject,
-	decorGetObjectOptions,
-	decorSetObjectOption
+	decorFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &decorVTable;
 }

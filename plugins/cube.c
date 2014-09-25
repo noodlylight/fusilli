@@ -32,26 +32,20 @@
 
 #include <fusilli-cube.h>
 
-static CompMetadata cubeMetadata;
+static int bananaIndex;
 
 static int cubeCorePrivateIndex;
-static int cubeDisplayPrivateIndex;
+int cubeDisplayPrivateIndex;
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
+static CompKeyBinding unfold_key;
 
 static void
-cubeLoadImg (CompScreen *s, 
-            int         n)
+cubeLoadImg (CompScreen *s)
 {
 	unsigned int    width, height;
 	int             pw, ph;
-	CompOptionValue *imgFiles;
-	int             imgNFile;
 
 	CUBE_SCREEN (s);
-
-	imgFiles = cs->opt[CUBE_SCREEN_OPTION_IMAGES].value.list.value;
-	imgNFile = cs->opt[CUBE_SCREEN_OPTION_IMAGES].value.list.nValue;
 
 	if (!cs->fullscreenOutput)
 	{
@@ -64,35 +58,46 @@ cubeLoadImg (CompScreen *s,
 		ph = s->outputDev[0].height;
 	}
 
-	if (!imgNFile || cs->pw != pw || cs->ph != ph)
-	{
-		finiTexture (s, &cs->texture);
-		initTexture (s, &cs->texture);
+	//if (!imgNFile || cs->pw != pw || cs->ph != ph)
+	//{
+	//	finiTexture (s, &cs->texture);
+	//	initTexture (s, &cs->texture);
 
-		if (!imgNFile)
+	//	if (!imgNFile)
+	//		return;
+	//}
+
+	const BananaValue *
+	option_cubecap_image = bananaGetOption (bananaIndex,
+	                                        "cubecap_image",
+	                                        s->screenNum);
+
+	if (strlen(option_cubecap_image->s) > 0)
+	{
+		if (!readImageToTexture (s, &cs->texture,
+		                        option_cubecap_image->s,
+		                        &width, &height))
+		{
+			compLogMessage ("cube", CompLogLevelWarn,
+			                "Failed to load cubecap: %s",
+			                option_cubecap_image->s);
+
+			finiTexture (s, &cs->texture);
+			initTexture (s, &cs->texture);
+
 			return;
-	}
-
-	cs->imgCurFile = n % imgNFile;
-
-	if (!readImageToTexture (s, &cs->texture,
-	                        imgFiles[cs->imgCurFile].s,
-	                        &width, &height))
-	{
-		compLogMessage ("cube", CompLogLevelWarn,
-		                "Failed to load slide: %s",
-		                imgFiles[cs->imgCurFile].s);
-
-		finiTexture (s, &cs->texture);
-		initTexture (s, &cs->texture);
-
-		return;
+		}
 	}
 
 	cs->tc[0] = COMP_TEX_COORD_X (&cs->texture.matrix, width / 2.0f);
 	cs->tc[1] = COMP_TEX_COORD_Y (&cs->texture.matrix, height / 2.0f);
 
-	if (cs->opt[CUBE_SCREEN_OPTION_SCALE_IMAGE].value.b)
+	const BananaValue *
+	option_scale_image = bananaGetOption (bananaIndex,
+	                                      "scale_image",
+	                                      s->screenNum);
+
+	if (option_scale_image->b)
 	{
 		cs->tc[2] = COMP_TEX_COORD_X (&cs->texture.matrix, width);
 		cs->tc[3] = COMP_TEX_COORD_Y (&cs->texture.matrix, 0.0f);
@@ -293,17 +298,6 @@ cubeUpdateOutputs (CompScreen *s)
 	}
 }
 
-static CompOption *
-cubeGetScreenOptions (CompPlugin *plugin,
-                      CompScreen *screen,
-                      int        *count)
-{
-	CUBE_SCREEN (screen);
-
-	*count = NUM_OPTIONS (cs);
-	return cs->opt;
-}
-
 static void
 cubeUpdateSkyDomeTexture (CompScreen *screen)
 {
@@ -312,29 +306,47 @@ cubeUpdateSkyDomeTexture (CompScreen *screen)
 	finiTexture (screen, &cs->sky);
 	initTexture (screen, &cs->sky);
 
-	if (!cs->opt[CUBE_SCREEN_OPTION_SKYDOME].value.b)
+	const BananaValue *
+	option_skydome = bananaGetOption (bananaIndex,
+	                                  "skydome",
+	                                  screen->screenNum);
+
+	if (!option_skydome->b)
 		return;
 
-	if (strlen (cs->opt[CUBE_SCREEN_OPTION_SKYDOME_IMG].value.s) == 0 ||
+	const BananaValue *
+	option_skydome_image = bananaGetOption (bananaIndex,
+	                                        "skydome_image",
+	                                        screen->screenNum);
+
+	if (strlen (option_skydome_image->s) == 0 ||
 		!readImageToTexture (screen,
 		                     &cs->sky,
-		                     cs->opt[CUBE_SCREEN_OPTION_SKYDOME_IMG].value.s,
+		                     option_skydome_image->s,
 		                     &cs->skyW,
 		                     &cs->skyH))
 	{
+		const BananaValue *
+		option_skydome_gradient_start_color = bananaGetOption (
+		       bananaIndex, "skydome_gradient_start_color", screen->screenNum);
+
+		const BananaValue *
+		option_skydome_gradient_end_color = bananaGetOption (
+		       bananaIndex, "skydome_gradient_end_color", screen->screenNum);
+
+		unsigned short int gradStartColor[4];
+		unsigned short int gradEndColor[4];
+
+		stringToColor (option_skydome_gradient_start_color->s, gradStartColor);
+		stringToColor (option_skydome_gradient_end_color->s, gradEndColor);
+
 		GLfloat aaafTextureData[128][128][3];
-		GLfloat fRStart = (GLfloat)
-		    cs->opt[CUBE_SCREEN_OPTION_SKYDOME_GRAD_START].value.c[0] / 0xffff;
-		GLfloat fGStart = (GLfloat)
-		    cs->opt[CUBE_SCREEN_OPTION_SKYDOME_GRAD_START].value.c[1] / 0xffff;
-		GLfloat fBStart = (GLfloat)
-		    cs->opt[CUBE_SCREEN_OPTION_SKYDOME_GRAD_START].value.c[2] / 0xffff;
-		GLfloat fREnd = (GLfloat)
-		    cs->opt[CUBE_SCREEN_OPTION_SKYDOME_GRAD_END].value.c[0] / 0xffff;
-		GLfloat fGEnd = (GLfloat)
-		    cs->opt[CUBE_SCREEN_OPTION_SKYDOME_GRAD_END].value.c[1] / 0xffff;
-		GLfloat fBEnd = (GLfloat)
-		    cs->opt[CUBE_SCREEN_OPTION_SKYDOME_GRAD_END].value.c[2] / 0xffff;
+		GLfloat fRStart = (GLfloat) gradStartColor[0] / 0xffff;
+		GLfloat fGStart = (GLfloat) gradStartColor[1] / 0xffff;
+		GLfloat fBStart = (GLfloat) gradStartColor[2] / 0xffff;
+		GLfloat fREnd = (GLfloat) gradEndColor[0] / 0xffff;
+		GLfloat fGEnd = (GLfloat) gradEndColor[1] / 0xffff;
+		GLfloat fBEnd = (GLfloat) gradEndColor[2] / 0xffff;
 		GLfloat fRStep = (fREnd - fRStart) / 128.0f;
 		GLfloat fGStep = (fGEnd - fGStart) / 128.0f;
 		GLfloat fBStep = (fBStart - fBEnd) / 128.0f;
@@ -457,7 +469,12 @@ cubeUpdateSkyDomeList (CompScreen *s,
 
 	CUBE_SCREEN (s);
 
-	if (cs->opt[CUBE_SCREEN_OPTION_SKYDOME_ANIM].value.b)
+	const BananaValue *
+	option_skydome_animated = bananaGetOption (bananaIndex,
+	                                           "skydome_animated",
+	                                           s->screenNum);
+
+	if (option_skydome_animated->b)
 	{
 		iStacksStart = 11; /* min.   0 */
 		iStacksEnd = 53;   /* max.  64 */
@@ -580,120 +597,101 @@ cubeUpdateSkyDomeList (CompScreen *s,
 	free (cost2);
 }
 
-static Bool
-cubeSetScreenOption (CompPlugin      *plugin,
-                     CompScreen      *screen,
-                     const char      *name,
-                     CompOptionValue *value)
+static void
+cubeChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	CompOption *o;
-	int	       index;
+	if (strcasecmp (optionName, "color") == 0)
+	{
+		CompScreen *screen;
 
-	CUBE_SCREEN (screen);
+		if (screenNum != -1)
+			screen = getScreenFromScreenNum (screenNum);
+		else
+			return;
 
-	o = compFindOption (cs->opt, NUM_OPTIONS (cs), name, &index);
-	if (!o)
-		return FALSE;
+		CUBE_SCREEN (screen);
 
-	switch (index) {
-	case CUBE_SCREEN_OPTION_COLOR:
-		if (compSetColorOption (o, value))
+		unsigned short int color[4];
+		if (stringToColor (optionValue->s, color))
 		{
-			memcpy (cs->color, o->value.c, sizeof (cs->color));
+			memcpy (cs->color, color, sizeof (cs->color));
 			damageScreen (screen);
-			return TRUE;
 		}
-		break;
-	case CUBE_SCREEN_OPTION_IN:
-		if (compSetBoolOption (o, value))
-		{
-			if (cubeUpdateGeometry (screen, screen->hsize, o->value.b ? -1 : 1))
-				return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_SCALE_IMAGE:
-		if (compSetBoolOption (o, value))
-		{
-			cubeLoadImg (screen, cs->imgCurFile);
-			damageScreen (screen);
-
-			return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_IMAGES:
-		if (compSetOptionList (o, value))
-		{
-			cubeLoadImg (screen, cs->imgCurFile);
-			damageScreen (screen);
-
-			return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_SKYDOME:
-		if (compSetBoolOption (o, value))
-		{
-			cubeUpdateSkyDomeTexture (screen);
-			cubeUpdateSkyDomeList (screen, 1.0f);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_SKYDOME_IMG:
-		if (compSetStringOption (o, value))
-		{
-			cubeUpdateSkyDomeTexture (screen);
-			cubeUpdateSkyDomeList (screen, 1.0f);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_SKYDOME_ANIM:
-		if (compSetBoolOption (o, value))
-		{
-			cubeUpdateSkyDomeTexture (screen);
-			cubeUpdateSkyDomeList (screen, 1.0f);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_SKYDOME_GRAD_START:
-		if (compSetColorOption (o, value))
-		{
-			cubeUpdateSkyDomeTexture (screen);
-			cubeUpdateSkyDomeList (screen, 1.0f);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_SKYDOME_GRAD_END:
-		if (compSetColorOption (o, value))
-		{
-			cubeUpdateSkyDomeTexture (screen);
-			cubeUpdateSkyDomeList (screen, 1.0f);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case CUBE_SCREEN_OPTION_MULTIOUTPUT_MODE:
-		if (compSetIntOption (o, value))
-		{
-			cs->moMode = o->value.i;
-			cubeUpdateOutputs (screen);
-			cubeUpdateGeometry (screen, screen->hsize, cs->invert);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	default:
-		return compSetScreenOption (screen, o, value);
 	}
+	else if (strcasecmp (optionName, "in") == 0)
+	{
+		CompScreen *screen;
 
-	return FALSE;
+		if (screenNum != -1)
+			screen = getScreenFromScreenNum (screenNum);
+		else
+			return;
+
+		cubeUpdateGeometry (screen, screen->hsize, optionValue->b ? -1 : 1);
+	}
+	else if (strcasecmp (optionName, "scale_image") == 0 ||
+	         strcasecmp (optionName, "cubecap_image") == 0)
+	{
+		CompScreen *screen;
+
+		if (screenNum != -1)
+			screen = getScreenFromScreenNum (screenNum);
+		else
+			return;
+
+		if (optionValue->b)
+		{
+			cubeLoadImg (screen);
+			damageScreen (screen);
+		}
+	}
+	else if (strcasecmp (optionName, "skydome") == 0 ||
+	         strcasecmp (optionName, "skydome_image") == 0 ||
+	         strcasecmp (optionName, "skydome_animated") == 0 ||
+	         strcasecmp (optionName, "skydome_gradient_start_color") == 0 ||
+	         strcasecmp (optionName, "skydome_gradient_end_color") == 0)
+	{
+		CompScreen *screen;
+
+		if (screenNum != -1)
+			screen = getScreenFromScreenNum (screenNum);
+		else
+			return;
+
+		cubeUpdateSkyDomeTexture (screen);
+		cubeUpdateSkyDomeList (screen, 1.0f);
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "multioutput_mode") == 0)
+	{
+		CompScreen *screen;
+
+		if (screenNum != -1)
+			screen = getScreenFromScreenNum (screenNum);
+		else
+			return;
+
+		CUBE_SCREEN (screen);
+
+		cs->moMode = optionValue->i;
+		cubeUpdateOutputs (screen);
+		cubeUpdateGeometry (screen, screen->hsize, cs->invert);
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "unfold_key") == 0)
+	{
+		updateKey (optionValue->s, &unfold_key);
+	}
 }
 
 static int
-adjustVelocity (CubeScreen *cs)
+adjustVelocity (CompScreen *s)
 {
+	CUBE_SCREEN (s);
+
 	float unfold, adjust, amount;
 
 	if (cs->unfolded)
@@ -701,7 +699,12 @@ adjustVelocity (CubeScreen *cs)
 	else
 		unfold = 0.0f - cs->unfold;
 
-	adjust = unfold * 0.02f * cs->opt[CUBE_SCREEN_OPTION_ACCELERATION].value.f;
+	const BananaValue *
+	option_acceleration = bananaGetOption (bananaIndex,
+	                                       "acceleration",
+	                                       s->screenNum);
+
+	adjust = unfold * 0.02f * option_acceleration->f;
 	amount = fabs (unfold);
 	if (amount < 1.0f)
 		amount = 1.0f;
@@ -709,7 +712,7 @@ adjustVelocity (CubeScreen *cs)
 		amount = 3.0f;
 
 	cs->unfoldVelocity = (amount * cs->unfoldVelocity + adjust) /
-		(amount + 2.0f);
+	     (amount + 2.0f);
 
 	return (fabs (unfold) < 0.002f && fabs (cs->unfoldVelocity) < 0.01f);
 }
@@ -718,7 +721,6 @@ static void
 cubePreparePaintScreen (CompScreen *s,
                         int        msSinceLastPaint)
 {
-	int   opt;
 	float x, progress;
 
 	CUBE_SCREEN (s);
@@ -728,9 +730,16 @@ cubePreparePaintScreen (CompScreen *s,
 		int   steps;
 		float amount, chunk;
 
-		amount = msSinceLastPaint * 0.2f *
-			cs->opt[CUBE_SCREEN_OPTION_SPEED].value.f;
-		steps  = amount / (0.5f * cs->opt[CUBE_SCREEN_OPTION_TIMESTEP].value.f);
+		const BananaValue *
+		option_speed = bananaGetOption (bananaIndex, "speed", s->screenNum);
+
+		const BananaValue *
+		option_timestep = bananaGetOption (bananaIndex,
+		                                   "timestep",
+		                                   s->screenNum);
+
+		amount = msSinceLastPaint * 0.2f * option_speed->f;
+		steps  = amount / (0.5f * option_timestep->f);
 		if (!steps) steps = 1;
 		chunk  = amount / (float) steps;
 
@@ -740,7 +749,7 @@ cubePreparePaintScreen (CompScreen *s,
 			if (cs->unfold > 1.0f)
 				cs->unfold = 1.0f;
 
-			if (adjustVelocity (cs))
+			if (adjustVelocity (s))
 			{
 				if (cs->unfold < 0.5f)
 				{
@@ -761,34 +770,60 @@ cubePreparePaintScreen (CompScreen *s,
 	memset (cs->capsPainted, 0, sizeof (Bool) * s->nOutputDev);
 
 	/* Transparency handling */
+	const BananaValue *
+	option_transparent_manual_only = bananaGetOption (bananaIndex,
+	                                                  "transparent_manual_only",
+	                                                  s->screenNum);
+
 	if (cs->rotationState == RotationManual ||
 	    (cs->rotationState == RotationChange &&
-	    !cs->opt[CUBE_SCREEN_OPTION_TRANSPARENT_MANUAL_ONLY].value.b))
+	    !option_transparent_manual_only->b))
 	{
-		opt = cs->lastOpacityIndex = CUBE_SCREEN_OPTION_ACTIVE_OPACITY;
+		const BananaValue *
+		option_active_opacity = bananaGetOption (bananaIndex,
+		                                         "active_opacity",
+		                                         s->screenNum);
+
+		cs->lastOpacity = option_active_opacity->f;
+
+		cs->toOpacity = (option_active_opacity->f / 100.0f) * OPAQUE; 
 	}
 	else if (cs->rotationState == RotationChange)
 	{
-		opt = cs->lastOpacityIndex = CUBE_SCREEN_OPTION_INACTIVE_OPACITY;
+		const BananaValue *
+		option_inactive_opacity = bananaGetOption (bananaIndex,
+		                                           "inactive_opacity",
+		                                           s->screenNum);
+
+		cs->lastOpacity = option_inactive_opacity->f;
+
+		cs->toOpacity = (option_inactive_opacity->f / 100.0f) * OPAQUE;
 	}
 	else
 	{
-		opt = CUBE_SCREEN_OPTION_INACTIVE_OPACITY;
-	}
+		const BananaValue *
+		option_inactive_opacity = bananaGetOption (bananaIndex,
+		                                           "inactive_opacity",
+		                                           s->screenNum);
 
-	cs->toOpacity = (cs->opt[opt].value.f / 100.0f) * OPAQUE;
+		cs->toOpacity = (option_inactive_opacity->f / 100.0f) * OPAQUE;
+	}
 
 	(*cs->getRotation) (s, &x, &x, &progress);
 
 	if (cs->desktopOpacity != cs->toOpacity ||
 		(progress > 0.0 && progress < 1.0))
 	{
-		cs->desktopOpacity =
-		    (cs->opt[CUBE_SCREEN_OPTION_INACTIVE_OPACITY].value.f -
-		    ((cs->opt[CUBE_SCREEN_OPTION_INACTIVE_OPACITY].value.f -
-		    cs->opt[cs->lastOpacityIndex].value.f) * progress))
-		    / 100.0f * OPAQUE;
+		const BananaValue *
+		option_inactive_opacity = bananaGetOption (bananaIndex,
+		                                           "inactive_opacity",
+		                                           s->screenNum);
 
+		cs->desktopOpacity =
+		    (option_inactive_opacity->f -
+		    ((option_inactive_opacity->f -
+		    cs->lastOpacity) * progress))
+		    / 100.0f * OPAQUE;
 	}
 
 	cs->paintAllViewports = (cs->desktopOpacity != OPAQUE);
@@ -1136,7 +1171,12 @@ cubeClearTargetOutput (CompScreen *s,
 
 		glPushMatrix ();
 
-		if (cs->opt[CUBE_SCREEN_OPTION_SKYDOME_ANIM].value.b &&
+		const BananaValue *
+		option_skydome_animated = bananaGetOption (bananaIndex,
+		                                           "skydome_animated",
+		                                           s->screenNum);
+
+		if (option_skydome_animated->b &&
 		    cs->grabIndex == 0)
 		{
 			glRotatef (vRotate / 5.0f + 90.0f, 1.0f, 0.0f, 0.0f);
@@ -1175,7 +1215,13 @@ cubePaintTop (CompScreen              *s,
 	glPushMatrix ();
 
 	sa.yRotate += (360.0f / size) * (cs->xRotations + 1);
-	if (!cs->opt[CUBE_SCREEN_OPTION_ADJUST_IMAGE].value.b)
+
+	const BananaValue *
+	option_adjust_image = bananaGetOption (bananaIndex,
+	                                       "adjust_image",
+	                                       s->screenNum);
+
+	if (!option_adjust_image->b)
 		sa.yRotate -= (360.0f / size) * s->x;
 
 	(*s->applyScreenTransform) (s, &sa, output, &sTransform);
@@ -1236,7 +1282,13 @@ cubePaintBottom (CompScreen              *s,
 	glPushMatrix ();
 
 	sa.yRotate += (360.0f / size) * (cs->xRotations + 1);
-	if (!cs->opt[CUBE_SCREEN_OPTION_ADJUST_IMAGE].value.b)
+
+	const BananaValue *
+	option_adjust_image = bananaGetOption (bananaIndex,
+	                                       "adjust_image",
+	                                       s->screenNum);
+
+	if (!option_adjust_image->b)
 		sa.yRotate -= (360.0f / size) * s->x;
 
 	(*s->applyScreenTransform) (s, &sa, output, &sTransform);
@@ -1458,7 +1510,10 @@ cubePaintTransformedOutput (CompScreen              *s,
 
 	sa.xRotate = sa.xRotate / size * hsize;
 
-	if (cs->grabIndex && cs->opt[CUBE_SCREEN_OPTION_MIPMAP].value.b)
+	const BananaValue *
+	option_mipmap = bananaGetOption (bananaIndex, "mipmap", s->screenNum);
+
+	if (cs->grabIndex && option_mipmap->b)
 		s->display->textureFilter = GL_LINEAR_MIPMAP_LINEAR;
 
 	if (cs->invert == 1)
@@ -1644,18 +1699,20 @@ cubeApplyScreenTransform (CompScreen              *s,
 }
 
 static Bool
-cubeUnfold (CompDisplay     *d,
-            CompAction      *action,
-            CompActionState state,
-            CompOption      *option,
-            int             nOption)
+cubeUnfold (BananaArgument  *arg,
+            int             nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		CUBE_SCREEN (s);
@@ -1674,30 +1731,26 @@ cubeUnfold (CompDisplay     *d,
 			cs->unfolded = TRUE;
 			damageScreen (s);
 		}
-
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
-
-		if (state & CompActionStateInitKey)
-			action->state |= CompActionStateTermKey;
 	}
 
 	return FALSE;
 }
 
 static Bool
-cubeFold (CompDisplay     *d,
-          CompAction      *action,
-          CompActionState state,
-          CompOption      *option,
-          int             nOption)
+cubeFold (BananaArgument  *arg,
+          int             nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		CUBE_SCREEN (s);
 
@@ -1711,69 +1764,49 @@ cubeFold (CompDisplay     *d,
 		}
 	}
 
-	action->state &= ~(CompActionStateTermButton | CompActionStateTermKey);
-
 	return FALSE;
 }
 
-static Bool
-cubeNextImage (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+static void
+cubeHandleEvent (CompDisplay *d,
+                 XEvent      *event)
 {
-	CompScreen *s;
-	Window     xid;
+	CUBE_DISPLAY (d);
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-
-	s = findScreenAtDisplay (d, xid);
-	if (s)
-	{
-		int imgNFile;
-
-		CUBE_SCREEN (s);
-
-		imgNFile = cs->opt[CUBE_SCREEN_OPTION_IMAGES].value.list.nValue;
-		if (imgNFile)
+	switch (event->type) {
+	case KeyPress:
+		if (isKeyPressEvent (event, &unfold_key))
 		{
-			cubeLoadImg (s, (cs->imgCurFile + 1) % imgNFile);
-			damageScreen (s);
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+
+			cubeUnfold (&arg, 1);
 		}
+		break;
+	default:
+		if (event->type == d->xkbEvent)
+		{
+			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
+
+			if (xkbEvent->xkb_type == XkbStateNotify)
+			{
+				XkbStateNotifyEvent *stateEvent = (XkbStateNotifyEvent *) event;
+				if (stateEvent->event_type == KeyRelease)
+				{
+
+					cubeFold (NULL, 0);
+				}
+			}
+		}
+		break;
 	}
 
-	return FALSE;
-}
-
-static Bool
-cubePrevImage (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
-{
-	CompScreen *s;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-
-	s = findScreenAtDisplay (d, xid);
-	if (s)
-	{
-		int imgNFile;
-
-		CUBE_SCREEN (s);
-
-		imgNFile = cs->opt[CUBE_SCREEN_OPTION_IMAGES].value.list.nValue;
-		if (imgNFile)
-		{
-			cubeLoadImg (s, (cs->imgCurFile - 1 + imgNFile) % imgNFile);
-			damageScreen (s);
-		}
-	}
-
-	return FALSE;
+	UNWRAP (cd, d, handleEvent);
+	(*d->handleEvent) (d, event);
+	WRAP (cd, d, handleEvent, cubeHandleEvent);
 }
 
 static void
@@ -1784,78 +1817,38 @@ cubeOutputChangeNotify (CompScreen *s)
 	cubeUpdateOutputs (s);
 	cubeUpdateGeometry (s, s->hsize, cs->invert);
 
-	if (cs->opt[CUBE_SCREEN_OPTION_IMAGES].value.list.nValue)
-		cubeLoadImg (s, cs->imgCurFile);
+	const BananaValue *
+	option_cubecap_image = bananaGetOption (bananaIndex,
+	                                        "cubecap_image",
+	                                        s->screenNum);
+
+	if (strlen (option_cubecap_image->s) > 0)
+		cubeLoadImg (s);
 
 	UNWRAP (cs, s, outputChangeNotify);
 	(*s->outputChangeNotify) (s);
 	WRAP (cs, s, outputChangeNotify, cubeOutputChangeNotify);
 }
 
-static Bool
-cubeSetOptionForPlugin (CompObject      *o,
-                        const char      *plugin,
-                        const char      *name,
-                        CompOptionValue *value)
+static void
+coreChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	Bool status;
-
-	CUBE_CORE (&core);
-
-	UNWRAP (cc, &core, setOptionForPlugin);
-	status = (*core.setOptionForPlugin) (o, plugin, name, value);
-	WRAP (cc, &core, setOptionForPlugin, cubeSetOptionForPlugin);
-
-	if (status && o->type == COMP_OBJECT_TYPE_SCREEN)
+	if (strcasecmp (optionName, "hsize") == 0)
 	{
-		if (strcmp (plugin, "core") == 0 && strcmp (name, "hsize") == 0)
-		{
-			CompScreen *s = (CompScreen *) o;
+		CompScreen *screen;
 
-			CUBE_SCREEN (s);
+		if (screenNum != -1)
+			screen = getScreenFromScreenNum (screenNum);
+		else
+			return;
 
-			cubeUpdateGeometry (s, s->hsize, cs->invert);
-		}
+		CUBE_SCREEN (screen);
+
+		cubeUpdateGeometry (screen, optionValue->i, cs->invert);
 	}
-
-	return status;
-}
-
-static CompOption *
-cubeGetDisplayOptions (CompPlugin  *plugin,
-                       CompDisplay *display,
-                       int         *count)
-{
-	CUBE_DISPLAY (display);
-
-	*count = NUM_OPTIONS (cd);
-	return cd->opt;
-}
-
-static Bool
-cubeSetDisplayOption (CompPlugin      *plugin,
-                      CompDisplay     *display,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	CompOption *o;
-	int	       index;
-
-	CUBE_DISPLAY (display);
-
-	o = compFindOption (cd->opt, NUM_OPTIONS (cd), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case CUBE_DISPLAY_OPTION_ABI:
-	case CUBE_DISPLAY_OPTION_INDEX:
-		break;
-	default:
-		return compSetDisplayOption (display, o, value);
-	}
-
-	return FALSE;
 }
 
 static Bool
@@ -1863,9 +1856,6 @@ cubeInitCore (CompPlugin *p,
               CompCore   *c)
 {
 	CubeCore *cc;
-
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
 
 	cc = malloc (sizeof (CubeCore));
 	if (!cc)
@@ -1878,7 +1868,10 @@ cubeInitCore (CompPlugin *p,
 		return FALSE;
 	}
 
-	WRAP (cc, &core, setOptionForPlugin, cubeSetOptionForPlugin);
+	//write cubeDisplayPrivateIndex to option index (for rotate plugin)
+	BananaValue index;
+	index.i = cubeDisplayPrivateIndex;
+	bananaSetOption (bananaIndex, "index", -1, &index);
 
 	c->base.privates[cubeCorePrivateIndex].ptr = cc;
 
@@ -1891,22 +1884,10 @@ cubeFiniCore (CompPlugin *p,
 {
 	CUBE_CORE (c);
 
-	UNWRAP (cc, &core, setOptionForPlugin);
-
 	freeDisplayPrivateIndex (cubeDisplayPrivateIndex);
 
 	free (cc);
 }
-
-static const CompMetadataOptionInfo cubeDisplayOptionInfo[] = {
-	{ "abi", "int", 0, 0, 0 },
-	{ "index", "int", 0, 0, 0 },
-	{ "unfold_key", "key", 0, cubeUnfold, cubeFold },
-	{ "next_slide_key", "key", "<passive_grab>false</passive_grab>",
-	  cubeNextImage, 0 },
-	{ "prev_slide_key", "key", "<passive_grab>false</passive_grab>",
-	  cubePrevImage, 0 }
-};
 
 static Bool
 cubeInitDisplay (CompPlugin  *p,
@@ -1918,26 +1899,14 @@ cubeInitDisplay (CompPlugin  *p,
 	if (!cd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &cubeMetadata,
-	                                 cubeDisplayOptionInfo,
-	                                 cd->opt,
-	                                 CUBE_DISPLAY_OPTION_NUM))
-	{
-		free (cd);
-		return FALSE;
-	}
-
-	cd->opt[CUBE_DISPLAY_OPTION_ABI].value.i   = CUBE_ABIVERSION;
-	cd->opt[CUBE_DISPLAY_OPTION_INDEX].value.i = cubeDisplayPrivateIndex;
-
 	cd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (cd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, cd->opt, CUBE_DISPLAY_OPTION_NUM);
 		free (cd);
 		return FALSE;
 	}
+
+	WRAP (cd, d, handleEvent, cubeHandleEvent);
 
 	d->base.privates[cubeDisplayPrivateIndex].ptr = cd;
 
@@ -1952,31 +1921,10 @@ cubeFiniDisplay (CompPlugin  *p,
 
 	freeScreenPrivateIndex (d, cd->screenPrivateIndex);
 
-	compFiniDisplayOptions (d, cd->opt, CUBE_DISPLAY_OPTION_NUM);
+	UNWRAP (cd, d, handleEvent);
 
 	free (cd);
 }
-
-static const CompMetadataOptionInfo cubeScreenOptionInfo[] = {
-	{ "color", "color", 0, 0, 0 },
-	{ "in", "bool", 0, 0, 0 },
-	{ "scale_image", "bool", 0, 0, 0 },
-	{ "images", "list", "<type>string</type>", 0, 0 },
-	{ "skydome", "bool", 0, 0, 0 },
-	{ "skydome_image", "string", 0, 0, 0 },
-	{ "skydome_animated", "bool", 0, 0, 0 },
-	{ "skydome_gradient_start_color", "color", 0, 0, 0 },
-	{ "skydome_gradient_end_color", "color", 0, 0, 0 },
-	{ "acceleration", "float", "<min>1.0</min>", 0, 0 },
-	{ "speed", "float", "<min>0.1</min>", 0, 0 },
-	{ "timestep", "float", "<min>0.1</min>", 0, 0 },
-	{ "mipmap", "bool", 0, 0, 0 },
-	{ "adjust_image", "bool", 0, 0, 0 },
-	{ "active_opacity", "float", "<min>0.0</min><max>100.0</max>", 0, 0 },
-	{ "inactive_opacity", "float", "<min>0.0</min><max>100.0</max>", 0, 0 },
-	{ "transparent_manual_only", "bool", 0, 0, 0 },
-	{ "multioutput_mode", "int", "<min>0</min><max>2</max>", 0, 0 }
-};
 
 static Bool
 cubeInitScreen (CompPlugin *p,
@@ -1990,16 +1938,6 @@ cubeInitScreen (CompPlugin *p,
 	if (!cs)
 		return FALSE;
 
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &cubeMetadata,
-	                                cubeScreenOptionInfo,
-	                                cs->opt,
-	                                CUBE_SCREEN_OPTION_NUM))
-	{
-		free (cs);
-		return FALSE;
-	}
-
 	cs->pw = 0;
 	cs->ph = 0;
 
@@ -2008,8 +1946,12 @@ cubeInitScreen (CompPlugin *p,
 	cs->tc[0] = cs->tc[1] = cs->tc[2] = cs->tc[3] = 0.0f;
 	cs->tc[4] = cs->tc[5] = cs->tc[6] = cs->tc[7] = 0.0f;
 
-	memcpy (cs->color, cs->opt[CUBE_SCREEN_OPTION_COLOR].value.c,
-	        sizeof (cs->color));
+	const BananaValue *
+	option_color = bananaGetOption (bananaIndex, "color", s->screenNum);
+
+	unsigned short int color[4];
+	if (stringToColor (option_color->s, color))
+		memcpy (cs->color, color, sizeof (cs->color));
 
 	cs->nVertices = 0;
 	cs->vertices  = NULL;
@@ -2034,8 +1976,6 @@ cubeInitScreen (CompPlugin *p,
 	initTexture (s, &cs->texture);
 	initTexture (s, &cs->sky);
 
-	cs->imgCurFile = 0;
-
 	cs->unfolded = FALSE;
 	cs->unfold   = 0.0f;
 
@@ -2053,9 +1993,19 @@ cubeInitScreen (CompPlugin *p,
 
 	cs->desktopOpacity = OPAQUE;
 
-	cs->lastOpacityIndex = CUBE_SCREEN_OPTION_INACTIVE_OPACITY;
+	const BananaValue *
+	option_inactive_opacity = bananaGetOption (bananaIndex,
+	                                           "inactive_opacity",
+	                                           s->screenNum);
 
-	cs->moMode = cs->opt[CUBE_SCREEN_OPTION_MULTIOUTPUT_MODE].value.i;
+	cs->lastOpacity = option_inactive_opacity->f;
+
+	const BananaValue *
+	option_multioutput_mode = bananaGetOption (bananaIndex,
+	                                           "multioutput_mode",
+	                                           s->screenNum);
+
+	cs->moMode = option_multioutput_mode->i;
 
 	cs->recalcOutput = FALSE;
 
@@ -2065,14 +2015,18 @@ cubeInitScreen (CompPlugin *p,
 
 	if (!cubeUpdateGeometry (s, s->hsize, cs->invert))
 	{
-		compFiniScreenOptions (s, cs->opt, CUBE_SCREEN_OPTION_NUM);
 		free (cs);
 		return FALSE;
 	}
 
-	if (cs->opt[CUBE_SCREEN_OPTION_IMAGES].value.list.nValue)
+	const BananaValue *
+	option_cubecap_image = bananaGetOption (bananaIndex,
+	                                        "cubecap_image",
+	                                        s->screenNum);
+
+	if (strlen(option_cubecap_image->s) > 0)
 	{
-		cubeLoadImg (s, cs->imgCurFile);
+		cubeLoadImg (s);
 		damageScreen (s);
 	}
 
@@ -2116,8 +2070,6 @@ cubeFiniScreen (CompPlugin *p,
 	finiTexture (s, &cs->texture);
 	finiTexture (s, &cs->sky);
 
-	compFiniScreenOptions (s, cs->opt, CUBE_SCREEN_OPTION_NUM);
-
 	free (cs);
 }
 
@@ -2147,57 +2099,38 @@ cubeFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-cubeGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) cubeGetDisplayOptions,
-		(GetPluginObjectOptionsProc) cubeGetScreenOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                  (void *) count, (plugin, object, count));
-}
-
-static CompBool
-cubeSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) cubeSetDisplayOption,
-		(SetPluginObjectOptionProc) cubeSetScreenOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
 static Bool
 cubeInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&cubeMetadata,
-	                             p->vTable->name,
-	                             cubeDisplayOptionInfo,
-	                             CUBE_DISPLAY_OPTION_NUM,
-	                             cubeScreenOptionInfo,
-	                             CUBE_SCREEN_OPTION_NUM))
-		return FALSE;
-
-	cubeCorePrivateIndex = allocateCorePrivateIndex ();
-	if (cubeCorePrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&cubeMetadata);
+		compLogMessage ("cube", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&cubeMetadata, p->vTable->name);
+	cubeCorePrivateIndex = allocateCorePrivateIndex ();
+
+	if (cubeCorePrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("cube");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, cubeChangeNotify);
+
+	bananaAddChangeNotifyCallBack (coreBananaIndex, coreChangeNotify);
+
+	const BananaValue *
+	option_unfold_key = bananaGetOption (bananaIndex, "unfold_key", -1);
+
+	registerKey (option_unfold_key->s, &unfold_key);
 
 	return TRUE;
 }
@@ -2206,28 +2139,22 @@ static void
 cubeFini (CompPlugin *p)
 {
 	freeCorePrivateIndex (cubeCorePrivateIndex);
-	compFiniMetadata (&cubeMetadata);
-}
 
-static CompMetadata *
-cubeGetMetadata (CompPlugin *plugin)
-{
-	return &cubeMetadata;
+	bananaRemoveChangeNotifyCallBack (coreBananaIndex, coreChangeNotify);
+
+	bananaUnloadPlugin (bananaIndex);
 }
 
 CompPluginVTable cubeVTable = {
 	"cube",
-	cubeGetMetadata,
 	cubeInit,
 	cubeFini,
 	cubeInitObject,
-	cubeFiniObject,
-	cubeGetObjectOptions,
-	cubeSetObjectOption
+	cubeFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &cubeVTable;
 }

@@ -30,8 +30,6 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata inotifyMetadata;
-
 static int corePrivateIndex;
 
 typedef struct _CompInotifyWatch {
@@ -54,7 +52,6 @@ typedef struct _InotifyCore {
 
 #define INOTIFY_CORE(c) \
         InotifyCore *ic = GET_INOTIFY_CORE (c)
-
 
 static Bool
 inotifyProcessEvents (void *data)
@@ -190,9 +187,6 @@ inotifyInitCore (CompPlugin *p,
 	InotifyCore   *ic;
 	CompFileWatch *fw;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	ic = malloc (sizeof (InotifyCore));
 	if (!ic)
 		return FALSE;
@@ -269,18 +263,21 @@ inotifyFiniObject (CompPlugin *p,
 static Bool
 inotifyInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&inotifyMetadata, p->vTable->name,
-	                                     0, 0, 0, 0))
-		return FALSE;
-
-	corePrivateIndex = allocateCorePrivateIndex ();
-	if (corePrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&inotifyMetadata);
+		compLogMessage ("inotify", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&inotifyMetadata, p->vTable->name);
+	corePrivateIndex = allocateCorePrivateIndex ();
+
+	if (corePrivateIndex < 0)
+		return FALSE;
 
 	return TRUE;
 }
@@ -289,28 +286,18 @@ static void
 inotifyFini (CompPlugin *p)
 {
 	freeCorePrivateIndex (corePrivateIndex);
-	compFiniMetadata (&inotifyMetadata);
-}
-
-static CompMetadata *
-inotifyGetMetadata (CompPlugin *plugin)
-{
-	return &inotifyMetadata;
 }
 
 CompPluginVTable inotifyVTable = {
 	"inotify",
-	inotifyGetMetadata,
 	inotifyInit,
 	inotifyFini,
 	inotifyInitObject,
-	inotifyFiniObject,
-	0, /* GetObjectOptions */
-	0  /* SetObjectOption */
+	inotifyFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &inotifyVTable;
 }

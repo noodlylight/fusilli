@@ -34,9 +34,6 @@
 
 #include <fusilli-core.h>
 
-static Window xdndWindow = None;
-static Window edgeWindow = None;
-
 static void
 handleWindowDamageRect (CompWindow *w,
                         int        x,
@@ -199,1019 +196,387 @@ autoRaiseTimeout (void *closure)
 	return FALSE;
 }
 
-#define REAL_MOD_MASK (ShiftMask | ControlMask | Mod1Mask | Mod2Mask | \
-                       Mod3Mask | Mod4Mask | Mod5Mask | CompNoMask)
-
 static Bool
-isCallBackBinding (CompOption      *option,
-                   CompBindingType type,
-                   CompActionState state)
+closeWin (BananaArgument   *arg,
+          int              nArg)
 {
-	if (!isActionOption (option))
-		return FALSE;
+	CompWindow   *w;
+	Window       xid;
+	unsigned int time;
 
-	if (!(option->value.action.type & type))
-		return FALSE;
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
 
-	if (!(option->value.action.state & state))
-		return FALSE;
-
-	return TRUE;
-}
-
-static Bool
-isInitiateBinding (CompOption      *option,
-                   CompBindingType type,
-                   CompActionState state,
-                   CompAction      **action)
-{
-	if (!isCallBackBinding (option, type, state))
-		return FALSE;
-
-	if (!option->value.action.initiate)
-		return FALSE;
-
-	*action = &option->value.action;
-
-	return TRUE;
-}
-
-static Bool
-isTerminateBinding (CompOption      *option,
-                    CompBindingType type,
-                    CompActionState state,
-                    CompAction      **action)
-{
-	if (!isCallBackBinding (option, type, state))
-		return FALSE;
-
-	if (!option->value.action.terminate)
-		return FALSE;
-
-	*action = &option->value.action;
-
-	return TRUE;
-}
-
-static Bool
-triggerButtonPressBindings (CompDisplay  *d,
-                            CompOption   *option,
-                            int          nOption,
-                            XButtonEvent *event,
-                            CompOption   *argument,
-                            int          nArgument)
-{
-	CompActionState state = CompActionStateInitButton;
-	CompAction      *action;
-	unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
-	unsigned int    bindMods;
-	unsigned int    edge = 0;
-
-	if (edgeWindow)
-	{
-		CompScreen   *s;
-		unsigned int i;
-
-		s = findScreenAtDisplay (d, event->root);
-		if (!s)
-			return FALSE;
-
-		if (event->window != edgeWindow)
-		{
-			if (!s->maxGrab || event->window != s->root)
-				return FALSE;
-		}
-
-		for (i = 0; i < SCREEN_EDGE_NUM; i++)
-		{
-			if (edgeWindow == s->screenEdge[i].id)
-			{
-				edge = 1 << i;
-				argument[1].value.i = d->activeWindow;
-				break;
-			}
-		}
-	}
-
-	while (nOption--)
-	{
-		if (isInitiateBinding (option, CompBindingTypeButton, state, &action))
-		{
-			if (action->button.button == event->button)
-			{
-				bindMods = virtualToRealModMask (d, action->button.modifiers);
-
-				if ((bindMods & modMask) == (event->state & modMask))
-					if ((*action->initiate) (d, action, state,
-					                         argument, nArgument))
-						return TRUE;
-			}
-		}
-
-		if (edge)
-		{
-			if (isInitiateBinding (option, CompBindingTypeEdgeButton,
-			                       state | CompActionStateInitEdge, &action))
-			{
-				if ((action->button.button == event->button) &&
-					(action->edgeMask & edge))
-				{
-					bindMods = virtualToRealModMask (d,
-					                                 action->button.modifiers);
-
-					if ((bindMods & modMask) == (event->state & modMask))
-						if ((*action->initiate) (d, action, state |
-						                         CompActionStateInitEdge,
-						                         argument, nArgument))
-						    return TRUE;
-				}
-			}
-		}
-
-		option++;
-	}
-
-	return FALSE;
-}
-
-static Bool
-triggerButtonReleaseBindings (CompDisplay  *d,
-                              CompOption   *option,
-                              int          nOption,
-                              XButtonEvent *event,
-                              CompOption   *argument,
-                              int          nArgument)
-{
-	CompActionState state = CompActionStateTermButton;
-	CompBindingType type  = CompBindingTypeButton | CompBindingTypeEdgeButton;
-	CompAction *action;
-
-	while (nOption--)
-	{
-		if (isTerminateBinding (option, type, state, &action))
-		{
-			if (action->button.button == event->button)
-			{
-				if ((*action->terminate) (d, action, state,
-				                          argument, nArgument))
-					return TRUE;
-			}
-		}
-
-		option++;
-	}
-
-	return FALSE;
-}
-
-static Bool
-triggerKeyPressBindings (CompDisplay *d,
-                         CompOption  *option,
-                         int         nOption,
-                         XKeyEvent   *event,
-                         CompOption  *argument,
-                         int         nArgument)
-{
-	CompActionState state = 0;
-	CompAction *action;
-	unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
-	unsigned int    bindMods;
-
-	if (event->keycode == d->escapeKeyCode)
-		state = CompActionStateCancel;
-	else if (event->keycode == d->returnKeyCode)
-		state = CompActionStateCommit;
-
-	if (state)
-	{
-		CompOption *o = option;
-		int        n = nOption;
-
-		while (n--)
-		{
-			if (isActionOption (o))
-			{
-				if (o->value.action.terminate)
-					(*o->value.action.terminate) (d, &o->value.action,
-					                              state, NULL, 0);
-			}
-
-			o++;
-		}
-
-		if (state == CompActionStateCancel)
-			return FALSE;
-	}
-
-	state = CompActionStateInitKey;
-	while (nOption--)
-	{
-		if (isInitiateBinding (option, CompBindingTypeKey, state, &action))
-		{
-			bindMods = virtualToRealModMask (d, action->key.modifiers);
-
-			if (action->key.keycode == event->keycode)
-			{
-				if ((bindMods & modMask) == (event->state & modMask))
-					if ((*action->initiate) (d, action, state,
-					                        argument, nArgument))
-						return TRUE;
-			}
-			else if (!d->xkbEvent && action->key.keycode == 0)
-			{
-				if (bindMods == (event->state & modMask))
-					if ((*action->initiate) (d, action, state,
-					                         argument, nArgument))
-						return TRUE;
-			}
-		}
-
-		option++;
-	}
-
-	return FALSE;
-}
-
-static Bool
-triggerKeyReleaseBindings (CompDisplay *d,
-                           CompOption  *option,
-                           int         nOption,
-                           XKeyEvent   *event,
-                           CompOption  *argument,
-                           int         nArgument)
-{
-	CompActionState state = CompActionStateTermKey;
-	CompAction *action;
-	unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
-	unsigned int    bindMods;
-	unsigned int    mods;
-
-	mods = keycodeToModifiers (d, event->keycode);
-	if (!d->xkbEvent && !mods)
-		return FALSE;
-
-	while (nOption--)
-	{
-		if (isTerminateBinding (option, CompBindingTypeKey, state, &action))
-		{
-			bindMods = virtualToRealModMask (d, action->key.modifiers);
-
-			if ((bindMods & modMask) == 0)
-			{
-				if (action->key.keycode == event->keycode)
-				{
-					if ((*action->terminate) (d, action, state,
-					                          argument, nArgument))
-						return TRUE;
-				}
-			}
-			else if (!d->xkbEvent && ((mods & modMask & bindMods) != bindMods))
-			{
-				if ((*action->terminate) (d, action, state,
-				                          argument, nArgument))
-					return TRUE;
-			}
-		}
-
-		option++;
-	}
-
-	return FALSE;
-}
-
-static Bool
-triggerStateNotifyBindings (CompDisplay         *d,
-                            CompOption          *option,
-                            int                 nOption,
-                            XkbStateNotifyEvent *event,
-                            CompOption          *argument,
-                            int                 nArgument)
-{
-	CompActionState state;
-	CompAction      *action;
-	unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
-	unsigned int    bindMods;
-
-	if (event->event_type == KeyPress)
-	{
-		state = CompActionStateInitKey;
-
-		while (nOption--)
-		{
-			if (isInitiateBinding (option, CompBindingTypeKey, state, &action))
-			{
-				if (action->key.keycode == 0)
-				{
-					bindMods = virtualToRealModMask (d, action->key.modifiers);
-
-					if ((event->mods & modMask & bindMods) == bindMods)
-					{
-						if ((*action->initiate) (d, action, state,
-						                         argument, nArgument))
-						    return TRUE;
-					}
-				}
-			}
-
-			option++;
-		}
-	}
+	if (arg_window != NULL)
+		xid = arg_window->i;
 	else
-	{
-		state = CompActionStateTermKey;
+		xid = 0;
 
-		while (nOption--)
-		{
-			if (isTerminateBinding (option, CompBindingTypeKey, state, &action))
-			{
-				bindMods = virtualToRealModMask (d, action->key.modifiers);
+	BananaValue *arg_time = getArgNamed ("time", arg, nArg);
 
-				if ((event->mods & modMask & bindMods) != bindMods)
-				{
-					if ((*action->terminate) (d, action, state,
-					                          argument, nArgument))
-						return TRUE;
-				}
-			}
-
-			option++;
-		}
-	}
-
-	return FALSE;
-}
-
-static Bool
-isBellAction (CompOption      *option,
-              CompActionState state,
-              CompAction      **action)
-{
-	if (option->type != CompOptionTypeAction &&
-		option->type != CompOptionTypeBell)
-		return FALSE;
-
-	if (!option->value.action.bell)
-		return FALSE;
-
-	if (!(option->value.action.state & state))
-		return FALSE;
-
-	if (!option->value.action.initiate)
-		return FALSE;
-
-	*action = &option->value.action;
-
-	return TRUE;
-}
-
-static Bool
-triggerBellNotifyBindings (CompDisplay *d,
-                           CompOption  *option,
-                           int         nOption,
-                           CompOption  *argument,
-                           int         nArgument)
-{
-	CompActionState state = CompActionStateInitBell;
-	CompAction      *action;
-
-	while (nOption--)
-	{
-		if (isBellAction (option, state, &action))
-		{
-			if ((*action->initiate) (d, action, state, argument, nArgument))
-				return TRUE;
-		}
-
-		option++;
-	}
-
-	return FALSE;
-}
-
-static Bool
-isEdgeAction (CompOption      *option,
-              CompActionState state,
-              unsigned int    edge)
-{
-	if (option->type != CompOptionTypeAction &&
-		option->type != CompOptionTypeButton &&
-		option->type != CompOptionTypeEdge)
-		return FALSE;
-
-	if (!(option->value.action.edgeMask & edge))
-		return FALSE;
-
-	if (!(option->value.action.state & state))
-		return FALSE;
-
-	return TRUE;
-}
-
-static Bool
-isEdgeEnterAction (CompOption      *option,
-                   CompActionState state,
-                   CompActionState delayState,
-                   unsigned int    edge,
-                   CompAction      **action)
-{
-	if (!isEdgeAction (option, state, edge))
-		return FALSE;
-
-	if (option->value.action.type & CompBindingTypeEdgeButton)
-		return FALSE;
-
-	if (!option->value.action.initiate)
-		return FALSE;
-
-	if (delayState)
-	{
-		if ((option->value.action.state & CompActionStateNoEdgeDelay) !=
-		    (delayState & CompActionStateNoEdgeDelay))
-		{
-			/* ignore edge actions which shouldn't be delayed when invoking
-			   undelayed edges (or vice versa) */
-			return FALSE;
-		}
-	}
-
-
-	*action = &option->value.action;
-
-	return TRUE;
-}
-
-static Bool
-isEdgeLeaveAction (CompOption      *option,
-                   CompActionState state,
-                   unsigned int    edge,
-                   CompAction      **action)
-{
-	if (!isEdgeAction (option, state, edge))
-		return FALSE;
-
-	if (!option->value.action.terminate)
-		return FALSE;
-
-	*action = &option->value.action;
-
-	return TRUE;
-}
-
-static Bool
-triggerEdgeEnterBindings (CompDisplay     *d,
-                          CompOption      *option,
-                          int             nOption,
-                          CompActionState state,
-                          CompActionState delayState,
-                          unsigned int    edge,
-                          CompOption      *argument,
-                          int             nArgument)
-{
-	CompAction *action;
-
-	while (nOption--)
-	{
-		if (isEdgeEnterAction (option, state, delayState, edge, &action))
-		{
-			if ((*action->initiate) (d, action, state, argument, nArgument))
-				return TRUE;
-		}
-
-		option++;
-	}
-
-	return FALSE;
-}
-
-static Bool
-triggerEdgeLeaveBindings (CompDisplay     *d,
-                          CompOption      *option,
-                          int             nOption,
-                          CompActionState state,
-                          unsigned int    edge,
-                          CompOption      *argument,
-                          int             nArgument)
-{
-	CompAction *action;
-
-	while (nOption--)
-	{
-		if (isEdgeLeaveAction (option, state, edge, &action))
-		{
-			if ((*action->terminate) (d, action, state, argument, nArgument))
-				return TRUE;
-		}
-
-		option++;
-	}
-
-	return FALSE;
-}
-
-static Bool
-triggerAllEdgeEnterBindings (CompDisplay     *d,
-                             CompActionState state,
-                             CompActionState delayState,
-                             unsigned int    edge,
-                             CompOption      *argument,
-                             int             nArgument)
-{
-	CompOption *option;
-	int        nOption;
-	CompPlugin *p;
-
-	for (p = getPlugins (); p; p = p->next)
-	{
-		if (p->vTable->getObjectOptions)
-		{
-			option = (*p->vTable->getObjectOptions) (p, &d->base, &nOption);
-			if (triggerEdgeEnterBindings (d,
-			                              option, nOption,
-			                              state, delayState, edge,
-			                              argument, nArgument))
-			{
-				return TRUE;
-			}
-		}
-	}
-	return FALSE;
-}
-
-static Bool
-delayedEdgeTimeout (void *closure)
-{
-	CompDelayedEdgeSettings *settings = (CompDelayedEdgeSettings *) closure;
-
-	triggerAllEdgeEnterBindings (settings->d,
-	                             settings->state,
-	                             ~CompActionStateNoEdgeDelay,
-	                             settings->edge,
-	                             settings->option,
-	                             settings->nOption);
-
-	free (settings);
-
-	return FALSE;
-}
-
-static Bool
-triggerEdgeEnter (CompDisplay     *d,
-                  unsigned int    edge,
-                  CompActionState state,
-                  CompOption      *argument,
-                  unsigned int    nArgument)
-{
-	int                     delay;
-	CompDelayedEdgeSettings *delayedSettings = NULL;
-
-	delay = d->opt[COMP_DISPLAY_OPTION_EDGE_DELAY].value.i;
-
-	if (nArgument > 7)
-		nArgument = 7;
-
-	if (delay > 0)
-	{
-		delayedSettings = malloc (sizeof (CompDelayedEdgeSettings));
-		if (delayedSettings)
-		{
-			delayedSettings->d       = d;
-			delayedSettings->edge    = edge;
-			delayedSettings->state   = state;
-			delayedSettings->nOption = nArgument;
-		}
-	}
-
-	if (delayedSettings)
-	{
-		CompActionState delayState;
-		int             i;
-
-		for (i = 0; i < nArgument; i++)
-			delayedSettings->option[i] = argument[i];
-
-		d->edgeDelayHandle = compAddTimeout (delay, (float) delay * 1.2,
-		                                     delayedEdgeTimeout,
-		                                     delayedSettings);
-
-		delayState = CompActionStateNoEdgeDelay;
-		if (triggerAllEdgeEnterBindings (d, state, delayState,
-		                                 edge, argument, nArgument))
-			return TRUE;
-	}
+	if (arg_time != NULL)
+		time = arg_time->i;
 	else
-	{
-		if (triggerAllEdgeEnterBindings (d, state, 0, edge,
-		                                 argument, nArgument))
-			return TRUE;
-	}
+		time = CurrentTime;
 
-	return FALSE;
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w && (w->actions & CompWindowActionCloseMask))
+		closeWindow (w, time);
+
+	return TRUE;
 }
 
 static Bool
-handleActionEvent (CompDisplay *d,
-                   XEvent      *event)
+unmaximize (BananaArgument   *arg,
+            int              nArg)
 {
-	CompObject *obj = &d->base;
-	CompOption *option;
-	int        nOption;
-	CompPlugin *p;
-	CompOption o[8];
+	CompWindow *w;
+	Window     xid;
 
-	o[0].type = CompOptionTypeInt;
-	o[0].name = "event_window";
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
 
-	o[1].type = CompOptionTypeInt;
-	o[1].name = "window";
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
 
-	o[2].type = CompOptionTypeInt;
-	o[2].name = "modifiers";
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		maximizeWindow (w, 0);
 
-	o[3].type = CompOptionTypeInt;
-	o[3].name = "x";
+	return TRUE;
+}
 
-	o[4].type = CompOptionTypeInt;
-	o[4].name = "y";
+static Bool
+minimize (BananaArgument   *arg,
+          int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
 
-	o[5].type = CompOptionTypeInt;
-	o[5].name = "root";
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
 
-	switch (event->type) {
-	case ButtonPress:
-		o[0].value.i = event->xbutton.window;
-		o[1].value.i = event->xbutton.window;
-		o[2].value.i = event->xbutton.state;
-		o[3].value.i = event->xbutton.x_root;
-		o[4].value.i = event->xbutton.y_root;
-		o[5].value.i = event->xbutton.root;
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
 
-		o[6].type    = CompOptionTypeInt;
-		o[6].name    = "button";
-		o[6].value.i = event->xbutton.button;
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w && (w->actions & CompWindowActionMinimizeMask))
+		minimizeWindow (w);
 
-		o[7].type    = CompOptionTypeInt;
-		o[7].name    = "time";
-		o[7].value.i = event->xbutton.time;
+	return TRUE;
+}
 
-		for (p = getPlugins (); p; p = p->next)
-		{
-			if (!p->vTable->getObjectOptions)
-				continue;
+static Bool
+maximize (BananaArgument   *arg,
+          int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
 
-			option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-			if (triggerButtonPressBindings (d, option, nOption,
-			                                &event->xbutton, o, 8))
-				return TRUE;
-		}
-		break;
-	case ButtonRelease:
-		o[0].value.i = event->xbutton.window;
-		o[1].value.i = event->xbutton.window;
-		o[2].value.i = event->xbutton.state;
-		o[3].value.i = event->xbutton.x_root;
-		o[4].value.i = event->xbutton.y_root;
-		o[5].value.i = event->xbutton.root;
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
 
-		o[6].type    = CompOptionTypeInt;
-		o[6].name    = "button";
-		o[6].value.i = event->xbutton.button;
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
 
-		o[7].type    = CompOptionTypeInt;
-		o[7].name    = "time";
-		o[7].value.i = event->xbutton.time;
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		maximizeWindow (w, MAXIMIZE_STATE);
 
-		for (p = getPlugins (); p; p = p->next)
-		{
-			if (!p->vTable->getObjectOptions)
-				continue;
+	return TRUE;
+}
 
-			option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-			if (triggerButtonReleaseBindings (d, option, nOption,
-			                                  &event->xbutton, o, 8))
-				return TRUE;
-		}
-		break;
-	case KeyPress:
-		o[0].value.i = event->xkey.window;
-		o[1].value.i = d->activeWindow;
-		o[2].value.i = event->xkey.state;
-		o[3].value.i = event->xkey.x_root;
-		o[4].value.i = event->xkey.y_root;
-		o[5].value.i = event->xkey.root;
+static Bool
+maximizeHorizontally (BananaArgument   *arg,
+                      int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
 
-		o[6].type    = CompOptionTypeInt;
-		o[6].name    = "keycode";
-		o[6].value.i = event->xkey.keycode;
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
 
-		o[7].type    = CompOptionTypeInt;
-		o[7].name    = "time";
-		o[7].value.i = event->xkey.time;
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
 
-		for (p = getPlugins (); p; p = p->next)
-		{
-			if (!p->vTable->getObjectOptions)
-				continue;
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		maximizeWindow (w, w->state | CompWindowStateMaximizedHorzMask);
 
-			option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-			if (triggerKeyPressBindings (d, option, nOption,
-			                             &event->xkey, o, 8))
-				return TRUE;
-		}
-		break;
-	case KeyRelease:
-		o[0].value.i = event->xkey.window;
-		o[1].value.i = d->activeWindow;
-		o[2].value.i = event->xkey.state;
-		o[3].value.i = event->xkey.x_root;
-		o[4].value.i = event->xkey.y_root;
-		o[5].value.i = event->xkey.root;
+	return TRUE;
+}
 
-		o[6].type    = CompOptionTypeInt;
-		o[6].name    = "keycode";
-		o[6].value.i = event->xkey.keycode;
+static Bool
+maximizeVertically (BananaArgument   *arg,
+                    int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
 
-		o[7].type    = CompOptionTypeInt;
-		o[7].name    = "time";
-		o[7].value.i = event->xkey.time;
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
 
-		for (p = getPlugins (); p; p = p->next)
-		{
-			if (!p->vTable->getObjectOptions)
-				continue;
-			option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-			if (triggerKeyReleaseBindings (d, option, nOption,
-			                               &event->xkey, o, 8))
-				return TRUE;
-		}
-		break;
-	case EnterNotify:
-		if (event->xcrossing.mode   != NotifyGrab   &&
-			event->xcrossing.mode   != NotifyUngrab &&
-			event->xcrossing.detail != NotifyInferior)
-		{
-			CompScreen      *s;
-			unsigned int    edge, i;
-			CompActionState state;
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
 
-			s = findScreenAtDisplay (d, event->xcrossing.root);
-			if (!s)
-				return FALSE;
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		maximizeWindow (w, w->state | CompWindowStateMaximizedVertMask);
 
-			if (d->edgeDelayHandle)
-			{
-				void *closure;
+	return TRUE;
+}
 
-				closure = compRemoveTimeout (d->edgeDelayHandle);
-				if (closure)
-					free (closure);
-				d->edgeDelayHandle = 0;
-			}
+static Bool
+showDesktop (BananaArgument   *arg,
+             int              nArg)
+{
+	CompScreen *s;
+	Window     xid;
 
-			if (edgeWindow && edgeWindow != event->xcrossing.window)
-			{
-				state = CompActionStateTermEdge;
-				edge  = 0;
+	BananaValue *arg_root = getArgNamed ("root", arg, nArg);
 
-				for (i = 0; i < SCREEN_EDGE_NUM; i++)
-				{
-					if (edgeWindow == s->screenEdge[i].id)
-					{
-						edge = 1 << i;
-						break;
-					}
-				}
+	if (arg_root != NULL)
+		xid = arg_root->i;
+	else
+		xid = 0;
 
-				edgeWindow = None;
-
-				o[0].value.i = event->xcrossing.window;
-				o[1].value.i = d->activeWindow;
-				o[2].value.i = event->xcrossing.state;
-				o[3].value.i = event->xcrossing.x_root;
-				o[4].value.i = event->xcrossing.y_root;
-				o[5].value.i = event->xcrossing.root;
-
-				o[6].type    = CompOptionTypeInt;
-				o[6].name    = "time";
-				o[6].value.i = event->xcrossing.time;
-
-				for (p = getPlugins (); p; p = p->next)
-				{
-					if (!p->vTable->getObjectOptions)
-						continue;
-
-					option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-					if (triggerEdgeLeaveBindings (d, option, nOption, state,
-					                              edge, o, 7))
-						return TRUE;
-				}
-			}
-
-			edge = 0;
-
-			for (i = 0; i < SCREEN_EDGE_NUM; i++)
-			{
-				if (event->xcrossing.window == s->screenEdge[i].id)
-				{
-					edge = 1 << i;
-					break;
-				}
-			}
-
-			if (edge)
-			{
-				state = CompActionStateInitEdge;
-
-				edgeWindow = event->xcrossing.window;
-
-				o[0].value.i = event->xcrossing.window;
-				o[1].value.i = d->activeWindow;
-				o[2].value.i = event->xcrossing.state;
-				o[3].value.i = event->xcrossing.x_root;
-				o[4].value.i = event->xcrossing.y_root;
-				o[5].value.i = event->xcrossing.root;
-
-				o[6].type    = CompOptionTypeInt;
-				o[6].name    = "time";
-				o[6].value.i = event->xcrossing.time;
-
-				if (triggerEdgeEnter (d, edge, state, o, 7))
-					return TRUE;
-			}
-		}
-		break;
-	case ClientMessage:
-		if (event->xclient.message_type == d->xdndEnterAtom)
-		{
-			xdndWindow = event->xclient.window;
-		}
-		else if (event->xclient.message_type == d->xdndLeaveAtom)
-		{
-			unsigned int    edge = 0;
-			CompActionState state;
-			Window          root = None;
-
-			if (!xdndWindow)
-			{
-				CompWindow *w;
-
-				w = findWindowAtDisplay (d, event->xclient.window);
-				if (w)
-				{
-					CompScreen   *s = w->screen;
-					unsigned int i;
-
-					for (i = 0; i < SCREEN_EDGE_NUM; i++)
-					{
-						if (event->xclient.window == s->screenEdge[i].id)
-						{
-							edge = 1 << i;
-							root = s->root;
-							break;
-						}
-					}
-				}
-			}
-
-			if (edge)
-			{
-				state = CompActionStateTermEdgeDnd;
-
-				o[0].value.i = event->xclient.window;
-				o[1].value.i = d->activeWindow;
-				o[2].value.i = 0; /* fixme */
-				o[3].value.i = 0; /* fixme */
-				o[4].value.i = 0; /* fixme */
-				o[5].value.i = root;
-
-				for (p = getPlugins (); p; p = p->next)
-				{
-					if (!p->vTable->getObjectOptions)
-						continue;
-
-					option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-					if (triggerEdgeLeaveBindings (d, option, nOption, state,
-					                              edge, o, 6))
-						return TRUE;
-				}
-			}
-		}
-		else if (event->xclient.message_type == d->xdndPositionAtom)
-		{
-			unsigned int    edge = 0;
-			CompActionState state;
-			Window          root = None;
-
-			if (xdndWindow == event->xclient.window)
-			{
-				CompWindow *w;
-
-				w = findWindowAtDisplay (d, event->xclient.window);
-				if (w)
-				{
-					CompScreen   *s = w->screen;
-					unsigned int i;
-
-					for (i = 0; i < SCREEN_EDGE_NUM; i++)
-					{
-						if (xdndWindow == s->screenEdge[i].id)
-						{
-							edge = 1 << i;
-							root = s->root;
-							break;
-						}
-					}
-				}
-			}
-
-			if (edge)
-			{
-				state = CompActionStateInitEdgeDnd;
-
-				o[0].value.i = event->xclient.window;
-				o[1].value.i = d->activeWindow;
-				o[2].value.i = 0; /* fixme */
-				o[3].value.i = event->xclient.data.l[2] >> 16;
-				o[4].value.i = event->xclient.data.l[2] & 0xffff;
-				o[5].value.i = root;
-
-				if (triggerEdgeEnter (d, edge, state, o, 6))
-					return TRUE;
-			}
-
-			xdndWindow = None;
-		}
-		break;
-	default:
-		if (event->type == d->fixesEvent + XFixesCursorNotify)
-		{
-			/*
-			XFixesCursorNotifyEvent *ce = (XFixesCursorNotifyEvent *) event;
-			CompCursor		    *cursor;
-
-			cursor = findCursorAtDisplay (d);
-			if (cursor)
-				updateCursor (cursor, ce->x, ce->y, ce->cursor_serial);
-			*/
-		}
-		else if (event->type == d->xkbEvent)
-		{
-			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
-
-			if (xkbEvent->xkb_type == XkbStateNotify)
-			{
-				XkbStateNotifyEvent *stateEvent = (XkbStateNotifyEvent *) event;
-
-				o[0].value.i = d->activeWindow;
-				o[1].value.i = d->activeWindow;
-				o[2].value.i = stateEvent->mods;
-
-				o[3].type    = CompOptionTypeInt;
-				o[3].name    = "time";
-				o[3].value.i = xkbEvent->time;
-
-				for (p = getPlugins (); p; p = p->next)
-				{
-					if (!p->vTable->getObjectOptions)
-						continue;
-
-					option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-					if (triggerStateNotifyBindings (d, option, nOption,
-					                                stateEvent, o, 4))
-						return TRUE;
-				}
-			}
-			else if (xkbEvent->xkb_type == XkbBellNotify)
-			{
-				o[0].value.i = d->activeWindow;
-				o[1].value.i = d->activeWindow;
-
-				o[2].type    = CompOptionTypeInt;
-				o[2].name    = "time";
-				o[2].value.i = xkbEvent->time;
-
-				for (p = getPlugins (); p; p = p->next)
-				{
-					if (!p->vTable->getObjectOptions)
-						continue;
-
-					option = (*p->vTable->getObjectOptions) (p, obj, &nOption);
-					if (triggerBellNotifyBindings (d, option, nOption, o, 3))
-						return TRUE;
-				}
-			}
-		}
-		break;
+	s = findScreenAtDisplay (core.displays, xid);
+	if (s)
+	{
+		if (s->showingDesktopMask == 0)
+			(*s->enterShowDesktopMode) (s);
+		else
+			(*s->leaveShowDesktopMode) (s, NULL);
 	}
 
-	return FALSE;
+	return TRUE;
+}
+
+static Bool
+toggleSlowAnimations (BananaArgument   *arg,
+                      int              nArg)
+{
+	CompScreen *s;
+	Window     xid;
+
+	BananaValue *arg_root = getArgNamed ("root", arg, nArg);
+
+	if (arg_root != NULL)
+		xid = arg_root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
+	if (s)
+		s->slowAnimations = !s->slowAnimations;
+
+	return TRUE;
+}
+
+static Bool
+raiseInitiate (BananaArgument   *arg,
+               int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
+
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
+
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		raiseWindow (w);
+
+	return TRUE;
+}
+
+static Bool
+lowerInitiate (BananaArgument   *arg,
+               int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
+
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
+
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		lowerWindow (w);
+
+	return TRUE;
+}
+
+static Bool
+windowMenu (BananaArgument   *arg,
+            int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
+
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
+
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w && !w->screen->maxGrab)
+	{
+		int  x, y, button;
+		Time time;
+
+		BananaValue *arg_time = getArgNamed ("time", arg, nArg);
+
+		if (arg_time != NULL)
+			time = arg_time->i;
+		else
+			time = CurrentTime;
+
+		BananaValue *arg_button = getArgNamed ("button", arg, nArg);
+
+		if (arg_button != NULL)
+			button = arg_button->i;
+		else
+			button = 0;
+
+		BananaValue *arg_x = getArgNamed ("x", arg, nArg);
+
+		if (arg_x != NULL)
+			x = arg_x->i;
+		else
+			x = w->attrib.x;
+
+		BananaValue *arg_y = getArgNamed ("y", arg, nArg);
+
+		if (arg_y != NULL)
+			y = arg_y->i;
+		else
+			y = w->attrib.y;
+
+		toolkitAction (w->screen,
+		               w->screen->display->toolkitActionWindowMenuAtom,
+		               time,
+		               w->id,
+		               button,
+		               x,
+		               y);
+	}
+
+	return TRUE;
+}
+
+static Bool
+toggleMaximized (BananaArgument   *arg,
+                 int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
+
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
+
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+	{
+		if ((w->state & MAXIMIZE_STATE) == MAXIMIZE_STATE)
+			maximizeWindow (w, 0);
+		else
+			maximizeWindow (w, MAXIMIZE_STATE);
+	}
+
+	return TRUE;
+}
+
+static Bool
+toggleMaximizedHorizontally (BananaArgument   *arg,
+                             int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
+
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
+
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		maximizeWindow (w, w->state ^ CompWindowStateMaximizedHorzMask);
+
+	return TRUE;
+}
+
+static Bool
+toggleMaximizedVertically (BananaArgument   *arg,
+                           int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
+
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
+
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w)
+		maximizeWindow (w, w->state ^ CompWindowStateMaximizedVertMask);
+
+	return TRUE;
+}
+
+static Bool
+shade (BananaArgument   *arg,
+       int              nArg)
+{
+	CompWindow *w;
+	Window     xid;
+
+	BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+	if (arg_window != NULL)
+		xid = arg_window->i;
+	else
+		xid = 0;
+
+	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	if (w && (w->actions & CompWindowActionShadeMask))
+	{
+		w->state ^= CompWindowStateShadedMask;
+		updateWindowAttributes (w, CompStackingUpdateModeNone);
+	}
+
+	return TRUE;
 }
 
 void
-handleFusilliEvent (CompDisplay *d,
-                   const char  *pluginName,
-                   const char  *eventName,
-                   CompOption  *option,
-                   int         nOption)
+handleFusilliEvent (CompDisplay    *d,
+                   const char      *pluginName,
+                   const char      *eventName,
+                   BananaArgument  *arg,
+                   int             nArg)
 {
 }
 
@@ -1245,12 +610,274 @@ handleEvent (CompDisplay *d,
 		break;
 	}
 
-	if (handleActionEvent (d, event))
-	{
-		if (!d->screens->maxGrab)
-			XAllowEvents (d->display, AsyncPointer, event->xbutton.time);
+	/* handle Core bindings */
+	switch (event->type) {
+	case KeyPress:
+		if (isKeyPressEvent (event, &d->close_window_key))
+		{
+			BananaArgument arg[2];
 
-		return;
+			arg[0].name = "window";
+			arg[0].type = BananaInt;
+			arg[0].value.i = d->activeWindow;
+
+			arg[1].name = "time";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.time;
+
+			closeWin (arg, 2);
+		}
+		else if (isKeyPressEvent (event, &d->raise_window_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			raiseInitiate (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->lower_window_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			lowerInitiate (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->unmaximize_window_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			unmaximize (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->minimize_window_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			minimize (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->maximize_window_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			maximize (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->maximize_window_horizontally_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			maximizeHorizontally (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->maximize_window_horizontally_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			maximizeHorizontally (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->maximize_window_vertically_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			maximizeVertically (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->window_menu_key))
+		{
+			BananaArgument arg[4];
+
+			arg[0].name = "window";
+			arg[0].type = BananaInt;
+			arg[0].value.i = d->activeWindow;
+
+			arg[1].name = "time";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.time;
+
+			arg[2].name = "x";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xkey.x_root;
+
+			arg[3].name = "y";
+			arg[3].type = BananaInt;
+			arg[3].value.i = event->xkey.y_root;
+
+			windowMenu (arg, 4);
+		}
+		else if (isKeyPressEvent (event, &d->show_desktop_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+
+			showDesktop (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->toggle_window_maximized_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			toggleMaximized (&arg, 1);
+		}
+		else if (isKeyPressEvent (event,
+		         &d->toggle_window_maximized_horizontally_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			toggleMaximizedHorizontally (&arg, 1);
+		}
+		else if (isKeyPressEvent (event,
+		         &d->toggle_window_maximized_vertically_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			toggleMaximizedVertically (&arg, 1);
+		}
+		else if (isKeyPressEvent (event,
+		         &d->toggle_window_shaded_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			shade (&arg, 1);
+		}
+		else if (isKeyPressEvent (event, &d->slow_animations_key))
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xkey.root;
+
+			toggleSlowAnimations (&arg, 1);
+		}
+
+		break;
+	case ButtonPress:
+		if (isButtonPressEvent (event, &d->close_window_button))
+		{
+			BananaArgument arg[2];
+
+			arg[0].name = "window";
+			arg[0].type = BananaInt;
+			arg[0].value.i = d->activeWindow;
+
+			arg[1].name = "time";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.time;
+
+			closeWin (arg, 2);
+		}
+		else if (isButtonPressEvent (event, &d->raise_window_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			raiseInitiate (&arg, 1);
+		}
+		else if (isButtonPressEvent (event, &d->lower_window_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			lowerInitiate (&arg, 1);
+		}
+		else if (isButtonPressEvent (event, &d->minimize_window_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			minimize (&arg, 1);
+		}
+		else if (isButtonPressEvent (event, &d->window_menu_button))
+		{
+			BananaArgument arg[5];
+
+			arg[0].name = "window";
+			arg[0].type = BananaInt;
+			arg[0].value.i = d->activeWindow;
+
+			arg[1].name = "time";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.time;
+
+			arg[2].name = "x";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.x_root;
+
+			arg[3].name = "y";
+			arg[3].type = BananaInt;
+			arg[3].value.i = event->xbutton.y_root;
+
+			arg[4].name = "button";
+			arg[4].type = BananaInt;
+			arg[4].value.i = event->xbutton.button;
+
+			windowMenu (arg, 5);
+		}
+		else if (isButtonPressEvent (event, &d->toggle_window_maximized_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "window";
+			arg.type = BananaInt;
+			arg.value.i = d->activeWindow;
+
+			toggleMaximized (&arg, 1);
+		}
+		break;
+	default:
+		break;
 	}
 
 	switch (event->type) {
@@ -1429,7 +1056,11 @@ handleEvent (CompDisplay *d,
 				w = findTopLevelWindowAtScreen (s, event->xbutton.window);
 				if (w)
 				{
-					if (d->opt[COMP_DISPLAY_OPTION_RAISE_ON_CLICK].value.b)
+					const BananaValue *
+					option_raise_on_click = bananaGetOption (
+					        coreBananaIndex, "raise_on_click", -1);
+
+					if (option_raise_on_click->b)
 						updateWindowAttributes (w,
 						          CompStackingUpdateModeAboveFullscreen);
 
@@ -1841,15 +1472,21 @@ handleEvent (CompDisplay *d,
 			s = findScreenAtDisplay (d, event->xclient.window);
 			if (s)
 			{
-				CompOptionValue value;
+				BananaValue value;
 
 				value.i = event->xclient.data.l[0] / s->width;
 
-				(*core.setOptionForPlugin) (&s->base, "core", "hsize", &value);
+				bananaSetOption (coreBananaIndex,
+				                 "hsize",
+				                 s->screenNum,
+				                 &value);
 
 				value.i = event->xclient.data.l[1] / s->height;
 
-				(*core.setOptionForPlugin) (&s->base, "core", "vsize", &value);
+				bananaSetOption (coreBananaIndex,
+				                 "vsize",
+				                 s->screenNum,
+				                 &value);
 			}
 		}
 		else if (event->xclient.message_type == d->moveResizeWindowAtom)
@@ -1955,13 +1592,14 @@ handleEvent (CompDisplay *d,
 			s = findScreenAtDisplay (d, event->xclient.window);
 			if (s)
 			{
-				CompOptionValue value;
+				BananaValue value;
 
 				value.i = event->xclient.data.l[0];
 
-				(*core.setOptionForPlugin) (&s->base,
-				                            "core", "number_of_desktops",
-				                            &value);
+				bananaSetOption (coreBananaIndex,
+				                 "number_of_desktops",
+				                 s->screenNum,
+				                 &value);
 			}
 		}
 		else if (event->xclient.message_type == d->currentDesktopAtom)
@@ -2256,7 +1894,11 @@ handleEvent (CompDisplay *d,
 		{
 			d->below = w->id;
 
-			if (!d->opt[COMP_DISPLAY_OPTION_CLICK_TO_FOCUS].value.b &&
+			const BananaValue *
+			option_click_to_focus = bananaGetOption (
+			    coreBananaIndex, "click_to_focus", -1);
+
+			if (!option_click_to_focus->b &&
 			    !s->maxGrab                                     &&
 			    event->xcrossing.mode   != NotifyGrab           &&
 			    event->xcrossing.detail != NotifyInferior)
@@ -2264,8 +1906,17 @@ handleEvent (CompDisplay *d,
 				Bool raise, focus;
 				int  delay;
 
-				raise = d->opt[COMP_DISPLAY_OPTION_AUTORAISE].value.b;
-				delay = d->opt[COMP_DISPLAY_OPTION_AUTORAISE_DELAY].value.i;
+				const BananaValue *
+				option_autoraise = bananaGetOption (
+				    coreBananaIndex, "autoraise", -1);
+
+				raise = option_autoraise->b;
+
+				const BananaValue *
+				option_autoraise_delay = bananaGetOption (
+				    coreBananaIndex, "autoraise_delay", -1);
+
+				delay = option_autoraise_delay->i;
 
 				if (d->autoRaiseHandle && d->autoRaiseWindow != w->id)
 				{

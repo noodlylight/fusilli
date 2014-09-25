@@ -9,22 +9,30 @@
 				<feature>imageext:png</feature>
 			</requirement>
 		</deps>
-		<display>
-			<option name="initiate_button" type="button">
-				<_short>Initiate</_short>
-				<_long>Initiate rectangle screenshot</_long>
-				<default>&lt;Super&gt;Button1</default>
-			</option>
-			<option name="directory" type="string">
-				<_short>Directory</_short>
-				<_long>Put screenshot images in this directory. If empty, the desktop directory will be used.</_long>
-				<default></default>
-			</option>
-			<option name="launch_app" type="string">
-				<_short>Launch Application</_short>
-				<_long>Automatically open screenshot in this application</_long>
-				<default></default>
-			</option>
-		</display>
+
+		<group>
+			<_short>General</_short>
+
+			<subgroup>
+				<option name="initiate_button" type="string">
+					<_short>Initiate</_short>
+					<_long>Initiate rectangle screenshot</_long>
+					<hint>button</hint>
+					<default>&lt;Super&gt;Button1</default>
+				</option>
+
+				<option name="directory" type="string">
+					<_short>Directory</_short>
+					<_long>Put screenshot images in this directory. If empty, the desktop directory will be used.</_long>
+					<default></default>
+				</option>
+
+				<option name="launch_app" type="string">
+					<_short>Launch Application</_short>
+					<_long>Automatically open screenshot in this application</_long>
+					<default></default>
+				</option>
+			</subgroup>
+		</group>
 	</plugin>
 </fusilli>

@@ -192,25 +192,25 @@ saveYourselfCallback (SmcConn   connection,
                       int   interact_Style,
                       Bool  fast)
 {
-	CompOption args[4];
+	BananaArgument arg[4];
 
-	args[0].type    = CompOptionTypeInt;
-	args[0].name    = "save_type";
-	args[0].value.i = saveType;
+	arg[0].type    = BananaInt;
+	arg[0].name    = "save_type";
+	arg[0].value.i = saveType;
 
-	args[1].type    = CompOptionTypeBool;
-	args[1].name    = "shutdown";
-	args[1].value.b = shutdown;
+	arg[1].type    = BananaBool;
+	arg[1].name    = "shutdown";
+	arg[1].value.b = shutdown;
 
-	args[2].type    = CompOptionTypeInt;
-	args[2].name    = "interact_style";
-	args[2].value.i = interact_Style;
+	arg[2].type    = BananaInt;
+	arg[2].name    = "interact_style";
+	arg[2].value.i = interact_Style;
 
-	args[3].type    = CompOptionTypeBool;
-	args[3].name    = "fast";
-	args[3].value.b = fast;
+	arg[3].type    = BananaBool;
+	arg[3].name    = "fast";
+	arg[3].value.b = fast;
 
-	(*core.sessionEvent) (&core, CompSessionEventSaveYourself, args, 4);
+	(*core.sessionEvent) (&core, CompSessionEventSaveYourself, arg, 4);
 
 	setCloneRestartCommands (connection);
 	setRestartStyle (connection, SmRestartImmediately);
@@ -316,8 +316,8 @@ closeSession (void)
 void
 sessionEvent (CompCore         *c,
               CompSessionEvent event,
-              CompOption       *arguments,
-              unsigned int     nArguments)
+              BananaArgument   *arg,
+              unsigned int     nArg)
 {
 }
 

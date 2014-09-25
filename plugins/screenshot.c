@@ -31,22 +31,17 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata shotMetadata;
+static int bananaIndex;
+
+static CompButtonBinding initiate_button;
 
 static int displayPrivateIndex;
-
-#define SHOT_DISPLAY_OPTION_INITIATE_BUTTON 0
-#define SHOT_DISPLAY_OPTION_DIR             1
-#define SHOT_DISPLAY_OPTION_LAUNCH_APP      2
-#define SHOT_DISPLAY_OPTION_NUM             3
 
 #define MAX_LINE_LENGTH 1024
 
 typedef struct _ShotDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
-
-	CompOption opt[SHOT_DISPLAY_OPTION_NUM];
 } ShotDisplay;
 
 typedef struct _ShotScreen {
@@ -70,22 +65,21 @@ typedef struct _ShotScreen {
 #define SHOT_SCREEN(s) \
         ShotScreen *ss = GET_SHOT_SCREEN (s, GET_SHOT_DISPLAY (s->display))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
-
 static Bool
-shotInitiate (CompDisplay     *d,
-              CompAction      *action,
-              CompActionState state,
-              CompOption      *option,
-              int             nOption)
+shotInitiate (BananaArgument     *arg,
+              int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		SHOT_SCREEN (s);
@@ -95,9 +89,6 @@ shotInitiate (CompDisplay     *d,
 
 		if (!ss->grabIndex)
 			ss->grabIndex = pushScreenGrab (s, None, "screenshot");
-
-		if (state & CompActionStateInitButton)
-			action->state |= CompActionStateTermButton;
 
 		/* start selection screenshot rectangle */
 
@@ -111,18 +102,20 @@ shotInitiate (CompDisplay     *d,
 }
 
 static Bool
-shotTerminate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+shotTerminate (BananaArgument     *arg,
+               int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		SHOT_SCREEN (s);
 
@@ -134,7 +127,9 @@ shotTerminate (CompDisplay     *d,
 			removeScreenGrab (s, ss->grabIndex, NULL);
 			ss->grabIndex = 0;
 
-			if (state & CompActionStateCancel)
+			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
+
+			if (cancel != NULL && cancel->b)
 				ss->grab = FALSE;
 
 			if (ss->x1 != ss->x2 && ss->y1 != ss->y2)
@@ -153,8 +148,6 @@ shotTerminate (CompDisplay     *d,
 			}
 		}
 	}
-
-	action->state &= ~(CompActionStateTermKey | CompActionStateTermButton);
 
 	return FALSE;
 }
@@ -319,12 +312,14 @@ shotPaintScreen (CompScreen   *s,
 			int w = x2 - x1;
 			int h = y2 - y1;
 
-			SHOT_DISPLAY (s->display);
-
 			if (w && h)
 			{
 				GLubyte *buffer;
-				char    *dir = sd->opt[SHOT_DISPLAY_OPTION_DIR].value.s;
+
+				const BananaValue *
+				option_dir = bananaGetOption (bananaIndex, "directory", -1);
+
+				char    *dir = option_dir->s;
 				Bool    allocatedDir = FALSE;
 
 				if (strlen (dir) == 0)
@@ -336,7 +331,6 @@ shotPaintScreen (CompScreen   *s,
 					else
 						dir = "";
 				}
-
 				buffer = malloc (sizeof (GLubyte) * w * h * 4);
 				if (buffer)
 				{
@@ -366,7 +360,11 @@ shotPaintScreen (CompScreen   *s,
 
 						sprintf (name, "screenshot%d.png", number);
 
-						app = sd->opt[SHOT_DISPLAY_OPTION_LAUNCH_APP].value.s;
+						const BananaValue *
+						option_launch_app = bananaGetOption (
+						       bananaIndex, "launch_app", -1);
+
+						app = option_launch_app->s;
 
 						if (!writeImageToFile (s->display, dir, name, "png",
 						                       w, h, buffer))
@@ -505,6 +503,30 @@ shotHandleEvent (CompDisplay *d,
 	SHOT_DISPLAY (d);
 
 	switch (event->type) {
+	case ButtonPress:
+		if (isButtonPressEvent (event, &initiate_button))
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			shotInitiate (&arg, 1);
+		}
+		break;
+	case ButtonRelease:
+		if (initiate_button.button == event->xbutton.button)
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			shotTerminate (&arg, 1);
+		}
+		break;
 	case MotionNotify:
 		s = findScreenAtDisplay (d, event->xmotion.root);
 		if (s)
@@ -524,67 +546,19 @@ shotHandleEvent (CompDisplay *d,
 	WRAP (sd, d, handleEvent, shotHandleEvent);
 }
 
-static CompOption *
-shotGetDisplayOptions (CompPlugin  *plugin,
-                       CompDisplay *display,
-                       int         *count)
-{
-	SHOT_DISPLAY (display);
-
-	*count = NUM_OPTIONS (sd);
-	return sd->opt;
-}
-
-static Bool
-shotSetDisplayOption (CompPlugin      *plugin,
-                      CompDisplay     *display,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	CompOption *o;
-
-	SHOT_DISPLAY (display);
-
-	o = compFindOption (sd->opt, NUM_OPTIONS (sd), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static const CompMetadataOptionInfo shotDisplayOptionInfo[] = {
-	{ "initiate_button", "button", 0, shotInitiate, shotTerminate },
-	{ "directory", "string", 0, 0, 0 },
-	{ "launch_app", "string", 0, 0, 0 }
-};
-
 static Bool
 shotInitDisplay (CompPlugin  *p,
                  CompDisplay *d)
 {
 	ShotDisplay *sd;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	sd = malloc (sizeof (ShotDisplay));
 	if (!sd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &shotMetadata,
-	                                 shotDisplayOptionInfo,
-	                                 sd->opt,
-	                                 SHOT_DISPLAY_OPTION_NUM))
-	{
-		free (sd);
-		return FALSE;
-	}
-
 	sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (sd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, sd->opt, SHOT_DISPLAY_OPTION_NUM);
 		free (sd);
 		return FALSE;
 	}
@@ -605,8 +579,6 @@ shotFiniDisplay (CompPlugin  *p,
 	freeScreenPrivateIndex (d, sd->screenPrivateIndex);
 
 	UNWRAP (sd, d, handleEvent);
-
-	compFiniDisplayOptions (d, sd->opt, SHOT_DISPLAY_OPTION_NUM);
 
 	free (sd);
 }
@@ -672,54 +644,48 @@ shotFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-shotGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
+static void
+shotChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) shotGetDisplayOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-shotSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) shotSetDisplayOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-					 (plugin, object, name, value));
+	if (strcasecmp (optionName, "initiate_button") == 0)
+		updateButton (optionValue->s, &initiate_button);
 }
 
 static Bool
 shotInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&shotMetadata,
-	                             p->vTable->name,
-	                             shotDisplayOptionInfo,
-	                             SHOT_DISPLAY_OPTION_NUM,
-	                             0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&shotMetadata);
+		compLogMessage ("screenshot", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&shotMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("screenshot");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, shotChangeNotify);
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button",
+	                                          -1);
+
+	registerButton (option_initiate_button->s, &initiate_button);
 
 	return TRUE;
 }
@@ -728,28 +694,20 @@ static void
 shotFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&shotMetadata);
-}
 
-static CompMetadata *
-shotGetMetadata (CompPlugin *plugin)
-{
-	return &shotMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable shotVTable = {
 	"screenshot",
-	shotGetMetadata,
 	shotInit,
 	shotFini,
 	shotInitObject,
-	shotFiniObject,
-	shotGetObjectOptions,
-	shotSetObjectOption
+	shotFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &shotVTable;
 }

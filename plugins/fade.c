@@ -28,7 +28,7 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata fadeMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
 
@@ -41,18 +41,6 @@ typedef struct _FadeDisplay {
 	CompMatch                  alwaysFadeWindowMatch;
 } FadeDisplay;
 
-#define FADE_SCREEN_OPTION_FADE_MODE               0
-#define FADE_SCREEN_OPTION_FADE_SPEED              1
-#define FADE_SCREEN_OPTION_FADE_TIME               2
-#define FADE_SCREEN_OPTION_WINDOW_MATCH            3
-#define FADE_SCREEN_OPTION_VISUAL_BELL             4
-#define FADE_SCREEN_OPTION_FULLSCREEN_VISUAL_BELL  5
-#define FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE     6
-#define FADE_SCREEN_OPTION_DIM_UNRESPONSIVE        7
-#define FADE_SCREEN_OPTION_UNRESPONSIVE_BRIGHTNESS 8
-#define FADE_SCREEN_OPTION_UNRESPONSIVE_SATURATION 9
-#define FADE_SCREEN_OPTION_NUM                     10
-
 #define FADE_MODE_CONSTANTSPEED 0
 #define FADE_MODE_CONSTANTTIME  1
 #define FADE_MODE_MAX           FADE_MODE_CONSTANTTIME
@@ -60,8 +48,6 @@ typedef struct _FadeDisplay {
 typedef struct _FadeScreen {
 	int            windowPrivateIndex;
 	int            fadeTime;
-
-	CompOption opt[FADE_SCREEN_OPTION_NUM];
 
 	PreparePaintScreenProc preparePaintScreen;
 	PaintWindowProc        paintWindow;
@@ -119,68 +105,30 @@ typedef struct _FadeWindow {
                          GET_FADE_SCREEN  (w->screen, \
                          GET_FADE_DISPLAY (w->screen->display)))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 static void
-fadeUpdateWindowFadeMatch (CompDisplay     *display,
-                           CompOptionValue *value,
-                           CompMatch       *match)
+fadeChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	matchFini (match);
-	matchInit (match);
-	matchAddFromString (match, "!type=desktop");
-	matchAddGroup (match, MATCH_OP_AND_MASK, &value->match);
-	matchUpdate (display, match);
-}
+	CompScreen *screen;
 
-static CompOption *
-fadeGetScreenOptions (CompPlugin *plugin,
-                      CompScreen *screen,
-                      int        *count)
-{
-	FADE_SCREEN (screen);
-
-	*count = NUM_OPTIONS (fs);
-	return fs->opt;
-}
-
-static Bool
-fadeSetScreenOption (CompPlugin      *plugin,
-                     CompScreen      *screen,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	CompOption *o;
-	int        index;
+	screen = getScreenFromScreenNum (screenNum);
 
 	FADE_SCREEN (screen);
 
-	o = compFindOption (fs->opt, NUM_OPTIONS (fs), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case FADE_SCREEN_OPTION_FADE_SPEED:
-		if (compSetFloatOption (o, value))
-		{
-			fs->fadeTime = 1000.0f / o->value.f;
-			return TRUE;
-		}
-		break;
-	case FADE_SCREEN_OPTION_WINDOW_MATCH:
-		if (compSetMatchOption (o, value))
-		{
-			fadeUpdateWindowFadeMatch (screen->display, &o->value, &fs->match);
-			return TRUE;
-		}
-		break;
-	default:
-		if (compSetOption (o, value))
-			return TRUE;
-		break;
+	if (strcasecmp (optionName, "fade_speed") == 0)
+	{
+		fs->fadeTime = 1000.0f / optionValue->f;
 	}
-
-	return FALSE;
+	else if (strcasecmp (optionName, "window_match") == 0)
+	{
+		matchFini (&fs->match);
+		matchInit (&fs->match);
+		matchAddFromString (&fs->match, "!type=desktop");
+		matchAddFromString (&fs->match, optionValue->s);
+		matchUpdate (core.displays, &fs->match);
+	}
 }
 
 static void
@@ -192,7 +140,10 @@ fadePreparePaintScreen (CompScreen *s,
 
 	FADE_SCREEN (s);
 
-	switch (fs->opt[FADE_SCREEN_OPTION_FADE_MODE].value.i) {
+	const BananaValue *
+	option_fade_mode = bananaGetOption (bananaIndex, "fade_mode", s->screenNum);
+
+	switch (option_fade_mode->i) {
 	case FADE_MODE_CONSTANTSPEED:
 		steps = (msSinceLastPaint * OPAQUE) / fs->fadeTime;
 		if (steps < 12)
@@ -276,18 +227,37 @@ fadePaintWindow (CompWindow              *w,
 		fw->saturation != attrib->saturation ||
 		fd->displayModals)
 	{
-		WindowPaintAttrib fAttrib = *attrib;
-		int               mode = fs->opt[FADE_SCREEN_OPTION_FADE_MODE].value.i;
+		const BananaValue *option_fade_mode = bananaGetOption (bananaIndex,
+		                                                       "fade_mode",
+		                                                       s->screenNum);
 
-		if (!w->alive && fs->opt[FADE_SCREEN_OPTION_DIM_UNRESPONSIVE].value.b)
+		WindowPaintAttrib fAttrib = *attrib;
+		int               mode = option_fade_mode->i;
+
+		const BananaValue *
+		option_dim_unresponsive = bananaGetOption (bananaIndex,
+		                                           "dim_unresponsive",
+		                                           s->screenNum);
+
+		if (!w->alive && option_dim_unresponsive->b)
 		{
 			GLuint value;
 
-			value = fs->opt[FADE_SCREEN_OPTION_UNRESPONSIVE_BRIGHTNESS].value.i;
+			const BananaValue *
+			option_unresponsive_brightness = bananaGetOption (bananaIndex,
+				                                    "unresponsive_brightness",
+			                                        s->screenNum);
+
+			value = option_unresponsive_brightness->i;
 			if (value != 100)
 				fAttrib.brightness = fAttrib.brightness * value / 100;
 
-			value = fs->opt[FADE_SCREEN_OPTION_UNRESPONSIVE_SATURATION].value.i;
+			const BananaValue *
+			option_unresponsive_saturation = bananaGetOption (bananaIndex,
+				                                  "unresponsive_saturation",
+			                                      s->screenNum);
+
+			value = option_unresponsive_saturation->i;
 			if (value != 100 && s->canDoSlightlySaturated)
 				fAttrib.saturation = fAttrib.saturation * value / 100;
 		}
@@ -306,7 +276,10 @@ fadePaintWindow (CompWindow              *w,
 			    fAttrib.brightness != fw->targetBrightness ||
 			    fAttrib.saturation != fw->targetSaturation)
 			{
-				fw->fadeTime = fs->opt[FADE_SCREEN_OPTION_FADE_TIME].value.i;
+				const BananaValue *option_fade_time = bananaGetOption (
+				                       bananaIndex, "fade_time", s->screenNum);
+
+				fw->fadeTime = option_fade_time->i;
 				fw->steps    = 1;
 
 				fw->opacityDiff    = fAttrib.opacity - fw->opacity;
@@ -371,7 +344,11 @@ fadePaintWindow (CompWindow              *w,
 			}
 			else if (mode == FADE_MODE_CONSTANTTIME)
 			{
-				int fadeTime = fs->opt[FADE_SCREEN_OPTION_FADE_TIME].value.i;
+				const BananaValue *
+				option_fade_time = bananaGetOption (bananaIndex,
+				                                 "fade_time", s->screenNum);
+
+				int fadeTime = option_fade_time->i;
 
 				opacity = fAttrib.opacity -
 				          (fw->opacityDiff * fw->fadeTime / fadeTime);
@@ -471,9 +448,13 @@ static Bool
 isFadeWinForOpenClose (CompWindow *w)
 {
 	FADE_DISPLAY (w->screen->display);
-	FADE_SCREEN (w->screen);
 
-	if (fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b &&
+	const BananaValue *
+	option_minimize_open_close = bananaGetOption (bananaIndex,
+	                                              "minimize_open_close",
+	                                              w->screen->screenNum);
+
+	if (option_minimize_open_close->b &&
 	    !fd->suppressMinimizeOpenClose)
 	{
 		return TRUE;
@@ -524,7 +505,11 @@ fadeHandleEvent (CompDisplay *d,
 
 			fw->shaded = w->shaded;
 
-			if (fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b &&
+			const BananaValue *
+			option_minimize_open_close = bananaGetOption (
+			        bananaIndex, "minimize_open_close", w->screen->screenNum);
+
+			if (option_minimize_open_close->b &&
 			    !fd->suppressMinimizeOpenClose &&
 			    !fw->shaded && w->texture->pixmap &&
 			    matchEval (&fs->match, w))
@@ -547,9 +532,11 @@ fadeHandleEvent (CompDisplay *d,
 		w = findWindowAtDisplay (d, event->xmap.window);
 		if (w)
 		{
-			FADE_SCREEN (w->screen);
+			const BananaValue *
+			option_minimize_open_close = bananaGetOption (
+			        bananaIndex, "minimize_open_close", w->screen->screenNum);
 
-			if (fs->opt[FADE_SCREEN_OPTION_MINIMIZE_OPEN_CLOSE].value.b &&
+			if (option_minimize_open_close->b &&
 			    !fd->suppressMinimizeOpenClose)
 			{
 				fadeWindowStop (w);
@@ -576,14 +563,16 @@ fadeHandleEvent (CompDisplay *d,
 				{
 					CompScreen *s = w->screen;
 
-					FADE_SCREEN (s);
+					const BananaValue *option_visual_bell = bananaGetOption (
+					     bananaIndex, "visual_bell", s->screenNum);
 
-					if (fs->opt[FADE_SCREEN_OPTION_VISUAL_BELL].value.b)
+					if (option_visual_bell->b)
 					{
-						int option;
+						const BananaValue *
+						option_fullscreen_visual_bell = bananaGetOption (
+						  bananaIndex, "fullscreen_visual_bell", s->screenNum);
 
-						option = FADE_SCREEN_OPTION_FULLSCREEN_VISUAL_BELL;
-						if (fs->opt[option].value.b)
+						if (option_fullscreen_visual_bell->b)
 						{
 							for (w = s->windows; w; w = w->next)
 							{
@@ -747,9 +736,6 @@ fadeInitDisplay (CompPlugin  *p,
 {
 	FadeDisplay *fd;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	fd = malloc (sizeof (FadeDisplay));
 	if (!fd)
 		return FALSE;
@@ -797,19 +783,6 @@ fadeFiniDisplay (CompPlugin  *p,
 	free (fd);
 }
 
-static const CompMetadataOptionInfo fadeScreenOptionInfo[] = {
-	{ "fade_mode", "int", RESTOSTRING (0, FADE_MODE_MAX), 0, 0 },
-	{ "fade_speed", "float", "<min>0.1</min>", 0, 0 },
-	{ "fade_time", "int", "<min>1</min>", 0, 0 },
-	{ "window_match", "match", "<helper>true</helper>", 0, 0 },
-	{ "visual_bell", "bool", 0, 0, 0 },
-	{ "fullscreen_visual_bell", "bool", 0, 0, 0 },
-	{ "minimize_open_close", "bool", 0, 0, 0 },
-	{ "dim_unresponsive", "bool", 0, 0, 0 },
-	{ "unresponsive_brightness", "int", "<min>0</min><max>100</max>", 0, 0 },
-	{ "unresponsive_saturation", "int", "<min>0</min><max>100</max>", 0, 0 }
-};
-
 static Bool
 fadeInitScreen (CompPlugin *p,
                 CompScreen *s)
@@ -822,31 +795,29 @@ fadeInitScreen (CompPlugin *p,
 	if (!fs)
 		return FALSE;
 
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &fadeMetadata,
-	                                fadeScreenOptionInfo,
-	                                fs->opt,
-	                                FADE_SCREEN_OPTION_NUM))
-	{
-		free (fs);
-		return FALSE;
-	}
-
 	fs->windowPrivateIndex = allocateWindowPrivateIndex (s);
 	if (fs->windowPrivateIndex < 0)
 	{
-		compFiniScreenOptions (s, fs->opt, FADE_SCREEN_OPTION_NUM);
 		free (fs);
 		return FALSE;
 	}
 
-	fs->fadeTime = 1000.0f / fs->opt[FADE_SCREEN_OPTION_FADE_SPEED].value.f;
+	const BananaValue *
+	option_fade_speed = bananaGetOption (bananaIndex,
+	                                     "fade_speed",
+	                                     s->screenNum);
+
+	fs->fadeTime = 1000.0f / option_fade_speed->f;
+
+	const BananaValue *
+	option_window_match = bananaGetOption (bananaIndex,
+	                                       "window_match",
+	                                       s->screenNum);
 
 	matchInit (&fs->match);
-
-	fadeUpdateWindowFadeMatch (s->display,
-	                           &fs->opt[FADE_SCREEN_OPTION_WINDOW_MATCH].value,
-	                           &fs->match);
+	matchAddFromString (&fs->match, "!type=desktop");
+	matchAddFromString (&fs->match, option_window_match->s);
+	matchUpdate (core.displays, &fs->match);
 
 	WRAP (fs, s, preparePaintScreen, fadePreparePaintScreen);
 	WRAP (fs, s, paintWindow, fadePaintWindow);
@@ -874,8 +845,6 @@ fadeFiniScreen (CompPlugin *p,
 	UNWRAP (fs, s, damageWindowRect);
 	UNWRAP (fs, s, focusWindow);
 	UNWRAP (fs, s, windowResizeNotify);
-
-	compFiniScreenOptions (s, fs->opt, FADE_SCREEN_OPTION_NUM);
 
 	free (fs);
 }
@@ -966,54 +935,31 @@ fadeFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-fadeGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) 0, /* GetDisplayOptions */
-		(GetPluginObjectOptionsProc) fadeGetScreenOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-fadeSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) 0, /* SetDisplayOption */
-		(SetPluginObjectOptionProc) fadeSetScreenOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
 static Bool
 fadeInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&fadeMetadata, p->vTable->name, 0, 0,
-	                                     fadeScreenOptionInfo,
-	                                     FADE_SCREEN_OPTION_NUM))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&fadeMetadata);
+		compLogMessage ("fade", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&fadeMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("fade");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, fadeChangeNotify);
 
 	return TRUE;
 }
@@ -1022,28 +968,20 @@ static void
 fadeFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&fadeMetadata);
-}
 
-static CompMetadata *
-fadeGetMetadata (CompPlugin *plugin)
-{
-	return &fadeMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable fadeVTable = {
 	"fade",
-	fadeGetMetadata,
 	fadeInit,
 	fadeFini,
 	fadeInitObject,
-	fadeFiniObject,
-	fadeGetObjectOptions,
-	fadeSetObjectOption
+	fadeFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &fadeVTable;
 }

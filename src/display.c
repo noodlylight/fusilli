@@ -68,8 +68,6 @@ int lastPointerY = 0;
 int pointerX     = 0;
 int pointerY     = 0;
 
-#define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
-
 static char *displayPrivateIndices = 0;
 static int  displayPrivateLen = 0;
 
@@ -158,369 +156,6 @@ freeDisplayPrivateIndex (int index)
 	compObjectFreePrivateIndex (NULL, COMP_OBJECT_TYPE_DISPLAY, index);
 }
 
-static Bool
-closeWin (CompDisplay     *d,
-          CompAction      *action,
-          CompActionState state,
-          CompOption      *option,
-          int             nOption)
-{
-	CompWindow   *w;
-	Window       xid;
-	unsigned int time;
-
-	xid  = getIntOptionNamed (option, nOption, "window", 0);
-	time = getIntOptionNamed (option, nOption, "time", CurrentTime);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w && (w->actions & CompWindowActionCloseMask))
-		closeWindow (w, time);
-
-	return TRUE;
-}
-
-static Bool
-unmaximize (CompDisplay     *d,
-            CompAction      *action,
-            CompActionState state,
-            CompOption      *option,
-            int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		maximizeWindow (w, 0);
-
-	return TRUE;
-}
-
-static Bool
-minimize (CompDisplay     *d,
-          CompAction      *action,
-          CompActionState state,
-          CompOption      *option,
-          int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w && (w->actions & CompWindowActionMinimizeMask))
-		minimizeWindow (w);
-
-	return TRUE;
-}
-
-static Bool
-maximize (CompDisplay     *d,
-          CompAction      *action,
-          CompActionState state,
-          CompOption      *option,
-          int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		maximizeWindow (w, MAXIMIZE_STATE);
-
-	return TRUE;
-}
-
-static Bool
-maximizeHorizontally (CompDisplay     *d,
-                      CompAction      *action,
-                      CompActionState state,
-                      CompOption      *option,
-                      int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		maximizeWindow (w, w->state | CompWindowStateMaximizedHorzMask);
-
-	return TRUE;
-}
-
-static Bool
-maximizeVertically (CompDisplay     *d,
-                    CompAction      *action,
-                    CompActionState state,
-                    CompOption      *option,
-                    int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		maximizeWindow (w, w->state | CompWindowStateMaximizedVertMask);
-
-	return TRUE;
-}
-
-static Bool
-showDesktop (CompDisplay     *d,
-             CompAction      *action,
-             CompActionState state,
-             CompOption      *option,
-             int             nOption)
-{
-	CompScreen *s;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-
-	s = findScreenAtDisplay (d, xid);
-	if (s)
-	{
-		if (s->showingDesktopMask == 0)
-			(*s->enterShowDesktopMode) (s);
-		else
-			(*s->leaveShowDesktopMode) (s, NULL);
-	}
-
-	return TRUE;
-}
-
-static Bool
-toggleSlowAnimations (CompDisplay     *d,
-                      CompAction      *action,
-                      CompActionState state,
-                      CompOption      *option,
-                      int             nOption)
-{
-	CompScreen *s;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-
-	s = findScreenAtDisplay (d, xid);
-	if (s)
-		s->slowAnimations = !s->slowAnimations;
-
-	return TRUE;
-}
-
-static Bool
-raiseInitiate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		raiseWindow (w);
-
-	return TRUE;
-}
-
-static Bool
-lowerInitiate (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		lowerWindow (w);
-
-	return TRUE;
-}
-
-static Bool
-windowMenu (CompDisplay     *d,
-            CompAction      *action,
-            CompActionState state,
-            CompOption      *option,
-            int	            nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w && !w->screen->maxGrab)
-	{
-		int  x, y, button;
-		Time time;
-
-		time   = getIntOptionNamed (option, nOption, "time", CurrentTime);
-		button = getIntOptionNamed (option, nOption, "button", 0);
-		x      = getIntOptionNamed (option, nOption, "x", w->attrib.x);
-		y      = getIntOptionNamed (option, nOption, "y", w->attrib.y);
-
-		toolkitAction (w->screen,
-		               w->screen->display->toolkitActionWindowMenuAtom,
-		               time,
-		               w->id,
-		               button,
-		               x,
-		               y);
-	}
-
-	return TRUE;
-}
-
-static Bool
-toggleMaximized (CompDisplay     *d,
-                 CompAction      *action,
-                 CompActionState state,
-                 CompOption      *option,
-                 int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-	{
-		if ((w->state & MAXIMIZE_STATE) == MAXIMIZE_STATE)
-			maximizeWindow (w, 0);
-		else
-			maximizeWindow (w, MAXIMIZE_STATE);
-	}
-
-	return TRUE;
-}
-
-static Bool
-toggleMaximizedHorizontally (CompDisplay     *d,
-                             CompAction      *action,
-                             CompActionState state,
-                             CompOption      *option,
-                             int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		maximizeWindow (w, w->state ^ CompWindowStateMaximizedHorzMask);
-
-	return TRUE;
-}
-
-static Bool
-toggleMaximizedVertically (CompDisplay     *d,
-                           CompAction      *action,
-                           CompActionState state,
-                           CompOption      *option,
-                           int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w)
-		maximizeWindow (w, w->state ^ CompWindowStateMaximizedVertMask);
-
-	return TRUE;
-}
-
-static Bool
-shade (CompDisplay     *d,
-       CompAction      *action,
-       CompActionState state,
-       CompOption      *option,
-       int             nOption)
-{
-	CompWindow *w;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-
-	w = findTopLevelWindowAtDisplay (d, xid);
-	if (w && (w->actions & CompWindowActionShadeMask))
-	{
-		w->state ^= CompWindowStateShadedMask;
-		updateWindowAttributes (w, CompStackingUpdateModeNone);
-	}
-
-	return TRUE;
-}
-
-const CompMetadataOptionInfo coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM] = {
-	{ "abi", "int", 0, 0, 0 },
-	{ "active_plugins", "list", "<type>string</type>", 0, 0 },
-	{ "texture_filter", "int", RESTOSTRING (0, 2), 0, 0 },
-	{ "click_to_focus", "bool", 0, 0, 0 },
-	{ "autoraise", "bool", 0, 0, 0 },
-	{ "autoraise_delay", "int", 0, 0, 0 },
-	{ "close_window_key", "key", 0, closeWin, 0 },
-	{ "close_window_button", "button", 0, closeWin, 0 },
-	{ "slow_animations_key", "key", 0, toggleSlowAnimations, 0 },
-	{ "raise_window_key", "key", 0, raiseInitiate, 0 },
-	{ "raise_window_button", "button", 0, raiseInitiate, 0 },
-	{ "lower_window_key", "key", 0, lowerInitiate, 0 },
-	{ "lower_window_button", "button", 0, lowerInitiate, 0 },
-	{ "unmaximize_window_key", "key", 0, unmaximize, 0 },
-	{ "minimize_window_key", "key", 0, minimize, 0 },
-	{ "minimize_window_button", "button", 0, minimize, 0 },
-	{ "maximize_window_key", "key", 0, maximize, 0 },
-	{ "maximize_window_horizontally_key", "key", 0, maximizeHorizontally, 0 },
-	{ "maximize_window_vertically_key", "key", 0, maximizeVertically, 0 },
-	{ "window_menu_button", "button", 0, windowMenu, 0 },
-	{ "window_menu_key", "key", 0, windowMenu, 0 },
-	{ "show_desktop_key", "key", 0, showDesktop, 0 },
-	{ "show_desktop_edge", "edge", 0, showDesktop, 0 },
-	{ "raise_on_click", "bool", 0, 0, 0 },
-	{ "audible_bell", "bool", 0, 0, 0 },
-	{ "toggle_window_maximized_key", "key", 0, toggleMaximized, 0 },
-	{ "toggle_window_maximized_button", "button", 0, toggleMaximized, 0 },
-	{ "toggle_window_maximized_horizontally_key", "key", 0,
-	  toggleMaximizedHorizontally, 0 },
-	{ "toggle_window_maximized_vertically_key", "key", 0,
-	  toggleMaximizedVertically, 0 },
-	{ "hide_skip_taskbar_windows", "bool", 0, 0, 0 },
-	{ "toggle_window_shaded_key", "key", 0, shade, 0 },
-	{ "ignore_hints_when_maximized", "bool", 0, 0, 0 },
-	{ "ping_delay", "int", "<min>1000</min>", 0, 0 },
-	{ "edge_delay", "int", "<min>0</min>", 0, 0 }
-};
-
-CompOption *
-getDisplayOptions (CompPlugin  *plugin,
-                   CompDisplay *display,
-                   int         *count)
-{
-	*count = NUM_OPTIONS (display);
-	return display->opt;
-}
 
 static void
 setAudibleBell (CompDisplay *display,
@@ -603,235 +238,181 @@ pingTimeout (void *closure)
 	return TRUE;
 }
 
-Bool
-setDisplayOption (CompPlugin      *plugin,
-                  CompDisplay     *display,
-                  const char      *name,
-                  CompOptionValue *value)
+void
+displayChangeNotify (const char        *optionName,
+                     BananaType        optionType,
+                     const BananaValue *optionValue,
+                     int               screenNum)
 {
-	CompOption *o;
-	int        index;
-
-	o = compFindOption (display->opt, NUM_OPTIONS (display), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case COMP_DISPLAY_OPTION_ABI:
-		break;
-	case COMP_DISPLAY_OPTION_ACTIVE_PLUGINS:
-		if (compSetOptionList (o, value))
-		{
-			display->dirtyPluginList = TRUE;
-			return TRUE;
-		}
-		break;
-	case COMP_DISPLAY_OPTION_TEXTURE_FILTER:
-		if (compSetIntOption (o, value))
-		{
-			CompScreen *s;
-
-			for (s = display->screens; s; s = s->next)
-				damageScreen (s);
-
-			if (!o->value.i)
-				display->textureFilter = GL_NEAREST;
-			else
-				display->textureFilter = GL_LINEAR;
-
-			return TRUE;
-		}
-		break;
-	case COMP_DISPLAY_OPTION_PING_DELAY:
-		if (compSetIntOption (o, value))
-		{
-			if (display->pingHandle)
-				compRemoveTimeout (display->pingHandle);
-
-			display->pingHandle =
-				compAddTimeout (o->value.i, o->value.i + 500,
-				                pingTimeout, display);
-			return TRUE;
-		}
-		break;
-	case COMP_DISPLAY_OPTION_AUDIBLE_BELL:
-		if (compSetBoolOption (o, value))
-		{
-			setAudibleBell (display, o->value.b);
-			return TRUE;
-		}
-		break;
-	default:
-		if (compSetDisplayOption (display, o, value))
-			return TRUE;
-		break;
+	if (strcasecmp (optionName, "active_plugins") == 0)
+	{
+		core.displays->dirtyPluginList = TRUE;
 	}
+	else if (strcasecmp (optionName, "texture_filter") == 0)
+	{
+		CompScreen *s;
 
-	return FALSE;
+		for (s = core.displays->screens; s; s = s->next)
+			damageScreen (s);
+
+		if (!optionValue->i)
+			core.displays->textureFilter = GL_NEAREST;
+		else
+			core.displays->textureFilter = GL_LINEAR;
+	}
+	else if (strcasecmp (optionName, "ping_delay") == 0)
+	{
+		if (core.displays->pingHandle)
+			compRemoveTimeout (core.displays->pingHandle);
+
+		core.displays->pingHandle =
+		    compAddTimeout (optionValue->i, optionValue->i + 500,
+		                    pingTimeout, core.displays);
+	}
+	else if (strcasecmp (optionName, "audible_bell") == 0)
+	{
+		setAudibleBell (core.displays, optionValue->b);
+	}
+	else if (strcasecmp (optionName, "close_window_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->close_window_key);
+	}
+	else if (strcasecmp (optionName, "raise_window_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->raise_window_key);
+	}
+	else if (strcasecmp (optionName, "lower_window_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->lower_window_key);
+	}
+	else if (strcasecmp (optionName, "unmaximize_window_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->unmaximize_window_key);
+	}
+	else if (strcasecmp (optionName, "minimize_window_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->minimize_window_key);
+	}
+	else if (strcasecmp (optionName, "maximize_window_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->maximize_window_key);
+	}
+	else if (strcasecmp (optionName, "maximize_window_horizontally_key") == 0)
+	{
+		updateKey (optionValue->s, 
+		           &core.displays->maximize_window_horizontally_key);
+	}
+	else if (strcasecmp (optionName, "maximize_window_vertically_key") == 0)
+	{
+		updateKey (optionValue->s, 
+		           &core.displays->maximize_window_vertically_key);
+	}
+	else if (strcasecmp (optionName, "window_menu_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->window_menu_key);
+	}
+	else if (strcasecmp (optionName, "show_desktop_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->show_desktop_key);
+	}
+	else if (strcasecmp (optionName, "toggle_window_maximized_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->toggle_window_maximized_key);
+	}
+	else if (strcasecmp (optionName, 
+	                     "toggle_window_maximized_horizontally_key") == 0)
+	{
+		updateKey (optionValue->s, 
+		           &core.displays->toggle_window_maximized_horizontally_key);
+	}
+	else if (strcasecmp (optionName, 
+	                     "toggle_window_maximized_vertically_key") == 0)
+	{
+		updateKey (optionValue->s, 
+		           &core.displays->toggle_window_maximized_vertically_key);
+	}
+	else if (strcasecmp (optionName, "toggle_window_shaded_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->toggle_window_shaded_key);
+	}
+	else if (strcasecmp (optionName, "slow_animations_key") == 0)
+	{
+		updateKey (optionValue->s, &core.displays->slow_animations_key);
+	}
+	else if (strcasecmp (optionName, "close_window_button") == 0)
+	{
+		updateButton (optionValue->s, &core.displays->close_window_button);
+	}
+	else if (strcasecmp (optionName, "raise_window_button") == 0)
+	{
+		updateButton (optionValue->s, &core.displays->raise_window_button);
+	}
+	else if (strcasecmp (optionName, "lower_window_button") == 0)
+	{
+		updateButton (optionValue->s, &core.displays->lower_window_button);
+	}
+	else if (strcasecmp (optionName, "minimize_window_button") == 0)
+	{
+		updateButton (optionValue->s, &core.displays->minimize_window_button);
+	}
+	else if (strcasecmp (optionName, "window_menu_button") == 0)
+	{
+		updateButton (optionValue->s, &core.displays->window_menu_button);
+	}
+	else if (strcasecmp (optionName, "toggle_window_maximized_button") == 0)
+	{
+		updateButton (optionValue->s, 
+		              &core.displays->toggle_window_maximized_button);
+	}
 }
 
 static void
 updatePlugins (CompDisplay *d)
 {
-	CompOption      *o;
-	CompPlugin      *p, **pop = 0;
-	int              nPop, i, j, k;
-	CompOptionValue *pList;
-	int             pListCount = 1;
-
-	d->dirtyPluginList = FALSE;
-
-	o = &d->opt[COMP_DISPLAY_OPTION_ACTIVE_PLUGINS];
-
-	/* determine number of plugins, which is core + initial plugins +
-	   plugins in option list additional to initial plugins */
-	for (i = 0; i < nInitialPlugins; i++)
-		if (strcmp (initialPlugins[i], "core") != 0)
-			pListCount++;
-
-	for (i = 0; i < o->value.list.nValue; i++)
+	//pop and unload all plugins *except core*
+	int i;
+	for (i = 0; i < d->plugin.list.nItem - 1; i++)
 	{
-		if (strcmp (o->value.list.value[i].s, "core") == 0)
-			continue;
-
-		for (j = 0; j < nInitialPlugins; j++)
-		{
-			if (strcmp (o->value.list.value[i].s, initialPlugins[j]) == 0)
-				break;
-		}
-
-		/* plugin is not in initial plugin list */
-		if (j == nInitialPlugins)
-			pListCount++;
+		CompPlugin *p;
+		p = popPlugin ();
+		unloadPlugin (p);
 	}
 
-	pList = malloc (sizeof (CompOptionValue) * pListCount);
-	if (!pList)
-	{
-		(*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
-		return;
-	}
+	finiBananaValue (&d->plugin, BananaListString);
 
-	/* new plugin list needs core as first plugin */
-	pList[0].s = "core";
+	//load and push all plugins
+	initBananaValue (&d->plugin, BananaListString);
 
-	/* afterwards, add the initial plugins */
-	for (j = 0, k = 1; j < nInitialPlugins; j++)
+	//core was not popped/unloaded, so adding it to the list is enough
+	addItemToBananaList ("core", BananaListString, &d->plugin);
+
+	const BananaValue *
+	option_active_plugins = bananaGetOption (coreBananaIndex,
+	                                         "active_plugins",
+	                                         -1);
+
+
+	for (i = 0; i < option_active_plugins->list.nItem; i++)
 	{
-		/* avoid adding core twice */
-		if (strcmp (initialPlugins[j], "core") == 0)
-			continue;
+		CompPlugin *p;
+		p = loadPlugin (option_active_plugins->list.item[i].s);
 		
-		pList[k++].s = initialPlugins[j];
-	}
-	j = k;
-
-	/* then add the plugins not in the initial plugin list */
-	for (i = 0; i < o->value.list.nValue; i++)
-	{
-		if (strcmp (o->value.list.value[i].s, "core") == 0)
-			continue;
-
-		for (k = 0; k < nInitialPlugins; k++)
-		{
-			if (strcmp (o->value.list.value[i].s, initialPlugins[k]) == 0)
-				break;
-		}
-		
-		if (k == nInitialPlugins)
-			pList[j++].s = o->value.list.value[i].s;
-	}
-
-	assert (j == pListCount);
-
-	/* j is initialized to 1 to make sure we never pop the core plugin */
-	for (i = j = 1; j < d->plugin.list.nValue && i < pListCount; i++, j++)
-	{
-		if (strcmp (d->plugin.list.value[j].s, pList[i].s))
-			break;
-	}
-
-	nPop = d->plugin.list.nValue - j;
-
-	if (nPop)
-	{
-		pop = malloc (sizeof (CompPlugin *) * nPop);
-		if (!pop)
-		{
-			(*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
-			free (pList);
-			return;
-		}
-	}
-
-	for (j = 0; j < nPop; j++)
-	{
-		pop[j] = popPlugin ();
-		d->plugin.list.nValue--;
-		free (d->plugin.list.value[d->plugin.list.nValue].s);
-	}
-
-	for (; i < pListCount; i++)
-	{
-		p = 0;
-		for (j = 0; j < nPop; j++)
-		{
-			if (pop[j] && strcmp (pop[j]->vTable->name, pList[i].s) == 0)
-			{
-				if (pushPlugin (pop[j]))
-				{
-					p = pop[j];
-					pop[j] = 0;
-					break;
-				}
-			}
-		}
-
-		if (p == 0)
-		{
-			p = loadPlugin (pList[i].s);
-			if (p)
-			{
-				if (!pushPlugin (p))
-				{
-					unloadPlugin (p);
-					p = 0;
-				}
-			}
-		}
-
 		if (p)
 		{
-			CompOptionValue *value;
-
-			value = realloc (d->plugin.list.value, sizeof (CompOptionValue) *
-			                (d->plugin.list.nValue + 1));
-			if (value)
+			if (pushPlugin (p))
 			{
-				value[d->plugin.list.nValue].s = strdup (p->vTable->name);
-
-				d->plugin.list.value = value;
-				d->plugin.list.nValue++;
+				addItemToBananaList (option_active_plugins->list.item[i].s,
+				                     BananaListString,
+				                     &d->plugin);
 			}
 			else
 			{
-				p = popPlugin ();
 				unloadPlugin (p);
 			}
 		}
 	}
 
-	for (j = 0; j < nPop; j++)
-	{
-		if (pop[j])
-			unloadPlugin (pop[j]);
-	}
-
-	if (nPop)
-		free (pop);
-
-	free (pList);
-	(*core.setOptionForPlugin) (&d->base, "core", o->name, &d->plugin);
+	d->dirtyPluginList = FALSE;
 }
 
 static void
@@ -1011,8 +592,13 @@ getTimeToNextRedraw (CompScreen     *s,
 	if (diff < 0)
 		diff = 0;
 
+	const BananaValue *
+	option_sync_to_vblank = bananaGetOption (coreBananaIndex,
+	                                         "sync_to_vblank",
+	                                         s->screenNum);
+
 	if (idle ||
-		(s->getVideoSync && s->opt[COMP_SCREEN_OPTION_SYNC_TO_VBLANK].value.b))
+		(s->getVideoSync && option_sync_to_vblank->b))
 	{
 		if (s->timeMult > 1)
 		{
@@ -1275,7 +861,12 @@ waitForVideoSync (CompScreen *s)
 {
 	unsigned int sync;
 
-	if (!s->opt[COMP_SCREEN_OPTION_SYNC_TO_VBLANK].value.b)
+	const BananaValue *
+	option_sync_to_vblank = bananaGetOption (coreBananaIndex,
+	                                         "sync_to_vblank",
+	                                         s->screenNum);
+
+	if (!option_sync_to_vblank->b)
 		return;
 
 	if (s->getVideoSync)
@@ -1412,7 +1003,6 @@ eventLoop (void)
 				default:
 					break;
 				}
-
 				sn_display_process_event (d->snDisplay, &event);
 
 				inHandleEvent = TRUE;
@@ -1552,7 +1142,12 @@ eventLoop (void)
 								glClear (GL_COLOR_BUFFER_BIT);
 						}
 
-						if (s->opt[COMP_SCREEN_OPTION_FORCE_INDEPENDENT].value.b
+						const BananaValue *
+						option_force_independent_output_painting =
+						  bananaGetOption (coreBananaIndex, 
+						  "force_independent_output_painting", s->screenNum);
+
+						if (option_force_independent_output_painting->b
 						    || !s->hasOverlappingOutputs)
 							(*s->paintScreen) (s, s->outputDev,
 							                   s->nOutputDev,
@@ -1742,23 +1337,6 @@ compCheckForError (Display *dpy)
 	return e;
 }
 
-/* add actions that should be automatically added as no screens
-   existed when they were initialized. */
-static void
-addScreenActions (CompScreen *s)
-{
-	int i;
-
-	for (i = 0; i < COMP_DISPLAY_OPTION_NUM; i++)
-	{
-		if (!isActionOption (&s->display->opt[i]))
-			continue;
-
-		if (s->display->opt[i].value.action.state & CompActionStateAutoGrab)
-			addScreenAction (s, &s->display->opt[i].value.action);
-	}
-}
-
 void
 addScreenToDisplay (CompDisplay *display,
                     CompScreen  *s)
@@ -1771,16 +1349,12 @@ addScreenToDisplay (CompDisplay *display,
 		prev->next = s;
 	else
 		display->screens = s;
-
-	addScreenActions (s);
 }
 
 static void
 freeDisplay (CompDisplay *d)
 {
-	compFiniDisplayOptions (d, d->opt, COMP_DISPLAY_OPTION_NUM);
-
-	compFiniOptionValue (&d->plugin, CompOptionTypeList);
+	finiBananaValue (&d->plugin, BananaListString);
 
 	if (d->modMap)
 		XFreeModifiermap (d->modMap);
@@ -1885,24 +1459,9 @@ addDisplay (const char *name)
 
 	d->ignoredModMask = LockMask;
 
-	compInitOptionValue (&d->plugin);
+	initBananaValue (&d->plugin, BananaListString);
 
-	d->plugin.list.type   = CompOptionTypeString;
-	d->plugin.list.nValue = 1;
-	d->plugin.list.value  = malloc (sizeof (CompOptionValue));
-
-	if (!d->plugin.list.value) {
-		free (d);
-		return FALSE;
-	}
-
-	d->plugin.list.value->s = strdup ("core");
-	if (!d->plugin.list.value->s) 
-	{
-		free (d->plugin.list.value);
-		free (d);
-		return FALSE;
-	}
+	addItemToBananaList ("core", BananaListString, &d->plugin);
 
 	d->dirtyPluginList = TRUE;
 
@@ -1921,15 +1480,6 @@ addDisplay (const char *name)
 		                "Couldn't open display %s", XDisplayName (name));
 		return FALSE;
 	}
-
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                         &coreMetadata,
-	                                         coreDisplayOptionInfo,
-	                                         d->opt,
-	                                         COMP_DISPLAY_OPTION_NUM))
-		return FALSE;
-
-	d->opt[COMP_DISPLAY_OPTION_ABI].value.i = CORE_ABIVERSION;
 
 	snprintf (d->displayString, 255, "DISPLAY=%s", DisplayString (dpy));
 
@@ -2403,7 +1953,10 @@ addDisplay (const char *name)
 		return FALSE;
 	}
 
-	setAudibleBell (d, d->opt[COMP_DISPLAY_OPTION_AUDIBLE_BELL].value.b);
+	const BananaValue *
+	option_audible_bell = bananaGetOption (coreBananaIndex, "audible_bell", -1);
+
+	setAudibleBell (d, option_audible_bell->b);
 
 	XGetInputFocus (dpy, &focus, &revertTo);
 
@@ -2428,10 +1981,178 @@ addDisplay (const char *name)
 			focusDefaultWindow (d->screens);
 	}
 
+	const BananaValue *
+	option_ping_delay = bananaGetOption (coreBananaIndex, "ping_delay", -1);
+
 	d->pingHandle =
-	      compAddTimeout (d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i,
-	                      d->opt[COMP_DISPLAY_OPTION_PING_DELAY].value.i + 500,
+	      compAddTimeout (option_ping_delay->i,
+	                      option_ping_delay->i + 500,
 	                      pingTimeout, d);
+
+	const BananaValue *
+	option_close_window_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "close_window_key", -1);
+
+	registerKey (option_close_window_key->s, &d->close_window_key);
+
+	const BananaValue *
+	option_raise_window_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "raise_window_key", -1);
+
+	registerKey (option_raise_window_key->s, &d->raise_window_key);
+
+	const BananaValue *
+	option_lower_window_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "lower_window_key", -1);
+
+	registerKey (option_lower_window_key->s, &d->lower_window_key);
+
+	const BananaValue *
+	option_unmaximize_window_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "unmaximize_window_key", -1);
+
+	registerKey (option_unmaximize_window_key->s, &d->unmaximize_window_key);
+
+	const BananaValue *
+	option_minimize_window_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "minimize_window_key", -1);
+
+	registerKey (option_minimize_window_key->s, &d->minimize_window_key);
+
+	const BananaValue *
+	option_maximize_window_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "maximize_window_key", -1);
+
+	registerKey (option_maximize_window_key->s, &d->maximize_window_key);
+
+	const BananaValue *
+	option_maximize_window_horizontally_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "maximize_window_horizontally_key", -1);
+
+	registerKey (option_maximize_window_horizontally_key->s, 
+	             &d->maximize_window_horizontally_key);
+
+	const BananaValue *
+	option_maximize_window_vertically_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "maximize_window_vertically_key", -1);
+
+	registerKey (option_maximize_window_vertically_key->s,
+	             &d->maximize_window_vertically_key);
+
+	const BananaValue *
+	option_window_menu_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "window_menu_key", -1);
+
+	registerKey (option_window_menu_key->s,
+	             &d->window_menu_key);
+
+	const BananaValue *
+	option_show_desktop_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "show_desktop_key", -1);
+
+	registerKey (option_show_desktop_key->s,
+	             &d->show_desktop_key);
+
+	const BananaValue *
+	option_toggle_window_maximized_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "toggle_window_maximized_key", -1);
+
+	registerKey (option_toggle_window_maximized_key->s,
+	             &d->toggle_window_maximized_key);
+
+	const BananaValue *
+	option_toggle_window_maximized_horizontally_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "toggle_window_maximized_horizontally_key", -1);
+
+	registerKey (option_toggle_window_maximized_horizontally_key->s,
+	             &d->toggle_window_maximized_horizontally_key);
+
+	const BananaValue *
+	option_toggle_window_maximized_vertically_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "toggle_window_maximized_vertically_key", -1);
+
+	registerKey (option_toggle_window_maximized_vertically_key->s,
+	             &d->toggle_window_maximized_vertically_key);
+
+	const BananaValue *
+	option_toggle_window_shaded_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "toggle_window_shaded_key", -1);
+
+	registerKey (option_toggle_window_shaded_key->s,
+	             &d->toggle_window_shaded_key);
+
+	const BananaValue *
+	option_slow_animations_key =
+	    bananaGetOption (coreBananaIndex,
+	                     "slow_animations_key", -1);
+
+	registerKey (option_slow_animations_key->s,
+	             &d->slow_animations_key);
+
+	const BananaValue *
+	option_close_window_button =
+	    bananaGetOption (coreBananaIndex,
+	                     "close_window_button", -1);
+
+	registerButton (option_close_window_button->s,
+	                &d->close_window_button);
+
+	const BananaValue *
+	option_raise_window_button =
+	    bananaGetOption (coreBananaIndex,
+	                     "raise_window_button", -1);
+
+	registerButton (option_raise_window_button->s,
+	                &d->raise_window_button);
+
+	const BananaValue *
+	option_lower_window_button =
+	    bananaGetOption (coreBananaIndex,
+	                     "lower_window_button", -1);
+
+	registerButton (option_lower_window_button->s,
+	                &d->lower_window_button);
+
+	const BananaValue *
+	option_minimize_window_button =
+	    bananaGetOption (coreBananaIndex,
+	                     "minimize_window_button", -1);
+
+	registerButton (option_minimize_window_button->s,
+	                &d->minimize_window_button);
+
+	const BananaValue *
+	option_window_menu_button =
+	    bananaGetOption (coreBananaIndex,
+	                     "window_menu_button", -1);
+
+	registerButton (option_window_menu_button->s,
+	                &d->window_menu_button);
+
+	const BananaValue *
+	option_toggle_window_maximized_button =
+	    bananaGetOption (coreBananaIndex,
+	                     "toggle_window_maximized_button", -1);
+
+	registerButton (option_toggle_window_maximized_button->s,
+	                &d->toggle_window_maximized_button);
+
+	bananaAddChangeNotifyCallBack (coreBananaIndex, displayChangeNotify);
+	bananaAddChangeNotifyCallBack (coreBananaIndex, screenChangeNotify);
 
 	return TRUE;
 }
@@ -2508,6 +2229,18 @@ findScreenAtDisplay (CompDisplay *d,
 	}
 
 	return 0;
+}
+
+CompScreen *
+getScreenFromScreenNum (int screenNum)
+{
+	CompScreen *screen;
+
+	for (screen = core.displays->screens; screen; screen = screen->next)
+		if (screen->screenNum == screenNum)
+			return screen;
+
+	return NULL;
 }
 
 void
@@ -2753,33 +2486,155 @@ warpPointer (CompScreen *s,
 }
 
 Bool
-setDisplayAction (CompDisplay     *display,
-                  CompOption      *o,
-                  CompOptionValue *value)
+addDisplayKeyBinding (CompKeyBinding *key)
 {
 	CompScreen *s;
 
-	for (s = display->screens; s; s = s->next)
-		if (!addScreenAction (s, &value->action))
+	for (s = core.displays->screens; s; s = s->next)
+		if (!addScreenKeyBinding (s, key))
 			break;
 
 	if (s)
 	{
 		CompScreen *failed = s;
 
-		for (s = display->screens; s && s != failed; s = s->next)
-			removeScreenAction (s, &value->action);
+		for (s = core.displays->screens; s && s != failed; s = s->next)
+			removeScreenKeyBinding (s, key);
 
 		return FALSE;
 	}
-	else
+
+	return TRUE;
+}
+
+Bool
+addDisplayButtonBinding (CompButtonBinding *button)
+{
+	CompScreen *s;
+
+	for (s = core.displays->screens; s; s = s->next)
+		if (!addScreenButtonBinding (s, button))
+			break;
+
+	if (s)
 	{
-		for (s = display->screens; s; s = s->next)
-			removeScreenAction (s, &o->value.action);
+		CompScreen *failed = s;
+
+		for (s = core.displays->screens; s && s != failed; s = s->next)
+			removeScreenButtonBinding (s, button);
+
+		return FALSE;
 	}
 
-	if (compSetActionOption (o, value))
-		return TRUE;
+	return TRUE;
+}
+
+void
+removeDisplayKeyBinding (CompKeyBinding *key)
+{
+	CompScreen *s;
+
+	for (s = core.displays->screens; s; s = s->next)
+		removeScreenKeyBinding (s, key);
+}
+
+void
+removeDisplayButtonBinding (CompButtonBinding *button)
+{
+	CompScreen *s;
+
+	for (s = core.displays->screens; s; s = s->next)
+		removeScreenButtonBinding (s, button);
+}
+
+void
+registerButton (const char        *s,
+                CompButtonBinding *button)
+{
+	if (s)
+	{
+		if (stringToButtonBinding (core.displays, s, button))
+			button->active = addDisplayButtonBinding (button);
+		else
+			button->active = FALSE;
+	}
+	else
+		button->active = FALSE;
+}
+
+void
+registerKey (const char        *s,
+             CompKeyBinding    *key)
+{
+	if (s)
+	{
+		if (stringToKeyBinding (core.displays, s, key))
+			key->active = addDisplayKeyBinding (key);
+		else
+			key->active = FALSE;
+	}
+	else
+		key->active = FALSE;
+}
+
+void 
+updateButton (const char        *s,
+              CompButtonBinding *button)
+{
+	if (button->active)
+		removeDisplayButtonBinding (button);
+
+	if (stringToButtonBinding (core.displays, s, button))
+		button->active = addDisplayButtonBinding (button);
+	else
+		button->active = FALSE;
+}
+
+void
+updateKey (const char     *s,
+           CompKeyBinding *key)
+{
+	if (key->active)
+		removeDisplayKeyBinding (key);
+
+	if (stringToKeyBinding (core.displays, s, key))
+		key->active = addDisplayKeyBinding (key);
+	else
+		key->active = FALSE;
+}
+
+Bool
+isKeyPressEvent (XEvent         *event,
+                 CompKeyBinding *key)
+{
+	if (key->active)
+	{
+		unsigned int modMask = REAL_MOD_MASK & ~core.displays->ignoredModMask;
+		unsigned int bindMods = virtualToRealModMask (core.displays, 
+		                                              key->modifiers);
+
+		if (key->keycode == event->xkey.keycode    &&
+			(bindMods & modMask) == (event->xkey.state & modMask))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+Bool
+isButtonPressEvent (XEvent            *event,
+                    CompButtonBinding *button)
+{
+	if (button->active)
+	{
+		unsigned int modMask = REAL_MOD_MASK & ~core.displays->ignoredModMask;
+		unsigned int bindMods = virtualToRealModMask (core.displays, 
+		                                              button->modifiers);
+
+		if (button->button == event->xbutton.button    &&
+			(bindMods & modMask) == (event->xbutton.state & modMask))
+			return TRUE;
+	}
 
 	return FALSE;
 }

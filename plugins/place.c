@@ -26,7 +26,7 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata placeMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
 
@@ -52,25 +52,10 @@ typedef struct _PlaceDisplay {
 #define PLACE_MOMODE_FULLSCREEN 3
 #define PLACE_MOMODE_LAST       PLACE_MOMODE_FULLSCREEN
 
-#define PLACE_SCREEN_OPTION_WORKAROUND         0
-#define PLACE_SCREEN_OPTION_MODE               1
-#define PLACE_SCREEN_OPTION_MULTIOUTPUT_MODE   2
-#define PLACE_SCREEN_OPTION_FORCE_PLACEMENT    3
-#define PLACE_SCREEN_OPTION_POSITION_MATCHES   4
-#define PLACE_SCREEN_OPTION_POSITION_X_VALUES  5
-#define PLACE_SCREEN_OPTION_POSITION_Y_VALUES  6
-#define PLACE_SCREEN_OPTION_POSITION_CONSTRAIN 7
-#define PLACE_SCREEN_OPTION_VIEWPORT_MATCHES   8
-#define PLACE_SCREEN_OPTION_VIEWPORT_X_VALUES  9
-#define PLACE_SCREEN_OPTION_VIEWPORT_Y_VALUES  10
-#define PLACE_SCREEN_OPTION_MODE_MATCHES       11
-#define PLACE_SCREEN_OPTION_MODE_MODES         12
-#define PLACE_SCREEN_OPTION_NUM                13
+#define MAX_MATCHES 100
 
 typedef struct _PlaceScreen {
 	int	windowPrivateIndex;
-
-	CompOption opt[PLACE_SCREEN_OPTION_NUM];
 
 	AddSupportedAtomsProc           addSupportedAtoms;
 	PlaceWindowProc                 placeWindow;
@@ -81,6 +66,17 @@ typedef struct _PlaceScreen {
 	int               prevHeight;
 	int               strutWindowCount;
 	CompTimeoutHandle resChangeFallbackHandle;
+
+	CompMatch force_placement;
+
+	CompMatch position_match[MAX_MATCHES];
+	int position_count;
+
+	CompMatch mode_match[MAX_MATCHES];
+	int mode_count;
+
+	CompMatch viewport_match[MAX_MATCHES];
+	int viewport_count;
 } PlaceScreen;
 
 typedef struct _PlaceWindow {
@@ -111,8 +107,6 @@ typedef struct _PlaceWindow {
                           GET_PLACE_SCREEN  (w->screen, \
                           GET_PLACE_DISPLAY (w->screen->display)))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 typedef enum {
 	NoPlacement = 0,
 	PlaceOnly,
@@ -142,37 +136,45 @@ typedef enum {
 #define WIN_FULL_H(w) ((w)->serverHeight + BORDER_HEIGHT (w))
 
 static Bool
-placeMatchXYValue (CompWindow *w,
-                   CompOption *matches,
-                   CompOption *xValues,
-                   CompOption *yValues,
-                   CompOption *constrain,
-                   int        *x,
-                   int        *y,
-                   Bool       *keepInWorkarea)
+placeMatchPosition (CompWindow *w,
+                    int        *x,
+                    int        *y,
+                    Bool       *keepInWorkarea)
 {
+	PLACE_SCREEN (w->screen);
+
 	int i, min;
 
 	if (w->type & CompWindowTypeDesktopMask)
 		return FALSE;
 
-	min = MIN (matches->value.list.nValue, xValues->value.list.nValue);
-	min = MIN (min, yValues->value.list.nValue);
+	const BananaValue *
+	option_position_x_values = bananaGetOption (bananaIndex,
+	                                            "position_x_values",
+	                                            w->screen->screenNum);
+
+	const BananaValue *
+	option_position_y_values = bananaGetOption (bananaIndex,
+	                                            "position_y_values",
+	                                            w->screen->screenNum);
+
+	const BananaValue *
+	option_position_constrain_workarea = bananaGetOption (
+	          bananaIndex, "position_constrain_workarea", w->screen->screenNum);
+
+	min = MIN (ps->position_count, option_position_x_values->list.nItem);
+	min = MIN (min, option_position_y_values->list.nItem);
+	min = MIN (min, option_position_constrain_workarea->list.nItem);
 
 	for (i = 0; i < min; i++)
 	{
-		if (matchEval (&matches->value.list.value[i].match, w))
+		if (matchEval (&ps->position_match[i], w))
 		{
-			*x = xValues->value.list.value[i].i;
-			*y = yValues->value.list.value[i].i;
+			*x = option_position_x_values->list.item[i].i;
+			*y = option_position_y_values->list.item[i].i;
 
-			if (keepInWorkarea)
-			{
-				if (constrain && constrain->value.list.nValue > i)
-					*keepInWorkarea = constrain->value.list.value[i].b;
-				else
-					*keepInWorkarea = TRUE;
-			}
+			*keepInWorkarea = 
+			           option_position_constrain_workarea->list.item[i].b;
 
 			return TRUE;
 		}
@@ -182,44 +184,41 @@ placeMatchXYValue (CompWindow *w,
 }
 
 static Bool
-placeMatchPosition (CompWindow *w,
-                    int        *x,
-                    int        *y,
-                    Bool       *keepInWorkarea)
-{
-	PLACE_SCREEN (w->screen);
-
-	return placeMatchXYValue (w,
-	                          &ps->opt[PLACE_SCREEN_OPTION_POSITION_MATCHES],
-	                          &ps->opt[PLACE_SCREEN_OPTION_POSITION_X_VALUES],
-	                          &ps->opt[PLACE_SCREEN_OPTION_POSITION_Y_VALUES],
-	                          &ps->opt[PLACE_SCREEN_OPTION_POSITION_CONSTRAIN],
-	                          x,
-	                          y,
-	                          keepInWorkarea);
-}
-
-static Bool
 placeMatchViewport (CompWindow *w,
                     int        *x,
                     int        *y)
 {
 	PLACE_SCREEN (w->screen);
 
-	if (placeMatchXYValue (w,
-	                       &ps->opt[PLACE_SCREEN_OPTION_VIEWPORT_MATCHES],
-	                       &ps->opt[PLACE_SCREEN_OPTION_VIEWPORT_X_VALUES],
-	                       &ps->opt[PLACE_SCREEN_OPTION_VIEWPORT_Y_VALUES],
-	                       NULL,
-	                       x,
-	                       y,
-	                       NULL))
-	{
-		/* Viewport matches are given 1-based, so we need to adjust that */
-		*x -= 1;
-		*y -= 1;
+	int i, min;
 
-		return TRUE;
+	if (w->type & CompWindowTypeDesktopMask)
+		return FALSE;
+
+	const BananaValue *
+	option_viewport_x_values = bananaGetOption (bananaIndex,
+	                               "viewport_x_values", w->screen->screenNum);
+
+	const BananaValue *
+	option_viewport_y_values = bananaGetOption (bananaIndex,
+	                               "viewport_y_values", w->screen->screenNum);
+
+	min = MIN (ps->viewport_count, option_viewport_x_values->list.nItem);
+	min = MIN (min, option_viewport_y_values->list.nItem);
+
+	for (i = 0; i < min; i++)
+	{
+		if (matchEval (&ps->viewport_match[i], w))
+		{
+			*x = option_viewport_x_values->list.item[i].i;
+			*y = option_viewport_y_values->list.item[i].i;
+
+			/* Viewport matches are given 1-based, so we need to adjust that */
+			*x -= 1;
+			*y -= 1;
+
+			return TRUE;
+		}
 	}
 
 	return FALSE;
@@ -258,55 +257,6 @@ placeWindowGrabNotify (CompWindow   *w,
 	WRAP (ps, w->screen, windowGrabNotify, placeWindowGrabNotify);
 }
 
-static CompOption *
-placeGetScreenOptions (CompPlugin *plugin,
-                       CompScreen *screen,
-                       int        *count)
-{
-	PLACE_SCREEN (screen);
-
-	*count = NUM_OPTIONS (ps);
-	return ps->opt;
-}
-
-static Bool
-placeSetScreenOption (CompPlugin      *plugin,
-                      CompScreen      *screen,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	CompOption *o;
-	int        index;
-
-	PLACE_SCREEN (screen);
-
-	o = compFindOption (ps->opt, NUM_OPTIONS (ps), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case PLACE_SCREEN_OPTION_POSITION_MATCHES:
-	case PLACE_SCREEN_OPTION_VIEWPORT_MATCHES:
-	case PLACE_SCREEN_OPTION_MODE_MATCHES:
-		if (compSetOptionList (o, value))
-		{
-			int i;
-
-			for (i = 0; i < o->value.list.nValue; i++)
-				matchUpdate (screen->display, &o->value.list.value[i].match);
-
-			return TRUE;
-		}
-		break;
-	default:
-		if (compSetOption (o, value))
-			return TRUE;
-		break;
-	}
-
-	return FALSE;
-}
-
 static void
 placeSendWindowMaximizationRequest (CompWindow *w)
 {
@@ -318,7 +268,7 @@ placeSendWindowMaximizationRequest (CompWindow *w)
 	xev.xclient.format  = 32;
 
 	xev.xclient.message_type = d->winStateAtom;
-	xev.xclient.window	     = w->id;
+	xev.xclient.window       = w->id;
 
 	xev.xclient.data.l[0] = 1;
 	xev.xclient.data.l[1] = d->winStateMaximizedHorzAtom;
@@ -1049,19 +999,21 @@ static Bool
 placeWindowHasUserDefinedPosition (CompWindow *w,
                                    Bool       acceptPPosition)
 {
-	CompMatch *match;
-
 	PLACE_SCREEN (w->screen);
 
-	match = &ps->opt[PLACE_SCREEN_OPTION_FORCE_PLACEMENT].value.match;
-	if (matchEval (match, w))
+	if (matchEval (&ps->force_placement, w))
 		return FALSE;
 
 	if (acceptPPosition && (w->sizeHints.flags & PPosition))
 		return TRUE;
 
+	const BananaValue *
+	option_workarounds = bananaGetOption (bananaIndex,
+	                                      "workarounds",
+	                                      w->screen->screenNum);
+
 	if ((w->type & CompWindowTypeNormalMask) ||
-		ps->opt[PLACE_SCREEN_OPTION_WORKAROUND].value.b)
+	     option_workarounds->b)
 	{
 		/* Only accept USPosition on non-normal windows if workarounds are
 		 * enabled because apps claiming the user set -geometry for a
@@ -1125,8 +1077,6 @@ placeGetPlacementOutput (CompWindow        *w,
 	int        output = -1;
 	int        multiMode;
 
-	PLACE_SCREEN (s);
-
 	/* short cut: it makes no sense to determine a placement
 	   output if there is only one output */
 	if (s->nOutputDev == 1)
@@ -1155,7 +1105,12 @@ placeGetPlacementOutput (CompWindow        *w,
 	if (output >= 0)
 		return &s->outputDev[output];
 
-	multiMode = ps->opt[PLACE_SCREEN_OPTION_MULTIOUTPUT_MODE].value.i;
+	const BananaValue *
+	option_multioutput_mode = bananaGetOption (bananaIndex,
+	                                           "multioutput_mode",
+	                                           s->screenNum);
+
+	multiMode = option_multioutput_mode->i;
 	/* force 'output with pointer' mode for placement under pointer */
 	if (mode == PLACE_MODE_POINTER)
 		multiMode = PLACE_MOMODE_POINTER;
@@ -1198,20 +1153,25 @@ placeGetPlacementOutput (CompWindow        *w,
 static int
 placeGetPlacementMode (CompWindow *w)
 {
-	CompListValue *matches, *modes;
 	int           i, min;
 
 	PLACE_SCREEN (w->screen);
 
-	matches = &ps->opt[PLACE_SCREEN_OPTION_MODE_MATCHES].value.list;
-	modes   = &ps->opt[PLACE_SCREEN_OPTION_MODE_MODES].value.list;
-	min     = MIN (matches->nValue, modes->nValue);
+	const BananaValue *
+	option_mode_modes = bananaGetOption (bananaIndex,
+	                                     "mode_modes",
+	                                     w->screen->screenNum);
+
+	min     = MIN (ps->mode_count, option_mode_modes->list.nItem);
 
 	for (i = 0; i < min; i++)
-		if (matchEval (&matches->value[i].match, w))
-			return modes->value[i].i;
+		if (matchEval (&ps->mode_match[i], w))
+			return option_mode_modes->list.item[i].i;
 
-	return ps->opt[PLACE_SCREEN_OPTION_MODE].value.i;
+	const BananaValue *
+	option_mode = bananaGetOption (bananaIndex, "mode",
+	                           w->screen->screenNum);
+	return option_mode->i;
 }
 
 static void
@@ -2004,8 +1964,8 @@ placeHandleEvent (CompDisplay *d,
 
 					/* if this was the last window with struts */
 					if (!ps->strutWindowCount)
-					    placeDoHandleScreenSizeChange (w->screen,
-					                       FALSE); /* 2nd pass */
+						placeDoHandleScreenSizeChange (w->screen,
+						                   FALSE); /* 2nd pass */
 				}
 			}
 		}
@@ -2024,9 +1984,6 @@ placeInitDisplay (CompPlugin  *p,
                   CompDisplay *d)
 {
 	PlaceDisplay *pd;
-
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
 
 	pd = malloc (sizeof (PlaceDisplay));
 	if (!pd)
@@ -2062,25 +2019,6 @@ placeFiniDisplay (CompPlugin  *p,
 	free (pd);
 }
 
-static const CompMetadataOptionInfo placeScreenOptionInfo[] = {
-	{ "workarounds", "bool", 0, 0, 0 },
-	{ "mode", "int", RESTOSTRING (0, PLACE_MODE_LAST), 0, 0 },
-	{ "multioutput_mode", "int", RESTOSTRING (0, PLACE_MOMODE_LAST), 0, 0 },
-	{ "force_placement_match", "match", 0, 0, 0 },
-	{ "position_matches", "list", "<type>match</type>", 0, 0 },
-	{ "position_x_values", "list", "<type>int</type>", 0, 0 },
-	{ "position_y_values", "list", "<type>int</type>", 0, 0 },
-	{ "position_constrain_workarea", "list", "<type>bool</type>", 0, 0 },
-	{ "viewport_matches", "list", "<type>match</type>", 0, 0 },
-	{ "viewport_x_values", "list",
-		"<type>int</type><min>1</min><max>32</max>", 0, 0 },
-	{ "viewport_y_values", "list",
-		"<type>int</type><min>1</min><max>32</max>", 0, 0 },
-	{ "mode_matches", "list", "<type>match</type>", 0, 0 },
-	{ "mode_modes", "list",
-		"<type>int</type>" RESTOSTRING (0, PLACE_MODE_LAST), 0, 0 }
-};
-
 static Bool
 placeInitScreen (CompPlugin *p,
                  CompScreen *s)
@@ -2093,20 +2031,9 @@ placeInitScreen (CompPlugin *p,
 	if (!ps)
 		return FALSE;
 
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &placeMetadata,
-	                                placeScreenOptionInfo,
-	                                ps->opt,
-	                                PLACE_SCREEN_OPTION_NUM))
-	{
-		free (ps);
-		return FALSE;
-	}
-
 	ps->windowPrivateIndex = allocateWindowPrivateIndex (s);
 	if (ps->windowPrivateIndex < 0)
 	{
-		compFiniScreenOptions (s, ps->opt, PLACE_SCREEN_OPTION_NUM);
 		free (ps);
 		return FALSE;
 	}
@@ -2116,6 +2043,58 @@ placeInitScreen (CompPlugin *p,
 
 	ps->strutWindowCount = 0;
 	ps->resChangeFallbackHandle = 0;
+
+	const BananaValue *
+	option_force_placement_match = bananaGetOption (bananaIndex,
+	                                                "force_placement_match",
+	                                                s->screenNum);
+
+	matchInit (&ps->force_placement);
+	matchAddFromString (&ps->force_placement, option_force_placement_match->s);
+	matchUpdate (core.displays, &ps->force_placement);
+
+	const BananaValue *
+	option_position_matches = bananaGetOption (bananaIndex,
+	                                           "position_matches",
+	                                           s->screenNum);
+
+	ps->position_count = option_position_matches->list.nItem;
+	int i;
+	for (i = 0; i < option_position_matches->list.nItem; i++)
+	{
+		matchInit (&ps->position_match[i]);
+		matchAddFromString (&ps->position_match[i],
+		                    option_position_matches->list.item[i].s);
+		matchUpdate (core.displays, &ps->position_match[i]);
+	}
+
+	const BananaValue *
+	option_mode_matches = bananaGetOption (bananaIndex,
+	                                       "mode_matches",
+	                                       s->screenNum);
+
+	ps->mode_count = option_mode_matches->list.nItem;
+	for (i = 0; i < option_mode_matches->list.nItem; i++)
+	{
+		matchInit (&ps->mode_match[i]);
+		matchAddFromString (&ps->mode_match[i],
+		                    option_mode_matches->list.item[i].s);
+		matchUpdate (core.displays, &ps->mode_match[i]);
+	}
+
+	const BananaValue *
+	option_viewport_matches = bananaGetOption (bananaIndex,
+	                                           "viewport_matches",
+	                                           s->screenNum);
+
+	ps->viewport_count = option_viewport_matches->list.nItem;
+	for (i = 0; i < option_viewport_matches->list.nItem; i++)
+	{
+		matchInit (&ps->viewport_match[i]);
+		matchAddFromString (&ps->viewport_match[i],
+		                    option_viewport_matches->list.item[i].s);
+		matchUpdate (core.displays, &ps->viewport_match[i]);
+	}
 
 	WRAP (ps, s, placeWindow, placePlaceWindow);
 	WRAP (ps, s, validateWindowResizeRequest,
@@ -2146,7 +2125,17 @@ placeFiniScreen (CompPlugin *p,
 
 	setSupportedWmHints (s);
 
-	compFiniScreenOptions (s, ps->opt, PLACE_SCREEN_OPTION_NUM);
+	matchFini (&ps->force_placement);
+
+	int i;
+	for (i = 0; i < ps->position_count; i++)
+		matchFini (&ps->position_match[i]);
+
+	for (i = 0; i < ps->mode_count; i++)
+		matchFini (&ps->mode_match[i]);
+
+	for (i = 0; i < ps->viewport_count; i++)
+		matchFini (&ps->viewport_match[i]);
 
 	free (ps);
 }
@@ -2207,55 +2196,100 @@ placeFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-placeGetObjectOptions (CompPlugin *plugin,
-                       CompObject *object,
-                       int        *count)
+static void
+placeChangeNotify (const char        *optionName,
+                   BananaType        optionType,
+                   const BananaValue *optionValue,
+                   int               screenNum)
 {
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) 0, /* GetDisplayOptions */
-		(GetPluginObjectOptionsProc) placeGetScreenOptions
-	};
+	CompScreen *screen;
 
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
+	if (screenNum != -1)
+		screen = getScreenFromScreenNum (screenNum);
+	else
+		return;
 
-static CompBool
-placeSetObjectOption (CompPlugin      *plugin,
-                      CompObject      *object,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) 0, /* SetDisplayOption */
-		(SetPluginObjectOptionProc) placeSetScreenOption
-	};
+	PLACE_SCREEN (screen);
 
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
+	if (strcasecmp (optionName, "force_placement_match") == 0)
+	{
+		matchFini (&ps->force_placement);
+		matchInit (&ps->force_placement);
+		matchAddFromString (&ps->force_placement, optionValue->s);
+		matchUpdate (core.displays, &ps->force_placement);
+	}
+	else if (strcasecmp (optionName, "position_matches") == 0)
+	{
+		int i;
+		for (i = 0; i < ps->position_count; i++)
+			matchFini (&ps->position_match[i]);
+
+		ps->position_count = optionValue->list.nItem;
+		for (i = 0; i < ps->position_count; i++)
+		{
+			matchInit (&ps->position_match[i]);
+			matchAddFromString (&ps->position_match[i],
+			                    optionValue->list.item[i].s);
+			matchUpdate (core.displays, &ps->position_match[i]);
+		}
+	}
+	else if (strcasecmp (optionName, "mode_matches") == 0)
+	{
+		int i;
+		for (i = 0; i < ps->mode_count; i++)
+			matchFini (&ps->mode_match[i]);
+
+		ps->mode_count = optionValue->list.nItem;
+		for (i = 0; i < ps->mode_count; i++)
+		{
+			matchInit (&ps->mode_match[i]);
+			matchAddFromString (&ps->mode_match[i],
+			                    optionValue->list.item[i].s);
+			matchUpdate (core.displays, &ps->mode_match[i]);
+		}
+	}
+	else if (strcasecmp (optionName, "viewport_matches") == 0)
+	{
+		int i;
+		for (i = 0; i < ps->viewport_count; i++)
+			matchFini (&ps->viewport_match[i]);
+
+		ps->viewport_count = optionValue->list.nItem;
+		for (i = 0; i < ps->viewport_count; i++)
+		{
+			matchInit (&ps->viewport_match[i]);
+			matchAddFromString (&ps->viewport_match[i],
+			                    optionValue->list.item[i].s);
+			matchUpdate (core.displays, &ps->viewport_match[i]);
+		}
+	}
 }
 
 static Bool
 placeInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&placeMetadata,
-	                             p->vTable->name, 0, 0,
-	                             placeScreenOptionInfo,
-	                             PLACE_SCREEN_OPTION_NUM))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&placeMetadata);
+		compLogMessage ("place", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&placeMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("place");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, placeChangeNotify);
 
 	return TRUE;
 }
@@ -2264,28 +2298,20 @@ static void
 placeFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&placeMetadata);
-}
 
-static CompMetadata *
-placeGetMetadata (CompPlugin *plugin)
-{
-	return &placeMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable placeVTable = {
 	"place",
-	placeGetMetadata,
 	placeInit,
 	placeFini,
 	placeInitObject,
-	placeFiniObject,
-	placeGetObjectOptions,
-	placeSetObjectOption
+	placeFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &placeVTable;
 }

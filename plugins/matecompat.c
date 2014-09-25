@@ -22,89 +22,120 @@
  *
  * Author: Danny Baumann <dannybaumann@web.de>
  */
+#include <string.h>
 
 #include <fusilli-core.h>
 
-static CompMetadata mateMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
 
-#define MATE_DISPLAY_OPTION_MAIN_MENU_KEY              0
-#define MATE_DISPLAY_OPTION_RUN_DIALOG_KEY             1
-#define MATE_DISPLAY_OPTION_SCREENSHOT_CMD             2
-#define MATE_DISPLAY_OPTION_RUN_SCREENSHOT_KEY         3
-#define MATE_DISPLAY_OPTION_WINDOW_SCREENSHOT_CMD      4
-#define MATE_DISPLAY_OPTION_RUN_WINDOW_SCREENSHOT_KEY  5
-#define MATE_DISPLAY_OPTION_TERMINAL_CMD               6
-#define MATE_DISPLAY_OPTION_RUN_TERMINAL_KEY           7
-#define MATE_DISPLAY_OPTION_NUM                        8
+static CompKeyBinding main_menu_key;
+static CompKeyBinding run_key;
+static CompKeyBinding run_command_screenshot_key;
+static CompKeyBinding run_command_window_screenshot_key;
+static CompKeyBinding run_command_terminal_key;
 
 typedef struct _MateDisplay {
-	CompOption opt[MATE_DISPLAY_OPTION_NUM];
-
 	Atom panelActionAtom;
 	Atom panelMainMenuAtom;
 	Atom panelRunDialogAtom;
+	HandleEventProc handleEvent;
 } MateDisplay;
 
 #define GET_MATE_DISPLAY(d) \
         ((MateDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
-#define MATE_DISPLAY(d) \
-        MateDisplay *gd = GET_MATE_DISPLAY (d)
 
-#define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
+#define MATE_DISPLAY(d) \
+        MateDisplay *md = GET_MATE_DISPLAY (d)
+
+static void
+mateChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
+{
+	if (strcasecmp (optionName, "main_menu_key") == 0)
+		updateKey (optionValue->s, &main_menu_key);
+
+	else if (strcasecmp (optionName, "run_key") == 0)
+		updateKey (optionValue->s, &run_key);
+
+	else if (strcasecmp (optionName, "run_command_screenshot_key") == 0)
+		updateKey (optionValue->s, &run_command_screenshot_key);
+
+	else if (strcasecmp (optionName, "run_command_window_screenshot_key") == 0)
+		updateKey (optionValue->s, &run_command_screenshot_key);
+
+	else if (strcasecmp (optionName, "run_command_terminal_key") == 0)
+		updateKey (optionValue->s, &run_command_terminal_key);
+}
 
 static Bool
-runDispatch (CompDisplay     *d,
-             CompAction      *action,
-             CompActionState state,
-             CompOption      *option,
-             int             nOption)
+runDispatch (BananaArgument     *arg,
+             int                nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-	s   = findScreenAtDisplay (d, xid);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
+
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s   = findScreenAtDisplay (core.displays, xid);
 
 	if (s)
 	{
-		MATE_DISPLAY (d);
+		BananaValue *command = getArgNamed ("command", arg, nArg);
 
-		runCommand (s, gd->opt[action->priv.val].value.s);
+		if (command != NULL && command->s != NULL)
+			runCommand (s, command->s);
 	}
 
 	return TRUE;
 }
 
 static void
-panelAction (CompDisplay *d,
-             CompOption  *option,
-             int         nOption,
-             Atom        actionAtom)
+panelAction (BananaArgument     *arg,
+             int                nArg,
+             Atom               actionAtom)
 {
 	Window     xid;
 	CompScreen *s;
 	XEvent     event;
 	Time       time;
 
-	MATE_DISPLAY (d);
+	MATE_DISPLAY (core.displays);
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-	s   = findScreenAtDisplay (d, xid);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
+
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s   = findScreenAtDisplay (core.displays, xid);
 
 	if (!s)
 		return;
 
-	time = getIntOptionNamed (option, nOption, "time", CurrentTime);
+	BananaValue *arg_time = getArgNamed ("time", arg, nArg);
+
+	if (arg_time != NULL)
+		time = CurrentTime;
+	else
+		time = 0;
 
 	/* we need to ungrab the keyboard here, otherwise the panel main
 	   menu won't popup as it wants to grab the keyboard itself */
-	XUngrabKeyboard (d->display, time);
+	XUngrabKeyboard (core.displays->display, time);
 
 	event.type                 = ClientMessage;
 	event.xclient.window       = s->root;
-	event.xclient.message_type = gd->panelActionAtom;
+	event.xclient.message_type = md->panelActionAtom;
 	event.xclient.format       = 32;
 	event.xclient.data.l[0]    = actionAtom;
 	event.xclient.data.l[1]    = time;
@@ -112,131 +143,163 @@ panelAction (CompDisplay *d,
 	event.xclient.data.l[3]    = 0;
 	event.xclient.data.l[4]    = 0;
 
-	XSendEvent (d->display, s->root, FALSE, StructureNotifyMask, &event);
+	XSendEvent (core.displays->display, s->root, FALSE, StructureNotifyMask,
+	            &event);
 }
 
 static Bool
-showMainMenu (CompDisplay     *d,
-              CompAction      *action,
-              CompActionState state,
-              CompOption      *option,
-              int             nOption)
+showMainMenu (BananaArgument     *arg,
+              int                nArg)
 {
-	MATE_DISPLAY (d);
+	MATE_DISPLAY (core.displays);
 
-	panelAction (d, option, nOption, gd->panelMainMenuAtom);
+	panelAction (arg, nArg, md->panelMainMenuAtom);
 
 	return TRUE;
 }
 
 static Bool
-showRunDialog (CompDisplay     *d,
-               CompAction      *action,
-               CompActionState state,
-               CompOption      *option,
-               int             nOption)
+showRunDialog (BananaArgument     *arg,
+               int                nArg)
 {
-	MATE_DISPLAY (d);
+	MATE_DISPLAY (core.displays);
 
-	panelAction (d, option, nOption, gd->panelRunDialogAtom);
+	panelAction (arg, nArg, md->panelRunDialogAtom);
 
 	return TRUE;
 }
 
-static const CompMetadataOptionInfo mateDisplayOptionInfo[] = {
-	{ "main_menu_key", "key", 0, showMainMenu, 0 },
-	{ "run_key", "key", 0, showRunDialog, 0 },
-	{ "command_screenshot", "string", 0, 0, 0 },
-	{ "run_command_screenshot_key", "key", 0, runDispatch, 0 },
-	{ "command_window_screenshot", "string", 0, 0, 0 },
-	{ "run_command_window_screenshot_key", "key", 0, runDispatch, 0 },
-	{ "command_terminal", "string", 0, 0, 0 },
-	{ "run_command_terminal_key", "key", 0, runDispatch, 0 }
-};
+static void
+mateHandleEvent (CompDisplay *d,
+                 XEvent      *event)
+{
+	MATE_DISPLAY (d);
+
+	switch (event->type) {
+	case KeyPress:
+		if (isKeyPressEvent (event, &main_menu_key))
+		{
+			BananaArgument arg[2];
+
+			arg[0].name = "root";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.root;
+
+			arg[1].name = "time";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.time;
+
+			showMainMenu (&arg[0], 2);
+		}
+		else if (isKeyPressEvent (event, &run_key))
+		{
+			BananaArgument arg[2];
+
+			arg[0].name = "root";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.root;
+
+			arg[1].name = "time";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.time;
+
+			showRunDialog (&arg[0], 2);
+		}
+		else if (isKeyPressEvent (event, &run_command_screenshot_key))
+		{
+			BananaArgument arg[2];
+
+			arg[0].name = "root";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.root;
+
+			const BananaValue *
+			option_command_screenshot = bananaGetOption (
+			      bananaIndex, "command_screenshot", -1);
+
+			arg[1].name = "command";
+			arg[1].type = BananaString;
+			arg[1].value.s = option_command_screenshot->s;
+
+			runDispatch (&arg[0], 2);
+		}
+		else if (isKeyPressEvent (event, &run_command_window_screenshot_key))
+		{
+			BananaArgument arg[2];
+
+			arg[0].name = "root";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.root;
+
+			const BananaValue *
+			option_command_window_screenshot = 
+			     bananaGetOption (bananaIndex, "command_window_screenshot", -1);
+
+			arg[1].name = "command";
+			arg[1].type = BananaString;
+			arg[1].value.s = option_command_window_screenshot->s;
+
+			runDispatch (&arg[0], 2);
+		}
+		else if (isKeyPressEvent (event, &run_command_terminal_key))
+		{
+			BananaArgument arg[2];
+
+			arg[0].name = "root";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.root;
+
+			const BananaValue *
+			option_command_terminal = bananaGetOption (
+			      bananaIndex, "command_terminal", -1);
+
+			arg[1].name = "command";
+			arg[1].type = BananaString;
+			arg[1].value.s = option_command_terminal->s;
+
+			runDispatch (&arg[0], 2);
+		}
+
+	default:
+		break;
+	}
+
+	UNWRAP (md, d, handleEvent);
+	(*d->handleEvent) (d, event);
+	WRAP (md, d, handleEvent, mateHandleEvent);
+}
 
 static CompBool
 mateInitDisplay (CompPlugin  *p,
                  CompDisplay *d)
 {
-	MateDisplay *gd;
-	int          opt, index;
+	MateDisplay *md;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
+	md = malloc (sizeof (MateDisplay));
+	if (!md)
 		return FALSE;
 
-	gd = malloc (sizeof (MateDisplay));
-	if (!gd)
-		return FALSE;
-
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &mateMetadata,
-	                                 mateDisplayOptionInfo,
-	                                 gd->opt,
-	                                 MATE_DISPLAY_OPTION_NUM))
-	{
-		free (gd);
-		return FALSE;
-	}
-
-	opt = MATE_DISPLAY_OPTION_RUN_SCREENSHOT_KEY;
-	gd->opt[opt].value.action.priv.val = MATE_DISPLAY_OPTION_SCREENSHOT_CMD;
-
-	opt   = MATE_DISPLAY_OPTION_RUN_WINDOW_SCREENSHOT_KEY;
-	index = MATE_DISPLAY_OPTION_WINDOW_SCREENSHOT_CMD;
-	gd->opt[opt].value.action.priv.val = index;
-
-	opt = MATE_DISPLAY_OPTION_RUN_TERMINAL_KEY;
-	gd->opt[opt].value.action.priv.val = MATE_DISPLAY_OPTION_TERMINAL_CMD;
-
-	gd->panelActionAtom =
+	md->panelActionAtom =
 	    XInternAtom (d->display, "_MATE_PANEL_ACTION", FALSE);
-	gd->panelMainMenuAtom =
+	md->panelMainMenuAtom =
 	    XInternAtom (d->display, "_MATE_PANEL_ACTION_MAIN_MENU", FALSE);
-	gd->panelRunDialogAtom =
+	md->panelRunDialogAtom =
 	    XInternAtom (d->display, "_MATE_PANEL_ACTION_RUN_DIALOG", FALSE);
 
-	d->base.privates[displayPrivateIndex].ptr = gd;
+	WRAP (md, d, handleEvent, mateHandleEvent);
+
+	d->base.privates[displayPrivateIndex].ptr = md;
 
 	return TRUE;
 }
 
 static void
 mateFiniDisplay (CompPlugin  *p,
-                  CompDisplay *d)
+                 CompDisplay *d)
 {
 	MATE_DISPLAY (d);
 
-	compFiniDisplayOptions (d, gd->opt, MATE_DISPLAY_OPTION_NUM);
-
-	free (gd);
-}
-
-static CompOption *
-mateGetDisplayOptions (CompPlugin  *p,
-                        CompDisplay *d,
-                        int         *count)
-{
-	MATE_DISPLAY (d);
-
-	*count = NUM_OPTIONS (gd);
-	return gd->opt;
-}
-
-static CompBool
-mateSetDisplayOption (CompPlugin      *p,
-                       CompDisplay     *d,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	CompOption *o;
-
-	MATE_DISPLAY (d);
-
-	o = compFindOption (gd->opt, NUM_OPTIONS (gd), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (d, o, value);
+	free (md);
 }
 
 static CompBool
@@ -263,53 +326,62 @@ mateFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-mateGetObjectOptions (CompPlugin *p,
-                       CompObject *o,
-                       int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) mateGetDisplayOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (p, o, count));
-}
-
-static CompBool
-mateSetObjectOption (CompPlugin      *p,
-                      CompObject      *o,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) mateSetDisplayOption,
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (p, o, name, value));
-}
-
 static Bool
 mateInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&mateMetadata,
-	                             p->vTable->name,
-	                             mateDisplayOptionInfo,
-	                             MATE_DISPLAY_OPTION_NUM, 0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&mateMetadata);
+		compLogMessage ("matecompat", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&mateMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("matecompat");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, mateChangeNotify);
+
+	const BananaValue *
+	option_main_menu_key = bananaGetOption (bananaIndex, "main_menu_key", -1);
+
+	const BananaValue *
+	option_run_key = bananaGetOption (bananaIndex, "run_key", -1);
+
+	const BananaValue *
+	option_run_command_screenshot_key = 
+	     bananaGetOption (bananaIndex, "run_command_screenshot_key", -1);
+
+	const BananaValue *
+	option_run_command_window_screenshot_key = 
+	     bananaGetOption (bananaIndex, "run_command_window_screenshot_key", -1);
+
+	const BananaValue *
+	option_run_command_terminal_key = 
+	     bananaGetOption (bananaIndex, "run_command_terminal_key", -1);
+
+	registerKey (option_main_menu_key->s, &main_menu_key);
+
+	registerKey (option_run_key->s, &run_key);
+
+	registerKey (option_run_command_screenshot_key->s,
+	             &run_command_screenshot_key);
+
+	registerKey (option_run_command_window_screenshot_key->s,
+	             &run_command_window_screenshot_key);
+
+	registerKey (option_run_command_terminal_key->s,
+	             &run_command_terminal_key);
 
 	return TRUE;
 }
@@ -318,28 +390,20 @@ static void
 mateFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&mateMetadata);
-}
 
-static CompMetadata *
-mateGetMetadata (CompPlugin *p)
-{
-	return &mateMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable mateVTable = {
 	"matecompat",
-	mateGetMetadata,
 	mateInit,
 	mateFini,
 	mateInitObject,
-	mateFiniObject,
-	mateGetObjectOptions,
-	mateSetObjectOption
+	mateFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &mateVTable;
 }

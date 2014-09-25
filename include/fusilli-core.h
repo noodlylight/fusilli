@@ -31,6 +31,9 @@
 #define CORE_ABIVERSION 20091102
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+
 #include <sys/time.h>
 
 #include <X11/Xutil.h>
@@ -82,6 +85,9 @@ typedef struct _CompCursor        CompCursor;
 typedef struct _CompMatch         CompMatch;
 typedef struct _CompOutput        CompOutput;
 typedef struct _CompWalker        CompWalker;
+
+#define REAL_MOD_MASK (ShiftMask | ControlMask | Mod1Mask | Mod2Mask | \
+Mod3Mask | Mod4Mask | Mod5Mask | CompNoMask)
 
 /* virtual modifiers */
 
@@ -218,15 +224,8 @@ extern Bool       replaceCurrentWm;
 extern Bool       indirectRendering;
 extern Bool       strictBinding;
 extern Bool       useCow;
-extern Bool       noDetection;
 extern Bool       useDesktopHints;
 extern Bool       onlyCurrentScreen;
-
-extern char       **initialPlugins;
-extern int        nInitialPlugins;
-
-extern int  defaultRefreshRate;
-extern char *defaultTextureFilter;
 
 extern int lastPointerX;
 extern int lastPointerY;
@@ -234,13 +233,128 @@ extern int pointerX;
 extern int pointerY;
 
 extern CompCore     core;
-extern CompMetadata coreMetadata;
+extern int coreBananaIndex;
 
 #define RESTRICT_VALUE(value, min, max) \
         (((value) < (min)) ? (min): ((value) > (max)) ? (max) : (value))
 
 #define MOD(a,b) ((a) < 0 ? ((b) - ((-(a) - 1) % (b))) - 1 : (a) % (b))
 
+/* banana.c */
+typedef enum _BananaType {
+
+	BananaBool,
+	BananaInt,
+	BananaFloat,
+	BananaString,
+
+	BananaListBool,
+	BananaListInt,
+	BananaListFloat,
+	BananaListString
+
+} BananaType;
+
+typedef struct _BananaList   BananaList;
+typedef union  _BananaValue  BananaValue;
+
+struct _BananaList {
+	BananaValue       *item;
+	int               nItem;
+
+	//private banana business
+	size_t            bytes; //size of memory chunk pointed by item
+};
+
+union _BananaValue {
+	Bool       b;
+	int        i;
+	float      f;
+	char       *s;
+
+	BananaList list;
+};
+//----------------------------------------------------------------------------//
+void
+initBananaValue (BananaValue *v,
+                 BananaType  type);
+
+void
+finiBananaValue (BananaValue *v,
+                 BananaType  type);
+
+void 
+copyBananaValue (BananaValue       *dest,
+                 const BananaValue *src,
+                 BananaType        type);
+
+Bool
+isEqualBananaValue (const BananaValue *a,
+                    const BananaValue *b,
+                    BananaType        type);
+
+void
+addItemToBananaList (const char     *s,
+                     BananaType     type,
+                     BananaValue    *l);
+
+void
+stringToBananaValue (const char        *s,
+                     BananaType        type,
+                     BananaValue       *value);
+//----------------------------------------------------------------------------//
+typedef void (*BananaChangeNotifyCallBack) (const char        *optionName,
+                                            BananaType        optionType,
+                                            const BananaValue *optionValue,
+                                            int               screenNum);
+//----------------------------------------------------------------------------//
+typedef struct _BananaArgument {
+	char        *name;
+	BananaType  type;
+	BananaValue value;
+} BananaArgument;
+
+BananaValue *
+getArgNamed (const char         *name,
+             BananaArgument     *arg,
+             int                nArg);
+//----------------------------------------------------------------------------//
+void
+bananaInit (const char *metaDataDir,
+            const char *configurationFile);
+
+void
+bananaFini (void);
+//----------------------------------------------------------------------------//
+int
+bananaLoadPlugin (const char *pluginName);
+
+int
+bananaGetPluginIndex (const char *pluginName);
+
+void
+bananaAddChangeNotifyCallBack (int                        bananaIndex,
+                               BananaChangeNotifyCallBack callback);
+
+void
+bananaRemoveChangeNotifyCallBack (int                        bananaIndex,
+                                  BananaChangeNotifyCallBack callback);
+
+void
+bananaUnloadPlugin (int bananaIndex);
+//----------------------------------------------------------------------------//
+const BananaValue *
+bananaGetOption (int        bananaIndex,
+                 const char *optionName,
+                 int        screenNum);
+
+void
+bananaSetOption (int         bananaIndex,
+                 const char  *optionName,
+                 int         screenNum,
+                 BananaValue *value);
+
+//----------------------------------------------------------------------------//
 
 /* privates.c */
 
@@ -365,8 +479,8 @@ typedef enum {
 
 typedef void (*SessionEventProc) (CompCore         *c,
                                   CompSessionEvent event,
-                                  CompOption       *arguments,
-                                  unsigned int     nArguments);
+                                  BananaArgument   *arg,
+                                  unsigned int     nArg);
 
 void
 initSession (char *smPrevClientId);
@@ -377,8 +491,8 @@ closeSession (void);
 void
 sessionEvent (CompCore         *c,
               CompSessionEvent event,
-              CompOption       *arguments,
-              unsigned int     nArguments);
+              BananaArgument   *arg,
+              unsigned int     nArg);
 
 char *
 getSessionClientId (CompSessionClientIdType type);
@@ -393,22 +507,6 @@ typedef enum {
 } CompBindingType;
 
 typedef enum {
-	CompActionStateInitKey     = 1 <<  0,
-	CompActionStateTermKey     = 1 <<  1,
-	CompActionStateInitButton  = 1 <<  2,
-	CompActionStateTermButton  = 1 <<  3,
-	CompActionStateInitBell    = 1 <<  4,
-	CompActionStateInitEdge    = 1 <<  5,
-	CompActionStateTermEdge    = 1 <<  6,
-	CompActionStateInitEdgeDnd = 1 <<  7,
-	CompActionStateTermEdgeDnd = 1 <<  8,
-	CompActionStateCommit      = 1 <<  9,
-	CompActionStateCancel      = 1 << 10,
-	CompActionStateAutoGrab    = 1 << 11,
-	CompActionStateNoEdgeDelay = 1 << 12
-} CompActionState;
-
-typedef enum {
 	CompLogLevelFatal = 0,
 	CompLogLevelError,
 	CompLogLevelWarn,
@@ -419,37 +517,14 @@ typedef enum {
 typedef struct _CompKeyBinding {
 	int          keycode;
 	unsigned int modifiers;
+	Bool         active;
 } CompKeyBinding;
 
 typedef struct _CompButtonBinding {
 	int          button;
 	unsigned int modifiers;
+	Bool         active;
 } CompButtonBinding;
-
-typedef struct _CompAction CompAction;
-
-typedef Bool (*CompActionCallBackProc) (CompDisplay     *d,
-                                        CompAction      *action,
-                                        CompActionState state,
-                                        CompOption      *option,
-                                        int             nOption);
-
-struct _CompAction {
-	CompActionCallBackProc initiate;
-	CompActionCallBackProc terminate;
-
-	CompActionState state;
-
-	CompBindingType   type;
-	CompKeyBinding    key;
-	CompButtonBinding button;
-
-	Bool bell;
-
-	unsigned int edgeMask;
-
-	CompPrivate priv;
-};
 
 typedef union _CompMatchOp CompMatchOp;
 
@@ -459,85 +534,6 @@ struct _CompMatch {
 	int         nOp;
 };
 
-typedef struct {
-	CompOptionType  type;
-	CompOptionValue *value;
-	int             nValue;
-} CompListValue;
-
-union _CompOptionValue {
-	Bool           b;
-	int            i;
-	float          f;
-	char           *s;
-	unsigned short c[4];
-	CompAction     action;
-	CompMatch      match;
-	CompListValue  list;
-};
-
-typedef struct _CompOptionIntRestriction {
-	int min;
-	int max;
-} CompOptionIntRestriction;
-
-typedef struct _CompOptionFloatRestriction {
-	float min;
-	float max;
-	float precision;
-} CompOptionFloatRestriction;
-
-typedef union {
-	CompOptionIntRestriction    i;
-	CompOptionFloatRestriction  f;
-} CompOptionRestriction;
-
-struct _CompOption {
-	char                  *name;
-	CompOptionType        type;
-	CompOptionValue       value;
-	CompOptionRestriction rest;
-};
-
-typedef CompOption *(*DisplayOptionsProc) (CompDisplay *display, int *count);
-typedef CompOption *(*ScreenOptionsProc) (CompScreen *screen, int *count);
-
-Bool
-getBoolOptionNamed (CompOption *option,
-                    int        nOption,
-                    const char *name,
-                    Bool       defaultValue);
-
-int
-getIntOptionNamed (CompOption *option,
-                   int        nOption,
-                   const char *name,
-                   int        defaultValue);
-
-float
-getFloatOptionNamed (CompOption *option,
-                     int        nOption,
-                     const char *name,
-                     float      defaultValue);
-
-char *
-getStringOptionNamed (CompOption *option,
-                      int        nOption,
-                      const char *name,
-                      char       *defaultValue);
-
-unsigned short *
-getColorOptionNamed (CompOption	    *option,
-                     int            nOption,
-                     const char     *name,
-                     unsigned short *defaultValue);
-
-CompMatch *
-getMatchOptionNamed (CompOption *option,
-                     int        nOption,
-                     const char *name,
-                     CompMatch  *defaultValue);
-
 char *
 keyBindingToString (CompDisplay    *d,
                     CompKeyBinding *key);
@@ -545,14 +541,6 @@ keyBindingToString (CompDisplay    *d,
 char *
 buttonBindingToString (CompDisplay       *d,
                        CompButtonBinding *button);
-
-char *
-keyActionToString (CompDisplay *d,
-                   CompAction  *action);
-
-char *
-buttonActionToString (CompDisplay *d,
-                      CompAction  *action);
 
 Bool
 stringToKeyBinding (CompDisplay    *d,
@@ -564,15 +552,10 @@ stringToButtonBinding (CompDisplay       *d,
                        const char        *binding,
                        CompButtonBinding *button);
 
-void
-stringToKeyAction (CompDisplay *d,
-                   const char  *binding,
-                   CompAction  *action);
+unsigned int
+stringToModifiers (CompDisplay *d,
+                   const char  *binding);
 
-void
-stringToButtonAction (CompDisplay *d,
-                      const char  *binding,
-                      CompAction  *action);
 
 const char *
 edgeToString (unsigned int edge);
@@ -590,12 +573,6 @@ stringToColor (const char     *color,
 char *
 colorToString (unsigned short *rgba);
 
-const char *
-optionTypeToString (CompOptionType type);
-
-Bool
-isActionOption (CompOption *option);
-
 
 /* core.c */
 
@@ -603,11 +580,6 @@ typedef CompBool (*InitPluginForObjectProc) (CompPlugin *plugin,
                                              CompObject *object);
 typedef void (*FiniPluginForObjectProc) (CompPlugin *plugin,
                                          CompObject *object);
-
-typedef CompBool (*SetOptionForPluginProc) (CompObject      *object,
-                                            const char      *plugin,
-                                            const char      *name,
-                                            CompOptionValue *value);
 
 typedef void (*ObjectAddProc) (CompObject *parent,
                                CompObject *object);
@@ -685,8 +657,6 @@ struct _CompCore {
 	InitPluginForObjectProc initPluginForObject;
 	FiniPluginForObjectProc finiPluginForObject;
 
-	SetOptionForPluginProc setOptionForPlugin;
-
 	ObjectAddProc    objectAdd;
 	ObjectRemoveProc objectRemove;
 
@@ -740,53 +710,20 @@ addFileWatch (const char            *path,
 void
 removeFileWatch (CompFileWatchHandle handle);
 
+int
+getCoreABI (void);
+
 
 /* display.c */
-
-#define COMP_DISPLAY_OPTION_ABI                              0
-#define COMP_DISPLAY_OPTION_ACTIVE_PLUGINS                   1
-#define COMP_DISPLAY_OPTION_TEXTURE_FILTER                   2
-#define COMP_DISPLAY_OPTION_CLICK_TO_FOCUS                   3
-#define COMP_DISPLAY_OPTION_AUTORAISE                        4
-#define COMP_DISPLAY_OPTION_AUTORAISE_DELAY                  5
-#define COMP_DISPLAY_OPTION_CLOSE_WINDOW_KEY                 6
-#define COMP_DISPLAY_OPTION_CLOSE_WINDOW_BUTTON              7
-#define COMP_DISPLAY_OPTION_SLOW_ANIMATIONS_KEY              8
-#define COMP_DISPLAY_OPTION_RAISE_WINDOW_KEY                 9
-#define COMP_DISPLAY_OPTION_RAISE_WINDOW_BUTTON              10
-#define COMP_DISPLAY_OPTION_LOWER_WINDOW_KEY                 11
-#define COMP_DISPLAY_OPTION_LOWER_WINDOW_BUTTON              12
-#define COMP_DISPLAY_OPTION_UNMAXIMIZE_WINDOW_KEY            13
-#define COMP_DISPLAY_OPTION_MINIMIZE_WINDOW_KEY              14
-#define COMP_DISPLAY_OPTION_MINIMIZE_WINDOW_BUTTON           15
-#define COMP_DISPLAY_OPTION_MAXIMIZE_WINDOW_KEY              16
-#define COMP_DISPLAY_OPTION_MAXIMIZE_WINDOW_HORZ_KEY         17
-#define COMP_DISPLAY_OPTION_MAXIMIZE_WINDOW_VERT_KEY         18
-#define COMP_DISPLAY_OPTION_WINDOW_MENU_BUTTON               19
-#define COMP_DISPLAY_OPTION_WINDOW_MENU_KEY                  20
-#define COMP_DISPLAY_OPTION_SHOW_DESKTOP_KEY                 21
-#define COMP_DISPLAY_OPTION_SHOW_DESKTOP_EDGE                22
-#define COMP_DISPLAY_OPTION_RAISE_ON_CLICK                   23
-#define COMP_DISPLAY_OPTION_AUDIBLE_BELL                     24
-#define COMP_DISPLAY_OPTION_TOGGLE_WINDOW_MAXIMIZED_KEY      25
-#define COMP_DISPLAY_OPTION_TOGGLE_WINDOW_MAXIMIZED_BUTTON   26
-#define COMP_DISPLAY_OPTION_TOGGLE_WINDOW_MAXIMIZED_HORZ_KEY 27
-#define COMP_DISPLAY_OPTION_TOGGLE_WINDOW_MAXIMIZED_VERT_KEY 28
-#define COMP_DISPLAY_OPTION_HIDE_SKIP_TASKBAR_WINDOWS        29
-#define COMP_DISPLAY_OPTION_TOGGLE_WINDOW_SHADED_KEY         30
-#define COMP_DISPLAY_OPTION_IGNORE_HINTS_WHEN_MAXIMIZED      31
-#define COMP_DISPLAY_OPTION_PING_DELAY                       32
-#define COMP_DISPLAY_OPTION_EDGE_DELAY                       33
-#define COMP_DISPLAY_OPTION_NUM                              34
 
 typedef void (*HandleEventProc) (CompDisplay *display,
                                  XEvent      *event);
 
-typedef void (*HandleFusilliEventProc) (CompDisplay *display,
-                                       const char  *pluginName,
-                                       const char  *eventName,
-                                       CompOption  *option,
-                                       int         nOption);
+typedef void (*HandleFusilliEventProc) (CompDisplay   *display,
+                                       const char     *pluginName,
+                                       const char     *eventName,
+                                       BananaArgument *arg,
+                                       int            nArg);
 
 typedef void (*ForEachWindowProc) (CompWindow *window,
                                    void       *closure);
@@ -1042,14 +979,12 @@ struct _CompDisplay {
 	KeyCode escapeKeyCode;
 	KeyCode returnKeyCode;
 
-	CompOption opt[COMP_DISPLAY_OPTION_NUM];
-
 	CompTimeoutHandle autoRaiseHandle;
 	Window            autoRaiseWindow;
 
 	CompTimeoutHandle edgeDelayHandle;
 
-	CompOptionValue plugin;
+	BananaValue     plugin;
 	Bool            dirtyPluginList;
 
 	HandleEventProc       handleEvent;
@@ -1063,6 +998,29 @@ struct _CompDisplay {
 	MatchPropertyChangedProc   matchPropertyChanged;
 
 	LogMessageProc logMessage;
+
+	CompKeyBinding close_window_key,
+	               raise_window_key,
+	               lower_window_key,
+	               unmaximize_window_key,
+	               minimize_window_key,
+	               maximize_window_key,
+	               maximize_window_horizontally_key,
+	               maximize_window_vertically_key,
+	               window_menu_key,
+	               show_desktop_key,
+	               toggle_window_maximized_key,
+	               toggle_window_maximized_horizontally_key,
+	               toggle_window_maximized_vertically_key,
+	               toggle_window_shaded_key,
+	               slow_animations_key;
+
+	CompButtonBinding close_window_button,
+	                  raise_window_button,
+	                  lower_window_button,
+	                  minimize_window_button,
+	                  window_menu_button,
+	                  toggle_window_maximized_button;
 
 	void *reserved;
 };
@@ -1099,16 +1057,11 @@ allocateDisplayPrivateIndex (void);
 void
 freeDisplayPrivateIndex (int index);
 
-CompOption *
-getDisplayOptions (CompPlugin  *plugin,
-                   CompDisplay *display,
-                   int         *count);
-
-Bool
-setDisplayOption (CompPlugin      *plugin,
-                  CompDisplay     *display,
-                  const char      *name,
-                  CompOptionValue *value);
+void
+displayChangeNotify (const char        *optionName,
+                     BananaType        optionType,
+                     const BananaValue *optionValue,
+                     int               screenNum);
 
 void
 compLogMessage (const char   *componentName,
@@ -1149,6 +1102,9 @@ CompScreen *
 findScreenAtDisplay (CompDisplay *d,
                      Window      root);
 
+CompScreen *
+getScreenFromScreenNum (int screenNum);
+
 CompWindow *
 findWindowAtDisplay (CompDisplay *display,
                      Window      id);
@@ -1185,9 +1141,40 @@ warpPointer (CompScreen *screen,
              int        dy);
 
 Bool
-setDisplayAction (CompDisplay     *display,
-                  CompOption      *o,
-                  CompOptionValue *value);
+addDisplayKeyBinding (CompKeyBinding *key);
+
+Bool
+addDisplayButtonBinding (CompButtonBinding *button);
+
+void
+removeDisplayKeyBinding (CompKeyBinding *key);
+
+void
+removeDisplayButtonBinding (CompButtonBinding *button);
+
+void
+registerButton (const char        *s,
+                CompButtonBinding *button);
+
+void
+registerKey (const char        *s,
+             CompKeyBinding    *key);
+
+void
+updateButton (const char        *s,
+              CompButtonBinding *button);
+
+void
+updateKey (const char        *s,
+           CompKeyBinding    *key);
+
+Bool
+isKeyPressEvent (XEvent         *event,
+                 CompKeyBinding *key);
+
+Bool
+isButtonPressEvent (XEvent            *event,
+                    CompButtonBinding *button);
 
 Bool
 readImageFromFile (CompDisplay *display,
@@ -1230,40 +1217,19 @@ findCursorAtDisplay (CompDisplay *display);
 
 /* event.c */
 
-typedef struct _CompDelayedEdgeSettings
-{
-	CompDisplay *d;
-
-	unsigned int edge;
-	unsigned int state;
-
-	CompOption   option[7];
-	unsigned int nOption;
-} CompDelayedEdgeSettings;
-
 void
 handleEvent (CompDisplay *display,
              XEvent      *event);
 
 void
-handleFusilliEvent (CompDisplay *display,
-                   const char  *pluginName,
-                   const char  *eventName,
-                   CompOption  *option,
-                   int         nOption);
+handleFusilliEvent (CompDisplay    *display,
+                   const char      *pluginName,
+                   const char      *eventName,
+                   BananaArgument  *arg,
+                   int             nArg);
 
 void
 handleSyncAlarm (CompWindow *w);
-
-Bool
-eventMatches (CompDisplay *display,
-              XEvent      *event,
-              CompOption  *option);
-
-Bool
-eventTerminates (CompDisplay *display,
-                 XEvent      *event,
-                 CompOption  *option);
 
 void
 clearTargetOutput (CompDisplay  *display,
@@ -1672,23 +1638,7 @@ disableTexture (CompScreen  *screen,
 
 /* screen.c */
 
-#define COMP_SCREEN_OPTION_DETECT_REFRESH_RATE    0
-#define COMP_SCREEN_OPTION_LIGHTING               1
-#define COMP_SCREEN_OPTION_REFRESH_RATE           2
-#define COMP_SCREEN_OPTION_HSIZE                  3
-#define COMP_SCREEN_OPTION_VSIZE                  4
-#define COMP_SCREEN_OPTION_UNREDIRECT_FS          5
-#define COMP_SCREEN_OPTION_DEFAULT_ICON           6
-#define COMP_SCREEN_OPTION_SYNC_TO_VBLANK         7
-#define COMP_SCREEN_OPTION_NUMBER_OF_DESKTOPS     8
-#define COMP_SCREEN_OPTION_DETECT_OUTPUTS         9
-#define COMP_SCREEN_OPTION_OUTPUTS                10
-#define COMP_SCREEN_OPTION_OVERLAPPING_OUTPUTS    11
-#define COMP_SCREEN_OPTION_FOCUS_PREVENTION_LEVEL 12
-#define COMP_SCREEN_OPTION_FOCUS_PREVENTION_MATCH 13
-#define COMP_SCREEN_OPTION_TEXTURE_COMPRESSION    14
-#define COMP_SCREEN_OPTION_FORCE_INDEPENDENT      15
-#define COMP_SCREEN_OPTION_NUM                    16
+#define DEFAULT_REFRESH_RATE               50
 
 #ifndef GLX_EXT_texture_from_pixmap
 #define GLX_BIND_TO_TEXTURE_RGB_EXT        0x20D0
@@ -2165,8 +2115,6 @@ struct _CompScreen {
 
 	GLXContext ctx;
 
-	CompOption opt[COMP_SCREEN_OPTION_NUM];
-
 	PreparePaintScreenProc      preparePaintScreen;
 	DonePaintScreenProc         donePaintScreen;
 	PaintScreenProc	            paintScreen;
@@ -2205,6 +2153,8 @@ struct _CompScreen {
 
 	InitWindowWalkerProc initWindowWalker;
 
+	CompMatch focus_prevention_match;
+
 	void *reserved;
 };
 
@@ -2241,16 +2191,11 @@ void
 freeScreenPrivateIndex (CompDisplay *display,
                         int         index);
 
-CompOption *
-getScreenOptions (CompPlugin *plugin,
-                  CompScreen *screen,
-                  int        *count);
-
-Bool
-setScreenOption (CompPlugin      *plugin,
-                 CompScreen      *screen,
-                 const char      *name,
-                 CompOptionValue *value);
+void
+screenChangeNotify (const char        *optionName,
+                    BananaType        optionType,
+                    const BananaValue *optionValue,
+                    int               screenNum);
 
 void
 configureScreen (CompScreen      *s,
@@ -2343,12 +2288,20 @@ Bool
 otherScreenGrabExist (CompScreen *s, ...);
 
 Bool
-addScreenAction (CompScreen *s,
-                 CompAction *action);
+addScreenKeyBinding (CompScreen     *s,
+                     CompKeyBinding *key);
+
+Bool
+addScreenButtonBinding (CompScreen        *s,
+                        CompButtonBinding *button);
 
 void
-removeScreenAction (CompScreen *s,
-                    CompAction *action);
+removeScreenKeyBinding (CompScreen     *s,
+                        CompKeyBinding *key);
+
+void
+removeScreenButtonBinding (CompScreen        *s,
+                           CompButtonBinding *button);
 
 void
 updatePassiveGrabs (CompScreen *s);
@@ -3155,19 +3108,6 @@ getPlugins (void);
 char **
 availablePlugins (int *n);
 
-int
-getPluginABI (const char *name);
-
-Bool
-checkPluginABI (const char *name,
-                int        abi);
-
-Bool
-getPluginDisplayIndex (CompDisplay *d,
-                       const char  *name,
-                       int         *index);
-
-
 /* fragment.c */
 
 #define MAX_FRAGMENT_FUNCTIONS 16
@@ -3387,116 +3327,6 @@ matchPropertyChanged (CompDisplay *display,
 #define MINTOSTRING(x) "<min>" TOSTRING (x) "</min>"
 #define MAXTOSTRING(x) "<max>" TOSTRING (x) "</max>"
 #define RESTOSTRING(min, max) MINTOSTRING (min) MAXTOSTRING (max)
-
-typedef struct _CompMetadataOptionInfo {
-	char          *name;
-	char          *type;
-	char          *data;
-	CompActionCallBackProc initiate;
-	CompActionCallBackProc terminate;
-} CompMetadataOptionInfo;
-
-extern const CompMetadataOptionInfo
-coreDisplayOptionInfo[COMP_DISPLAY_OPTION_NUM];
-extern const CompMetadataOptionInfo
-coreScreenOptionInfo[COMP_SCREEN_OPTION_NUM];
-
-struct _CompMetadata {
-	char   *path;
-	xmlDoc **doc;
-	int    nDoc;
-};
-
-Bool
-compInitPluginMetadataFromInfo (CompMetadata                 *metadata,
-                                const char                   *plugin,
-                                const CompMetadataOptionInfo *displayOptionInfo,
-                                int                          nDisplayOptionInfo,
-                                const CompMetadataOptionInfo *screenOptionInfo,
-                                int                          nScreenOptionInfo);
-
-Bool
-compInitScreenOptionFromMetadata (CompScreen   *screen,
-                                  CompMetadata *metadata,
-                                  CompOption   *option,
-                                  const char   *name);
-
-void
-compFiniScreenOption (CompScreen *screen,
-                      CompOption *option);
-
-Bool
-compInitScreenOptionsFromMetadata (CompScreen                   *screen,
-                                   CompMetadata                 *metadata,
-                                   const CompMetadataOptionInfo *info,
-                                   CompOption                   *option,
-                                   int                          n);
-
-void
-compFiniScreenOptions (CompScreen *screen,
-                       CompOption *option,
-                       int        n);
-
-Bool
-compSetScreenOption (CompScreen      *screen,
-                     CompOption      *option,
-                     CompOptionValue *value);
-
-Bool
-compInitDisplayOptionFromMetadata (CompDisplay  *display,
-                                   CompMetadata *metadata,
-                                   CompOption   *option,
-                                   const char   *name);
-
-void
-compFiniDisplayOption (CompDisplay *display,
-                       CompOption  *option);
-
-Bool
-compInitDisplayOptionsFromMetadata (CompDisplay                  *display,
-                                    CompMetadata                 *metadata,
-                                    const CompMetadataOptionInfo *info,
-                                    CompOption                   *option,
-                                    int                          n);
-
-void
-compFiniDisplayOptions (CompDisplay *display,
-                        CompOption  *option,
-                        int         n);
-
-Bool
-compSetDisplayOption (CompDisplay     *display,
-                      CompOption      *option,
-                      CompOptionValue *value);
-
-char *
-compGetShortPluginDescription (CompMetadata *metadata);
-
-char *
-compGetLongPluginDescription (CompMetadata *metadata);
-
-char *
-compGetShortScreenOptionDescription (CompMetadata *metadata,
-                                     CompOption   *option);
-
-char *
-compGetLongScreenOptionDescription (CompMetadata *metadata,
-                                    CompOption   *option);
-
-char *
-compGetShortDisplayOptionDescription (CompMetadata *metadata,
-                                      CompOption   *option);
-
-char *
-compGetLongDisplayOptionDescription (CompMetadata *metadata,
-                                     CompOption   *option);
-
-int
-compReadXmlChunkFromMetadataOptionInfo (const CompMetadataOptionInfo *info,
-                                        int                          *offset,
-                                        char                         *buffer,
-                                        int                          length);
-
 
 #ifdef  __cplusplus
 }

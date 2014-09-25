@@ -34,75 +34,30 @@
 
 #include <fusilli-cube.h>
 
-static int cubeDisplayPrivateIndex;
-
 #define ROTATE_POINTER_SENSITIVITY_FACTOR 0.05f
 
-static CompMetadata rotateMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
+static int cubeDisplayPrivateIndex;
 
-#define ROTATE_DISPLAY_OPTION_INITIATE_BUTTON     0
-#define ROTATE_DISPLAY_OPTION_LEFT_KEY            1
-#define ROTATE_DISPLAY_OPTION_LEFT_BUTTON         2
-#define ROTATE_DISPLAY_OPTION_RIGHT_KEY           3
-#define ROTATE_DISPLAY_OPTION_RIGHT_BUTTON        4
-#define ROTATE_DISPLAY_OPTION_LEFT_WINDOW_KEY     5
-#define ROTATE_DISPLAY_OPTION_LEFT_WINDOW_BUTTON  6
-#define ROTATE_DISPLAY_OPTION_RIGHT_WINDOW_KEY    7
-#define ROTATE_DISPLAY_OPTION_RIGHT_WINDOW_BUTTON 8
-#define ROTATE_DISPLAY_OPTION_EDGEFLIP_POINTER    9
-#define ROTATE_DISPLAY_OPTION_EDGEFLIP_WINDOW     10
-#define ROTATE_DISPLAY_OPTION_EDGEFLIP_DND        11
-#define ROTATE_DISPLAY_OPTION_FLIPTIME            12
-#define ROTATE_DISPLAY_OPTION_TO_1_KEY            13
-#define ROTATE_DISPLAY_OPTION_TO_2_KEY            14
-#define ROTATE_DISPLAY_OPTION_TO_3_KEY            15
-#define ROTATE_DISPLAY_OPTION_TO_4_KEY            16
-#define ROTATE_DISPLAY_OPTION_TO_5_KEY            17
-#define ROTATE_DISPLAY_OPTION_TO_6_KEY            18
-#define ROTATE_DISPLAY_OPTION_TO_7_KEY            19
-#define ROTATE_DISPLAY_OPTION_TO_8_KEY            20
-#define ROTATE_DISPLAY_OPTION_TO_9_KEY            21
-#define ROTATE_DISPLAY_OPTION_TO_10_KEY           22
-#define ROTATE_DISPLAY_OPTION_TO_11_KEY           23
-#define ROTATE_DISPLAY_OPTION_TO_12_KEY           24
-#define ROTATE_DISPLAY_OPTION_TO_1_WINDOW_KEY     25
-#define ROTATE_DISPLAY_OPTION_TO_2_WINDOW_KEY     26
-#define ROTATE_DISPLAY_OPTION_TO_3_WINDOW_KEY     27
-#define ROTATE_DISPLAY_OPTION_TO_4_WINDOW_KEY     28
-#define ROTATE_DISPLAY_OPTION_TO_5_WINDOW_KEY     29
-#define ROTATE_DISPLAY_OPTION_TO_6_WINDOW_KEY     30
-#define ROTATE_DISPLAY_OPTION_TO_7_WINDOW_KEY     31
-#define ROTATE_DISPLAY_OPTION_TO_8_WINDOW_KEY     32
-#define ROTATE_DISPLAY_OPTION_TO_9_WINDOW_KEY     33
-#define ROTATE_DISPLAY_OPTION_TO_10_WINDOW_KEY    34
-#define ROTATE_DISPLAY_OPTION_TO_11_WINDOW_KEY    35
-#define ROTATE_DISPLAY_OPTION_TO_12_WINDOW_KEY    36
-#define ROTATE_DISPLAY_OPTION_TO_KEY              37
-#define ROTATE_DISPLAY_OPTION_WINDOW_KEY          38
-#define ROTATE_DISPLAY_OPTION_FLIP_LEFT_EDGE      39
-#define ROTATE_DISPLAY_OPTION_FLIP_RIGHT_EDGE     40
-#define ROTATE_DISPLAY_OPTION_RAISE_ON_ROTATE     41
-#define ROTATE_DISPLAY_OPTION_NUM                 42
+static CompButtonBinding initiate_button;
+
+static CompKeyBinding rotate_left_key, rotate_right_key;
+static CompKeyBinding rotate_left_window_key, rotate_right_window_key;
+
+static CompButtonBinding rotate_left_button, rotate_right_button;
+static CompButtonBinding rotate_left_window_button, rotate_right_window_button;
+
+#define NUM_VIEWPORTS 9
+//viewports start with 1
+static CompKeyBinding rotate_to_key[NUM_VIEWPORTS + 1];
+static CompKeyBinding rotate_with_window_key[NUM_VIEWPORTS + 1];
 
 typedef struct _RotateDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
-
-	CompOption opt[ROTATE_DISPLAY_OPTION_NUM];
 } RotateDisplay;
-
-#define ROTATE_SCREEN_OPTION_POINTER_INVERT_Y    0
-#define ROTATE_SCREEN_OPTION_POINTER_INVERT_X    1
-#define ROTATE_SCREEN_OPTION_POINTER_SENSITIVITY 2
-#define ROTATE_SCREEN_OPTION_ACCELERATION        3
-#define ROTATE_SCREEN_OPTION_SNAP_TOP            4
-#define ROTATE_SCREEN_OPTION_SNAP_BOTTOM         5
-#define ROTATE_SCREEN_OPTION_SPEED               6
-#define ROTATE_SCREEN_OPTION_TIMESTEP            7
-#define ROTATE_SCREEN_OPTION_ZOOM                8
-#define ROTATE_SCREEN_OPTION_NUM                 9
 
 typedef struct _RotateScreen {
 	PreparePaintScreenProc       preparePaintScreen;
@@ -113,8 +68,6 @@ typedef struct _RotateScreen {
 	ActivateWindowProc           activateWindow;
 
 	CubeGetRotationProc getRotation;
-
-	CompOption opt[ROTATE_SCREEN_OPTION_NUM];
 
 	float pointerSensitivity;
 
@@ -161,56 +114,86 @@ typedef struct _RotateScreen {
 #define ROTATE_SCREEN(s) \
         RotateScreen *rs = GET_ROTATE_SCREEN (s, GET_ROTATE_DISPLAY (s->display))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
-static CompOption *
-rotateGetScreenOptions (CompPlugin *plugin,
-                        CompScreen *screen,
-                        int        *count)
+static void
+rotateChangeNotify (const char        *optionName,
+                    BananaType        optionType,
+                    const BananaValue *optionValue,
+                    int               screenNum)
 {
-	ROTATE_SCREEN (screen);
+	if (strcasecmp (optionName, "sensitivity") == 0)
+	{
+		CompScreen *screen;
 
-	*count = NUM_OPTIONS (rs);
-	return rs->opt;
-}
+		if (screenNum != -1)
+			screen = getScreenFromScreenNum (screenNum);
+		else
+			return;
 
-static Bool
-rotateSetScreenOption (CompPlugin      *plugin,
-                       CompScreen      *screen,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	CompOption *o;
-	int        index;
+		ROTATE_SCREEN (screen);
 
-	ROTATE_SCREEN (screen);
-
-	o = compFindOption (rs->opt, NUM_OPTIONS (rs), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case ROTATE_SCREEN_OPTION_POINTER_SENSITIVITY:
-		if (compSetFloatOption (o, value))
-		{
-			rs->pointerSensitivity = o->value.f *
-			    ROTATE_POINTER_SENSITIVITY_FACTOR;
-			return TRUE;
-		}
-		break;
-	default:
-		return compSetScreenOption (screen, o, value);
+		rs->pointerSensitivity = 
+		         optionValue->f * ROTATE_POINTER_SENSITIVITY_FACTOR;
 	}
+	else if (strcasecmp (optionName, "initiate_button") == 0)
+	{
+		updateButton (optionValue->s, &initiate_button);
+	}
+	else if (strcasecmp (optionName, "rotate_left_key") == 0)
+	{
+		updateKey (optionValue->s, &rotate_left_key);
+	}
+	else if (strcasecmp (optionName, "rotate_left_button") == 0)
+	{
+		updateButton (optionValue->s, &rotate_left_button);
+	}
+	else if (strcasecmp (optionName, "rotate_right_key") == 0)
+	{
+		updateKey (optionValue->s, &rotate_right_key);
+	}
+	else if (strcasecmp (optionName, "rotate_right_button") == 0)
+	{
+		updateButton (optionValue->s, &rotate_right_button);
+	}
+	else if (strcasecmp (optionName, "rotate_left_window_key") == 0)
+	{
+		updateKey (optionValue->s, &rotate_left_window_key);
+	}
+	else if (strcasecmp (optionName, "rotate_left_window_button") == 0)
+	{
+		updateButton (optionValue->s, &rotate_left_window_button);
+	}
+	else if (strcasecmp (optionName, "rotate_right_window_key") == 0)
+	{
+		updateKey (optionValue->s, &rotate_right_window_key);
+	}
+	else if (strcasecmp (optionName, "rotate_right_window_button") == 0)
+	{
+		updateButton (optionValue->s, &rotate_right_window_button);
+	}
+	else if (strstr (optionName, "rotate_to_key"))
+	{
+		int i = strlen ("rotate_to_key");
+		int index = atoi (&optionName[i]);
 
-	return FALSE;
+		updateKey (optionValue->s, &rotate_to_key[index]);
+	}
+	else if (strstr (optionName, "rotate_with_window_key"))
+	{
+		int i = strlen ("rotate_with_window_key");
+		int index = atoi (&optionName[i]);
+
+		updateKey (optionValue->s, &rotate_with_window_key[index]);
+	}
 }
 
 static int
-adjustVelocity (RotateScreen *rs,
+adjustVelocity (CompScreen *s,
                 int          size,
                 int          invert)
 {
 	float xrot, yrot, adjust, amount;
+
+	ROTATE_SCREEN (s);
 
 	if (rs->moving)
 	{
@@ -225,7 +208,12 @@ adjustVelocity (RotateScreen *rs,
 			xrot = rs->xrot - 360.0f / size;
 	}
 
-	adjust = -xrot * 0.05f * rs->opt[ROTATE_SCREEN_OPTION_ACCELERATION].value.f;
+	const BananaValue *
+	option_acceleration = bananaGetOption (bananaIndex,
+	                                       "acceleration",
+	                                       s->screenNum);
+
+	adjust = -xrot * 0.05f * option_acceleration->f;
 	amount = fabs (xrot);
 	if (amount < 10.0f)
 		amount = 10.0f;
@@ -249,7 +237,7 @@ adjustVelocity (RotateScreen *rs,
 			yrot += 90.f;
 	}
 
-	adjust = -yrot * 0.05f * rs->opt[ROTATE_SCREEN_OPTION_ACCELERATION].value.f;
+	adjust = -yrot * 0.05f * option_acceleration->f;
 	amount = fabs (rs->yrot);
 	if (amount < 10.0f)
 		amount = 10.0f;
@@ -290,10 +278,17 @@ rotatePreparePaintScreen (CompScreen *s,
 		int   steps;
 		float amount, chunk;
 
-		amount = msSinceLastPaint * 0.05f *
-		    rs->opt[ROTATE_SCREEN_OPTION_SPEED].value.f;
-		steps  = amount /
-		    (0.5f * rs->opt[ROTATE_SCREEN_OPTION_TIMESTEP].value.f);
+		const BananaValue *
+		option_speed = bananaGetOption (bananaIndex, "speed", s->screenNum);
+
+		const BananaValue *
+		option_timestep = bananaGetOption (bananaIndex,
+		                                   "timestep",
+		                                   s->screenNum);
+
+		amount = msSinceLastPaint * 0.05f * option_speed->f;
+		steps  = amount / (0.5f * option_timestep->f);
+
 		if (!steps) steps = 1;
 		chunk  = amount / (float) steps;
 
@@ -350,7 +345,7 @@ rotatePreparePaintScreen (CompScreen *s,
 				if (fabs (rs->yVelocity) < 0.01f)
 					rs->yVelocity = 0.0f;
 			}
-			else if (adjustVelocity (rs, s->hsize, cs->invert))
+			else if (adjustVelocity (s, s->hsize, cs->invert))
 			{
 				rs->xVelocity = 0.0f;
 				rs->yVelocity = 0.0f;
@@ -456,10 +451,16 @@ rotatePreparePaintScreen (CompScreen *s,
 		int   steps;
 		float amount, chunk;
 
-		amount = msSinceLastPaint * 0.05f *
-		    rs->opt[ROTATE_SCREEN_OPTION_SPEED].value.f;
-		steps = amount /
-		    (0.5f * rs->opt[ROTATE_SCREEN_OPTION_TIMESTEP].value.f);
+		const BananaValue *
+		option_speed = bananaGetOption (bananaIndex, "speed", s->screenNum);
+
+		const BananaValue *
+		option_timestep = bananaGetOption (bananaIndex,
+		                                   "timestep",
+		                                   s->screenNum);
+
+		amount = msSinceLastPaint * 0.05f * option_speed->f;
+		steps = amount / (0.5f * option_timestep->f);
 		if (!steps)
 			steps = 1;
 
@@ -500,7 +501,12 @@ rotatePreparePaintScreen (CompScreen *s,
 
 	if (cs->invert == 1 && !cs->unfolded)
 	{
-		rs->zoomTranslate = rs->opt[ROTATE_SCREEN_OPTION_ZOOM].value.f *
+		const BananaValue *
+		option_zoom = bananaGetOption (bananaIndex,
+		                               "zoom",
+		                               s->screenNum);
+
+		rs->zoomTranslate = option_zoom->f *
 		                    rs->progress;
 	}
 	else
@@ -589,18 +595,20 @@ rotatePaintOutput (CompScreen              *s,
 }
 
 static Bool
-rotateInitiate (CompDisplay     *d,
-                CompAction      *action,
-                CompActionState state,
-                CompOption      *option,
-                int             nOption)
+rotateInitiate (BananaArgument    *arg,
+                int               nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		ROTATE_SCREEN (s);
@@ -626,20 +634,32 @@ rotateInitiate (CompDisplay     *d,
 		/* Set the rotation state for cube - if action is non-NULL,
 		   we set it to manual (as we were called from the 'Initiate
 		   Rotation' binding. Otherwise, we set it to Change. */
-		if (action)
+		//if (action)
 			cs->rotationState = RotationManual;
-		else
-			cs->rotationState = RotationChange;
+		//else
+		//	cs->rotationState = RotationChange;
 
 		if (!rs->grabIndex)
 		{
 			rs->grabIndex = pushScreenGrab (s, s->invisibleCursor, "rotate");
+
 			if (rs->grabIndex)
 			{
 				int x, y;
 
-				x = getIntOptionNamed (option, nOption, "x", 0);
-				y = getIntOptionNamed (option, nOption, "y", 0);
+				BananaValue *arg_x = getArgNamed ("x", arg, nArg);
+
+				if (arg_x != NULL)
+					x = arg_x->i;
+				else
+					x = 0;
+
+				BananaValue *arg_y = getArgNamed ("y", arg, nArg);
+
+				if (arg_y != NULL)
+					y = arg_y->i;
+				else
+					y = 0;
 
 				rs->savedPointer.x = x;
 				rs->savedPointer.y = y;
@@ -651,14 +671,19 @@ rotateInitiate (CompDisplay     *d,
 			rs->moveTo = 0.0f;
 
 			rs->grabbed = TRUE;
-			rs->snapTop = rs->opt[ROTATE_SCREEN_OPTION_SNAP_TOP].value.b;
-			rs->snapBottom = rs->opt[ROTATE_SCREEN_OPTION_SNAP_BOTTOM].value.b;
 
-			if (state & CompActionStateInitButton)
-				action->state |= CompActionStateTermButton;
+			const BananaValue *
+			option_snap_top = bananaGetOption (bananaIndex,
+			                                   "snap_top",
+			                                   s->screenNum);
 
-			if (state & CompActionStateInitKey)
-				action->state |= CompActionStateTermKey;
+			const BananaValue *
+			option_snap_bottom = bananaGetOption (bananaIndex,
+			                                      "snap_bottom",
+			                                      s->screenNum);
+
+			rs->snapTop = option_snap_top->b;
+			rs->snapBottom = option_snap_bottom->b;
 		}
 	}
 
@@ -666,18 +691,20 @@ rotateInitiate (CompDisplay     *d,
 }
 
 static Bool
-rotateTerminate (CompDisplay     *d,
-                 CompAction      *action,
-                 CompActionState state,
-                 CompOption      *option,
-                 int             nOption)
+rotateTerminate (BananaArgument  *arg,
+                 int             nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	for (s = d->screens; s; s = s->next)
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	for (s = core.displays->screens; s; s = s->next)
 	{
 		ROTATE_SCREEN (s);
 
@@ -697,24 +724,24 @@ rotateTerminate (CompDisplay     *d,
 		}
 	}
 
-	action->state &= ~(CompActionStateTermButton | CompActionStateTermKey);
-
 	return FALSE;
 }
 
 static Bool
-rotate (CompDisplay     *d,
-        CompAction      *action,
-        CompActionState state,
-        CompOption      *option,
-        int             nOption)
+rotate (BananaArgument  *arg,
+        int             nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	s = findScreenAtDisplay (d, xid);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
+
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
 		int direction;
@@ -728,36 +755,27 @@ rotate (CompDisplay     *d,
 		                          "group-drag", "cube", NULL))
 			return FALSE;
 
-		direction = getIntOptionNamed (option, nOption, "direction", 0);
+		BananaValue *arg_direction = getArgNamed ("direction", arg, nArg);
+
+		if (arg_direction != NULL)
+			direction = arg_direction->i;
+		else
+			direction = 0;
+
 		if (!direction)
 			return FALSE;
 
 		if (rs->moveWindow)
 			rotateReleaseMoveWindow (s);
 
-		/* we allow the grab to fail here so that we can rotate on
-		   drag-and-drop */
-		if (!rs->grabIndex)
-		{
-			CompOption o[3];
+		BananaValue *arg_focus_default = 
+		                      getArgNamed ("focus_default", arg, nArg);
 
-			o[0].type    = CompOptionTypeInt;
-			o[0].name    = "x";
-			o[0].value.i = getIntOptionNamed (option, nOption, "x", 0);
+		if (arg_focus_default != NULL)
+			rs->focusDefault = arg_focus_default->b;
+		else
+			rs->focusDefault = TRUE;
 
-			o[1].type    = CompOptionTypeInt;
-			o[1].name    = "y";
-			o[1].value.i = getIntOptionNamed (option, nOption, "y", 0);
-
-			o[2].type	 = CompOptionTypeInt;
-			o[2].name	 = "root";
-			o[2].value.i = s->root;
-
-			rotateInitiate (d, NULL, 0, o, 3);
-		}
-
-		rs->focusDefault = getBoolOptionNamed (option, nOption,
-		                                "focus_default", TRUE);
 		rs->moving  = TRUE;
 		rs->moveTo += (360.0f / s->hsize) * direction;
 		rs->grabbed = FALSE;
@@ -769,23 +787,28 @@ rotate (CompDisplay     *d,
 }
 
 static Bool
-rotateWithWindow (CompDisplay     *d,
-                  CompAction      *action,
-                  CompActionState state,
-                  CompOption      *option,
-                  int             nOption)
+rotateWithWindow (BananaArgument  *arg,
+                  int             nArg)
 {
 	CompScreen *s;
 	Window     xid;
 
-	ROTATE_DISPLAY (d);
+	BananaValue *root = getArgNamed ("root", arg, nArg);
 
-	xid = getIntOptionNamed (option, nOption, "root", 0);
+	if (root != NULL)
+		xid = root->i;
+	else
+		xid = 0;
 
-	s = findScreenAtDisplay (d, xid);
+	s = findScreenAtDisplay (core.displays, xid);
 	if (s)
 	{
-		Bool raise = rd->opt[ROTATE_DISPLAY_OPTION_RAISE_ON_ROTATE].value.b;
+		const BananaValue *
+		option_raise_on_rotate = bananaGetOption (bananaIndex,
+		                                          "raise_on_rotate",
+		                                          -1);
+
+		Bool raise = option_raise_on_rotate->b;
 		int  direction;
 
 		ROTATE_SCREEN (s);
@@ -793,11 +816,22 @@ rotateWithWindow (CompDisplay     *d,
 		if (s->hsize < 2)
 			return FALSE;
 
-		direction = getIntOptionNamed (option, nOption, "direction", 0);
+		BananaValue *arg_direction = getArgNamed ("direction", arg, nArg);
+
+		if (arg_direction != NULL)
+			direction = arg_direction->i;
+		else
+			direction = 0;
+
 		if (!direction)
 			return FALSE;
 
-		xid = getIntOptionNamed (option, nOption, "window", 0);
+		BananaValue *arg_window = getArgNamed ("window", arg, nArg);
+
+		if (arg_window != NULL)
+			xid = arg_window->i;
+		else
+			xid = 0;
 
 		if (rs->moveWindow != xid)
 		{
@@ -828,21 +862,29 @@ rotateWithWindow (CompDisplay     *d,
 
 		if (!rs->grabIndex)
 		{
-			CompOption o[3];
+			BananaArgument argu[3];
 
-			o[0].type    = CompOptionTypeInt;
-			o[0].name    = "x";
-			o[0].value.i = getIntOptionNamed (option, nOption, "x", 0);
+			argu[0].type = BananaInt;
+			argu[0].name = "x";
+			BananaValue *arg_x = getArgNamed ("x", arg, nArg);
+			if (arg_x != NULL)
+				argu[0].value.i = arg_x->i;
+			else
+				argu[0].value.i = 0;
 
-			o[1].type    = CompOptionTypeInt;
-			o[1].name    = "y";
-			o[1].value.i = getIntOptionNamed (option, nOption, "y", 0);
+			argu[1].type = BananaInt;
+			argu[1].name = "y";
+			BananaValue *arg_y = getArgNamed ("y", arg, nArg);
+			if (arg_y != NULL)
+				argu[1].value.i = arg_y->i;
+			else
+				argu[1].value.i = 0;
 
-			o[2].type    = CompOptionTypeInt;
-			o[2].name    = "root";
-			o[2].value.i = s->root;
+			argu[2].type = BananaInt;
+			argu[2].name = "root";
+			argu[2].value.i = s->root;
 
-			rotateInitiate (d, NULL, 0, o, 3);
+			rotateInitiate (argu, 3);
 		}
 
 		if (rs->grabIndex)
@@ -858,137 +900,820 @@ rotateWithWindow (CompDisplay     *d,
 	return FALSE;
 }
 
-static Bool
-rotateLeft (CompDisplay     *d,
-            CompAction      *action,
-            CompActionState state,
-            CompOption      *option,
-            int             nOption)
+static int
+rotateRotationTo (CompScreen *s,
+                  int        face)
 {
-	CompOption o[4];
+	int delta;
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "x";
-	o[0].value.i = getIntOptionNamed (option, nOption, "x", 0);
+	ROTATE_SCREEN (s);
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "y";
-	o[1].value.i = getIntOptionNamed (option, nOption, "y", 0);
+	delta = face - s->x - (rs->moveTo / (360.0f / s->hsize));
+	if (delta > s->hsize / 2)
+		delta -= s->hsize;
+	else if (delta < -(s->hsize / 2))
+		delta += s->hsize;
 
-	o[2].type    = CompOptionTypeInt;
-	o[2].name    = "root";
-	o[2].value.i = getIntOptionNamed (option, nOption, "root", 0);
+	return delta;
+}
 
-	o[3].type    = CompOptionTypeInt;
-	o[3].name    = "direction";
-	o[3].value.i = -1;
+static void
+rotateHandleEvent (CompDisplay *d,
+                   XEvent      *event)
+{
+	CompScreen *s;
 
-	rotate (d, NULL, 0, o, 4);
+	int i;
 
-	return FALSE;
+	ROTATE_DISPLAY (d);
+
+	switch (event->type) {
+	case KeyPress:
+		s = findScreenAtDisplay (d, event->xkey.root);
+		for (i = 1; i <= NUM_VIEWPORTS; i++)
+		{
+			if (isKeyPressEvent (event, &rotate_to_key[i]))
+			{
+				BananaArgument arg[4];
+
+				arg[0].name = "x";
+				arg[0].type = BananaInt;
+				arg[0].value.i = event->xkey.x_root;
+
+				arg[1].name = "y";
+				arg[1].type = BananaInt;
+				arg[1].value.i = event->xkey.y_root;
+
+				arg[2].name = "root";
+				arg[2].type = BananaInt;
+				arg[2].value.i = event->xkey.root;
+
+				arg[3].name = "direction";
+				arg[3].type = BananaInt;
+				arg[3].value.i = rotateRotationTo (s, i - 1);
+
+				rotate (arg, 4);
+			}
+			else if (isKeyPressEvent (event, &rotate_with_window_key[i]))
+			{
+				BananaArgument arg[5];
+
+				arg[0].name = "x";
+				arg[0].type = BananaInt;
+				arg[0].value.i = event->xkey.x_root;
+
+				arg[1].name = "y";
+				arg[1].type = BananaInt;
+				arg[1].value.i = event->xkey.y_root;
+
+				arg[2].name = "root";
+				arg[2].type = BananaInt;
+				arg[2].value.i = event->xkey.root;
+
+				arg[3].name = "direction";
+				arg[3].type = BananaInt;
+				arg[3].value.i = rotateRotationTo (s, i - 1);
+
+				arg[4].name = "window";
+				arg[4].type = BananaInt;
+				arg[4].value.i = d->activeWindow;
+
+				rotateWithWindow (arg, 5);
+			}
+		}
+		if (isKeyPressEvent (event, &rotate_left_key))
+		{
+			BananaArgument arg[4];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xkey.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = -1;
+
+			rotate (arg, 4);
+		}
+		else if (isKeyPressEvent (event, &rotate_right_key))
+		{
+			BananaArgument arg[4];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xkey.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = 1;
+
+			rotate (arg, 4);
+		}
+		else if (isKeyPressEvent (event, &rotate_left_window_key))
+		{
+			BananaArgument arg[5];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xkey.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = -1;
+
+			arg[4].name = "window";
+			arg[4].type = BananaInt;
+			arg[4].value.i = d->activeWindow;
+
+			rotateWithWindow (arg, 5);
+		}
+		else if (isKeyPressEvent (event, &rotate_right_window_key))
+		{
+			BananaArgument arg[5];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xkey.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xkey.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xkey.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = 1;
+
+			arg[4].name = "window";
+			arg[4].type = BananaInt;
+			arg[4].value.i = d->activeWindow;
+
+			rotateWithWindow (arg, 5);
+		}
+		break;
+	case ButtonPress:
+		if (isButtonPressEvent (event, &initiate_button))
+		{
+			BananaArgument arg[3];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.root;
+
+			rotateInitiate (arg, 3);
+		}
+		else if (isButtonPressEvent (event, &rotate_left_button))
+		{
+			BananaArgument arg[4];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = -1;
+
+			rotate (arg, 4);
+		}
+		else if (isButtonPressEvent (event, &rotate_right_button))
+		{
+			BananaArgument arg[4];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = 1;
+
+			rotate (arg, 4);
+		}
+		else if (isButtonPressEvent (event, &rotate_left_window_button))
+		{
+			BananaArgument arg[5];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = -1;
+
+			arg[4].name = "window";
+			arg[4].type = BananaInt;
+			arg[4].value.i = d->activeWindow;
+
+			rotateWithWindow (arg, 5);
+		}
+		else if (isButtonPressEvent (event, &rotate_right_window_button))
+		{
+			BananaArgument arg[5];
+
+			arg[0].name = "x";
+			arg[0].type = BananaInt;
+			arg[0].value.i = event->xbutton.x_root;
+
+			arg[1].name = "y";
+			arg[1].type = BananaInt;
+			arg[1].value.i = event->xbutton.y_root;
+
+			arg[2].name = "root";
+			arg[2].type = BananaInt;
+			arg[2].value.i = event->xbutton.root;
+
+			arg[3].name = "direction";
+			arg[3].type = BananaInt;
+			arg[3].value.i = 1;
+
+			arg[4].name = "window";
+			arg[4].type = BananaInt;
+			arg[4].value.i = d->activeWindow;
+
+			rotateWithWindow (arg, 5);
+		}
+		break;
+	case ButtonRelease:
+		if (event->xbutton.button == initiate_button.button)
+		{
+			BananaArgument arg;
+
+			arg.name = "root";
+			arg.type = BananaInt;
+			arg.value.i = event->xbutton.root;
+
+			rotateTerminate (&arg, 1);
+		}
+		break;
+	case MotionNotify:
+		s = findScreenAtDisplay (d, event->xmotion.root);
+		if (s)
+		{
+			ROTATE_SCREEN (s);
+			CUBE_SCREEN (s);
+
+			if (rs->grabIndex)
+			{
+				if (rs->grabbed)
+				{
+					GLfloat pointerDx, pointerDy;
+
+					pointerDx = pointerX - lastPointerX;
+					pointerDy = pointerY - lastPointerY;
+
+					if (event->xmotion.x_root < 50             ||
+					    event->xmotion.y_root < 50             ||
+					    event->xmotion.x_root > s->width  - 50 ||
+					    event->xmotion.y_root > s->height - 50)
+					{
+						warpPointer (s,
+						         (s->width  / 2) - pointerX,
+						         (s->height / 2) - pointerY);
+					}
+
+					const BananaValue *
+					option_invert_y = bananaGetOption (bananaIndex,
+					                                   "invert_y",
+					                                   s->screenNum);
+
+					const BananaValue *
+					option_invert_x = bananaGetOption (bananaIndex,
+					                                   "invert_x",
+					                                   s->screenNum);
+
+					if (option_invert_y->b)
+						pointerDy = -pointerDy;
+
+					if (option_invert_x->b)
+						pointerDx = -pointerDx;
+
+					rs->xVelocity += pointerDx * rs->pointerSensitivity *
+						cs->invert;
+					rs->yVelocity += pointerDy * rs->pointerSensitivity;
+
+					damageScreen (s);
+				}
+				else
+				{
+					rs->savedPointer.x += pointerX - lastPointerX;
+					rs->savedPointer.y += pointerY - lastPointerY;
+				}
+			}
+		}
+		break;
+	case ClientMessage:
+		if (event->xclient.message_type == d->desktopViewportAtom)
+		{
+			s = findScreenAtDisplay (d, event->xclient.window);
+			if (s)
+			{
+				int dx;
+
+				ROTATE_SCREEN (s);
+
+				if (otherScreenGrabExist (s, "rotate", "switcher", "cube", NULL))
+					break;
+
+				/* reset movement */
+				rs->moveTo = 0.0f;
+
+				dx = event->xclient.data.l[0] / s->width - s->x;
+				if (dx)
+				{
+					Window       win;
+					int          i, x, y;
+					unsigned int ui;
+
+					XQueryPointer (d->display, s->root,
+					            &win, &win, &x, &y, &i, &i, &ui);
+
+					if (dx * 2 > s->hsize)
+						dx -= s->hsize;
+					else if (dx * 2 < -s->hsize)
+						dx += s->hsize;
+
+					BananaArgument arg[4];
+
+					arg[0].type    = BananaInt;
+					arg[0].name    = "x";
+					arg[0].value.i = x;
+
+					arg[1].type    = BananaInt;
+					arg[1].name    = "y";
+					arg[1].value.i = y;
+
+					arg[2].type    = BananaInt;
+					arg[2].name    = "root";
+					arg[2].value.i = s->root;
+
+					arg[3].type    = BananaInt;
+					arg[3].name    = "direction";
+					arg[3].value.i = dx;
+
+					rotate (arg, 4);
+				}
+			}
+		}
+	default:
+		break;
+	}
+
+	UNWRAP (rd, d, handleEvent);
+	(*d->handleEvent) (d, event);
+	WRAP (rd, d, handleEvent, rotateHandleEvent);
+}
+
+static void
+rotateActivateWindow (CompWindow *w)
+{
+	CompScreen *s = w->screen;
+
+	ROTATE_SCREEN (s);
+
+	if (w->placed &&
+		!otherScreenGrabExist (s, "rotate", "switcher", "cube", NULL))
+	{
+		int dx;
+
+		/* reset movement */
+		rs->moveTo = 0.0f;
+
+		defaultViewportForWindow (w, &dx, NULL);
+		dx -= s->x;
+		if (dx)
+		{
+			Window       win;
+			int          i, x, y;
+			unsigned int ui;
+
+			XQueryPointer (s->display->display, s->root,
+			               &win, &win, &x, &y, &i, &i, &ui);
+
+			if (dx * 2 > s->hsize)
+				dx -= s->hsize;
+			else if (dx * 2 < -s->hsize)
+				dx += s->hsize;
+
+			BananaArgument arg[5];
+
+			arg[0].type    = BananaInt;
+			arg[0].name    = "x";
+			arg[0].value.i = x;
+
+			arg[1].type    = BananaInt;
+			arg[1].name    = "y";
+			arg[1].value.i = y;
+
+			arg[2].type    = BananaInt;
+			arg[2].name    = "root";
+			arg[2].value.i = s->root;
+
+			arg[3].type    = BananaInt;
+			arg[3].name    = "direction";
+			arg[3].value.i = dx;
+
+			arg[4].type    = BananaBool;
+			arg[4].name    = "focus_default";
+			arg[4].value.b = FALSE;
+
+			rotate (arg, 5);
+		}
+	}
+
+	UNWRAP (rs, s, activateWindow);
+	(*s->activateWindow) (w);
+	WRAP (rs, s, activateWindow, rotateActivateWindow);
+}
+
+static void
+rotateWindowGrabNotify (CompWindow   *w,
+                        int          x,
+                        int          y,
+                        unsigned int state,
+                        unsigned int mask)
+{
+	ROTATE_SCREEN (w->screen);
+
+	if (!rs->grabWindow)
+	{
+		rs->grabMask   = mask;
+		rs->grabWindow = w;
+	}
+
+	UNWRAP (rs, w->screen, windowGrabNotify);
+	(*w->screen->windowGrabNotify) (w, x, y, state, mask);
+	WRAP (rs, w->screen, windowGrabNotify, rotateWindowGrabNotify);
+}
+
+static void
+rotateWindowUngrabNotify (CompWindow *w)
+{
+	ROTATE_SCREEN (w->screen);
+
+	if (w == rs->grabWindow)
+	{
+		rs->grabMask   = 0;
+		rs->grabWindow = NULL;
+	}
+
+	UNWRAP (rs, w->screen, windowUngrabNotify);
+	(*w->screen->windowUngrabNotify) (w);
+	WRAP (rs, w->screen, windowUngrabNotify, rotateWindowUngrabNotify);
 }
 
 static Bool
-rotateRight (CompDisplay     *d,
-             CompAction      *action,
-             CompActionState state,
-             CompOption      *option,
-             int             nOption)
+rotateInitDisplay (CompPlugin  *p,
+                   CompDisplay *d)
 {
-	CompOption o[4];
+	RotateDisplay *rd;
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "x";
-	o[0].value.i = getIntOptionNamed (option, nOption, "x", 0);
+	rd = malloc (sizeof (RotateDisplay));
+	if (!rd)
+		return FALSE;
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "y";
-	o[1].value.i = getIntOptionNamed (option, nOption, "y", 0);
+	rd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	if (rd->screenPrivateIndex < 0)
+	{
+		free (rd);
+		return FALSE;
+	}
 
-	o[2].type    = CompOptionTypeInt;
-	o[2].name    = "root";
-	o[2].value.i = getIntOptionNamed (option, nOption, "root", 0);
+	WRAP (rd, d, handleEvent, rotateHandleEvent);
 
-	o[3].type    = CompOptionTypeInt;
-	o[3].name    = "direction";
-	o[3].value.i = 1;
+	d->base.privates[displayPrivateIndex].ptr = rd;
 
-	rotate (d, NULL, 0, o, 4);
+	return TRUE;
+}
 
-	return FALSE;
+static void
+rotateFiniDisplay (CompPlugin  *p,
+                   CompDisplay *d)
+{
+	ROTATE_DISPLAY (d);
+
+	freeScreenPrivateIndex (d, rd->screenPrivateIndex);
+
+	UNWRAP (rd, d, handleEvent);
+
+	free (rd);
 }
 
 static Bool
-rotateLeftWithWindow (CompDisplay     *d,
-                      CompAction      *action,
-                      CompActionState state,
-                      CompOption      *option,
-                      int             nOption)
+rotateInitScreen (CompPlugin *p,
+                  CompScreen *s)
 {
-	CompOption o[5];
+	RotateScreen *rs;
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "x";
-	o[0].value.i = getIntOptionNamed (option, nOption, "x", 0);
+	ROTATE_DISPLAY (s->display);
+	CUBE_SCREEN (s);
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "y";
-	o[1].value.i = getIntOptionNamed (option, nOption, "y", 0);
+	rs = malloc (sizeof (RotateScreen));
+	if (!rs)
+		return FALSE;
 
-	o[2].type    = CompOptionTypeInt;
-	o[2].name    = "root";
-	o[2].value.i = getIntOptionNamed (option, nOption, "root", 0);
+	rs->grabIndex = 0;
 
-	o[3].type    = CompOptionTypeInt;
-	o[3].name    = "direction";
-	o[3].value.i = -1;
+	rs->xrot = 0.0f;
+	rs->xVelocity = 0.0f;
+	rs->yrot = 0.0f;
+	rs->yVelocity = 0.0f;
 
-	o[4].type    = CompOptionTypeInt;
-	o[4].name    = "window";
-	o[4].value.i = getIntOptionNamed (option, nOption, "window", 0);
+	rs->baseXrot = 0.0f;
 
-	rotateWithWindow (d, NULL, 0, o, 5);
+	rs->moving = FALSE;
+	rs->moveTo = 0.0f;
 
-	return FALSE;
+	rs->moveWindow = 0;
+
+	rs->savedPointer.x = 0;
+	rs->savedPointer.y = 0;
+
+	rs->focusDefault = TRUE;
+	rs->grabbed	     = FALSE;
+	rs->snapTop	     = FALSE;
+	rs->snapBottom   = FALSE;
+
+	rs->slow       = FALSE;
+	rs->grabMask   = FALSE;
+	rs->grabWindow = NULL;
+
+	const BananaValue *
+	option_sensitivity = bananaGetOption (bananaIndex,
+	                                      "sensitivity",
+	                                      s->screenNum);
+
+	rs->pointerSensitivity = 
+	      option_sensitivity->f * ROTATE_POINTER_SENSITIVITY_FACTOR;
+
+	rs->rotateHandle = 0;
+
+	rs->progress          = 0.0;
+	rs->progressVelocity  = 0.0;
+
+	rs->zoomTranslate = 0.0;
+
+	WRAP (rs, s, preparePaintScreen, rotatePreparePaintScreen);
+	WRAP (rs, s, donePaintScreen, rotateDonePaintScreen);
+	WRAP (rs, s, paintOutput, rotatePaintOutput);
+	WRAP (rs, s, windowGrabNotify, rotateWindowGrabNotify);
+	WRAP (rs, s, windowUngrabNotify, rotateWindowUngrabNotify);
+	WRAP (rs, s, activateWindow, rotateActivateWindow);
+
+	WRAP (rs, cs, getRotation, rotateGetRotation);
+
+	s->base.privates[rd->screenPrivateIndex].ptr = rs;
+
+	return TRUE;
+}
+
+static void
+rotateFiniScreen (CompPlugin *p,
+                  CompScreen *s)
+{
+	CUBE_SCREEN (s);
+	ROTATE_SCREEN (s);
+
+	if (rs->rotateHandle)
+		compRemoveTimeout (rs->rotateHandle);
+
+	UNWRAP (rs, cs, getRotation);
+
+	UNWRAP (rs, s, preparePaintScreen);
+	UNWRAP (rs, s, donePaintScreen);
+	UNWRAP (rs, s, paintOutput);
+	UNWRAP (rs, s, windowGrabNotify);
+	UNWRAP (rs, s, windowUngrabNotify);
+	UNWRAP (rs, s, activateWindow);
+
+	free (rs);
+}
+static CompBool
+rotateInitObject (CompPlugin *p,
+                  CompObject *o)
+{
+	static InitPluginObjectProc dispTab[] = {
+		(InitPluginObjectProc) 0, /* InitCore */
+		(InitPluginObjectProc) rotateInitDisplay,
+		(InitPluginObjectProc) rotateInitScreen
+	};
+
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
+}
+
+static void
+rotateFiniObject (CompPlugin *p,
+                  CompObject *o)
+{
+	static FiniPluginObjectProc dispTab[] = {
+		(FiniPluginObjectProc) 0, /* FiniCore */
+		(FiniPluginObjectProc) rotateFiniDisplay,
+		(FiniPluginObjectProc) rotateFiniScreen
+	};
+
+	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
-rotateRightWithWindow (CompDisplay     *d,
-                       CompAction      *action,
-                       CompActionState state,
-                       CompOption      *option,
-                       int             nOption)
+rotateInit (CompPlugin *p)
 {
-	CompOption o[5];
+	if (getCoreABI() != CORE_ABIVERSION)
+	{
+		compLogMessage ("rotate", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "x";
-	o[0].value.i = getIntOptionNamed (option, nOption, "x", 0);
+		return FALSE;
+	}
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "y";
-	o[1].value.i = getIntOptionNamed (option, nOption, "y", 0);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
 
-	o[2].type    = CompOptionTypeInt;
-	o[2].name    = "root";
-	o[2].value.i = getIntOptionNamed (option, nOption, "root", 0);
+	if (displayPrivateIndex < 0)
+		return FALSE;
 
-	o[3].type    = CompOptionTypeInt;
-	o[3].name    = "direction";
-	o[3].value.i = 1;
+	//get cubeDisplayPrivateIndex through the option system
+	int cubeBananaIndex = bananaGetPluginIndex ("cube");
+	if (cubeBananaIndex < 0)
+	{
+		compLogMessage ("rotate", CompLogLevelError, 
+		                "bananaIndex for cube not available\n");
+		freeDisplayPrivateIndex (displayPrivateIndex);
+		return FALSE;
+	}
 
-	o[4].type    = CompOptionTypeInt;
-	o[4].name    = "window";
-	o[4].value.i = getIntOptionNamed (option, nOption, "window", 0);
+	const BananaValue *
+	option_index = bananaGetOption (cubeBananaIndex, "index", -1);
 
-	rotateWithWindow (d, NULL, 0, o, 5);
+	cubeDisplayPrivateIndex = option_index->i;
 
-	return FALSE;
+	bananaIndex = bananaLoadPlugin ("rotate");
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, rotateChangeNotify);
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (
+	       bananaIndex, "initiate_button", -1);
+
+	registerButton (option_initiate_button->s, &initiate_button);
+
+	const BananaValue *
+	option_rotate_left_key = bananaGetOption (
+	       bananaIndex, "rotate_left_key", -1);
+
+	registerKey (option_rotate_left_key->s, &rotate_left_key);
+
+	const BananaValue *
+	option_rotate_left_button = bananaGetOption (
+	       bananaIndex, "rotate_left_button", -1);
+
+	registerButton (option_rotate_left_button->s, &rotate_left_button);
+
+	const BananaValue *
+	option_rotate_right_key = bananaGetOption (
+	       bananaIndex, "rotate_right_key", -1);
+
+	registerKey (option_rotate_right_key->s, &rotate_right_key);
+
+	const BananaValue *
+	option_rotate_right_button = bananaGetOption (
+	       bananaIndex, "rotate_right_button", -1);
+
+	registerButton (option_rotate_right_button->s, &rotate_right_button);
+
+	const BananaValue *
+	option_rotate_left_window_key = bananaGetOption (
+	       bananaIndex, "rotate_left_window_key", -1);
+
+	registerKey (option_rotate_left_window_key->s, &rotate_left_window_key);
+
+	const BananaValue *
+	option_rotate_left_window_button = bananaGetOption (
+	       bananaIndex, "rotate_left_window_button", -1);
+
+	registerButton (option_rotate_left_window_button->s,
+	                &rotate_left_window_button);
+
+	const BananaValue *
+	option_rotate_right_window_key = bananaGetOption (
+	       bananaIndex, "rotate_right_window_key", -1);
+
+	registerKey (option_rotate_right_window_key->s, &rotate_right_window_key);
+
+	const BananaValue *
+	option_rotate_right_window_button = bananaGetOption (
+	       bananaIndex, "rotate_right_window_button", -1);
+
+	registerButton (option_rotate_right_window_button->s,
+	                &rotate_right_window_button);
+
+	int i;
+	for (i = 1; i <= NUM_VIEWPORTS; i++) //viewports start with 1
+	{
+		char optionName[50];
+		const BananaValue *option;
+
+		sprintf (optionName, "rotate_to_key%d", i);
+		option = bananaGetOption (bananaIndex, optionName, -1);
+		registerKey (option->s, &rotate_to_key[i]);
+
+		sprintf (optionName, "rotate_with_window_key%d", i);
+		option = bananaGetOption (bananaIndex, optionName, -1);
+		registerKey (option->s, &rotate_with_window_key[i]);
+	}
+	return TRUE;
 }
 
+static void
+rotateFini (CompPlugin *p)
+{
+	freeDisplayPrivateIndex (displayPrivateIndex);
+
+	bananaUnloadPlugin (bananaIndex);
+}
+
+CompPluginVTable rotateVTable = {
+	"rotate",
+	rotateInit,
+	rotateFini,
+	rotateInitObject,
+	rotateFiniObject
+};
+
+CompPluginVTable *
+getCompPluginInfo20140724 (void)
+{
+	return &rotateVTable;
+}
+
+#if 0
 static Bool
 rotateFlipLeft (void *closure)
 {
+	printf("rotateFlipLeft\n");
 	CompScreen *s = closure;
 	int        warpX;
 	CompOption o[4];
@@ -1005,23 +1730,25 @@ rotateFlipLeft (void *closure)
 	warpPointer (s, s->width - 10, 0);
 	lastPointerX = warpX;
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "x";
-	o[0].value.i = 0;
+	BananaArgument arg[4];
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "y";
-	o[1].value.i = pointerY;
+	arg[0].type    = BananaInt;
+	arg[0].name    = "x";
+	arg[0].value.i = 0;
 
-	o[2].type    = CompOptionTypeInt;
-	o[2].name    = "root";
-	o[2].value.i = s->root;
+	arg[1].type    = BananaInt;
+	arg[1].name    = "y";
+	arg[1].value.i = pointerY;
 
-	o[3].type    = CompOptionTypeInt;
-	o[3].name    = "direction";
-	o[3].value.i = -1;
+	arg[2].type    = BananaInt;
+	arg[2].name    = "root";
+	arg[2].value.i = s->root;
 
-	rotate (s->display, NULL, 0, o, 4);
+	arg[3].type    = BananaInt;
+	arg[3].name    = "direction";
+	arg[3].value.i = -1;
+
+	rotate (arg, 4);
 
 	XWarpPointer (s->display->display, None, None, 0, 0, 0, 0, -1, 0);
 	rs->savedPointer.x = lastPointerX - 9;
@@ -1030,10 +1757,10 @@ rotateFlipLeft (void *closure)
 
 	return FALSE;
 }
-
 static Bool
 rotateFlipRight (void *closure)
 {
+	printf("rotateFlipRight\n");
 	CompScreen *s = closure;
 	int        warpX;
 	CompOption o[4];
@@ -1050,23 +1777,25 @@ rotateFlipRight (void *closure)
 	warpPointer (s, 10 - s->width, 0);
 	lastPointerX = warpX;
 
-	o[0].type    = CompOptionTypeInt;
-	o[0].name    = "x";
-	o[0].value.i = 0;
+	BananaArgument arg[4];
 
-	o[1].type    = CompOptionTypeInt;
-	o[1].name    = "y";
-	o[1].value.i = pointerY;
+	arg[0].type    = BananaInt;
+	arg[0].name    = "x";
+	arg[0].value.i = 0;
 
-	o[2].type    = CompOptionTypeInt;
-	o[2].name    = "root";
-	o[2].value.i = s->root;
+	arg[1].type    = BananaInt;
+	arg[1].name    = "y";
+	arg[1].value.i = pointerY;
 
-	o[3].type    = CompOptionTypeInt;
-	o[3].name    = "direction";
-	o[3].value.i = 1;
+	arg[2].type    = BananaInt;
+	arg[2].name    = "root";
+	arg[2].value.i = s->root;
 
-	rotate (s->display, NULL, 0, o, 4);
+	arg[3].type    = BananaInt;
+	arg[3].name    = "direction";
+	arg[3].value.i = 1;
+
+	rotate (arg, 4);
 
 	XWarpPointer (s->display->display, None, None, 0, 0, 0, 0, 1, 0);
 
@@ -1076,7 +1805,9 @@ rotateFlipRight (void *closure)
 
 	return FALSE;
 }
+#endif
 
+#if 0
 static void
 rotateEdgeFlip (CompScreen      *s,
                 int             edge,
@@ -1243,6 +1974,7 @@ rotateEdgeFlip (CompScreen      *s,
 	}
 }
 
+
 static Bool
 rotateFlipTerminate (CompDisplay     *d,
                      CompAction      *action,
@@ -1320,709 +2052,4 @@ rotateEdgeFlipRight (CompDisplay     *d,
 
 	return FALSE;
 }
-
-static int
-rotateRotationTo (CompScreen *s,
-                  int        face)
-{
-	int delta;
-
-	ROTATE_SCREEN (s);
-
-	delta = face - s->x - (rs->moveTo / (360.0f / s->hsize));
-	if (delta > s->hsize / 2)
-		delta -= s->hsize;
-	else if (delta < -(s->hsize / 2))
-		delta += s->hsize;
-
-	return delta;
-}
-
-static Bool
-rotateTo (CompDisplay     *d,
-          CompAction      *action,
-          CompActionState state,
-          CompOption      *option,
-          int             nOption)
-{
-	CompScreen *s;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-
-	s = findScreenAtDisplay (d, xid);
-	if (s)
-	{
-		CompOption o[4];
-		int	   face = -1;
-		int	   i = ROTATE_DISPLAY_OPTION_TO_1_KEY;
-
-		ROTATE_DISPLAY (s->display);
-
-		while (i <= ROTATE_DISPLAY_OPTION_TO_12_KEY)
-		{
-			if (action == &rd->opt[i].value.action)
-			{
-				face = i - ROTATE_DISPLAY_OPTION_TO_1_KEY;
-				break;
-			}
-
-			i++;
-		}
-
-		if (face < 0)
-			face = getIntOptionNamed (option, nOption, "face", s->x);
-
-		if (face > s->hsize)
-			return FALSE;
-
-		o[0].type    = CompOptionTypeInt;
-		o[0].name    = "x";
-		o[0].value.i = getIntOptionNamed (option, nOption, "x", pointerX);
-
-		o[1].type    = CompOptionTypeInt;
-		o[1].name    = "y";
-		o[1].value.i = getIntOptionNamed (option, nOption, "y", pointerY);
-
-		o[2].type    = CompOptionTypeInt;
-		o[2].name    = "root";
-		o[2].value.i = s->root;
-
-		o[3].type    = CompOptionTypeInt;
-		o[3].name    = "direction";
-		o[3].value.i = rotateRotationTo (s, face);
-
-		rotate (d, NULL, 0, o, 4);
-	}
-
-	return FALSE;
-}
-
-static Bool
-rotateToWithWindow (CompDisplay     *d,
-                    CompAction      *action,
-                    CompActionState state,
-                    CompOption      *option,
-                    int             nOption)
-{
-	CompScreen *s;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-
-	s = findScreenAtDisplay (d, xid);
-	if (s)
-	{
-		CompOption o[5];
-		int	   face = -1;
-		int	   i = ROTATE_DISPLAY_OPTION_TO_1_WINDOW_KEY;
-
-		ROTATE_DISPLAY (s->display);
-
-		while (i <= ROTATE_DISPLAY_OPTION_TO_12_WINDOW_KEY)
-		{
-			if (action == &rd->opt[i].value.action)
-			{
-				face = i - ROTATE_DISPLAY_OPTION_TO_1_WINDOW_KEY;
-				break;
-			}
-
-			i++;
-		}
-
-		if (face < 0)
-			face = getIntOptionNamed (option, nOption, "face", s->x);
-
-		if (face > s->hsize)
-			return FALSE;
-
-		o[0].type    = CompOptionTypeInt;
-		o[0].name    = "x";
-		o[0].value.i = getIntOptionNamed (option, nOption, "x", pointerX);
-
-		o[1].type    = CompOptionTypeInt;
-		o[1].name    = "y";
-		o[1].value.i = getIntOptionNamed (option, nOption, "y", pointerY);
-
-		o[2].type    = CompOptionTypeInt;
-		o[2].name    = "root";
-		o[2].value.i = s->root;
-
-		o[3].type    = CompOptionTypeInt;
-		o[3].name    = "direction";
-		o[3].value.i = rotateRotationTo (s, face);
-
-		o[4].type    = CompOptionTypeInt;
-		o[4].name    = "window";
-		o[4].value.i = getIntOptionNamed (option, nOption, "window", 0);
-
-		rotateWithWindow (d, NULL, 0, o, 5);
-	}
-
-	return FALSE;
-}
-
-static void
-rotateHandleEvent (CompDisplay *d,
-                   XEvent      *event)
-{
-	CompScreen *s;
-
-	ROTATE_DISPLAY (d);
-
-	switch (event->type) {
-	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
-		if (s)
-		{
-			ROTATE_SCREEN (s);
-			CUBE_SCREEN (s);
-
-			if (rs->grabIndex)
-			{
-				if (rs->grabbed)
-				{
-					GLfloat pointerDx, pointerDy;
-
-					pointerDx = pointerX - lastPointerX;
-					pointerDy = pointerY - lastPointerY;
-
-					if (event->xmotion.x_root < 50	       ||
-					    event->xmotion.y_root < 50	       ||
-					    event->xmotion.x_root > s->width  - 50 ||
-					    event->xmotion.y_root > s->height - 50)
-					{
-						warpPointer (s,
-						         (s->width  / 2) - pointerX,
-						         (s->height / 2) - pointerY);
-					}
-
-					if (rs->opt[ROTATE_SCREEN_OPTION_POINTER_INVERT_Y].value.b)
-						pointerDy = -pointerDy;
-
-					if (rs->opt[ROTATE_SCREEN_OPTION_POINTER_INVERT_X].value.b)
-						pointerDx = -pointerDx;
-
-					rs->xVelocity += pointerDx * rs->pointerSensitivity *
-						cs->invert;
-					rs->yVelocity += pointerDy * rs->pointerSensitivity;
-
-					damageScreen (s);
-				}
-				else
-				{
-					rs->savedPointer.x += pointerX - lastPointerX;
-					rs->savedPointer.y += pointerY - lastPointerY;
-				}
-			}
-		}
-		break;
-	case ClientMessage:
-		if (event->xclient.message_type == d->desktopViewportAtom)
-		{
-			s = findScreenAtDisplay (d, event->xclient.window);
-			if (s)
-			{
-				int dx;
-
-				ROTATE_SCREEN (s);
-
-				if (otherScreenGrabExist (s, "rotate", "switcher", "cube", NULL))
-					break;
-
-				/* reset movement */
-				rs->moveTo = 0.0f;
-
-				dx = event->xclient.data.l[0] / s->width - s->x;
-				if (dx)
-				{
-					Window       win;
-					int          i, x, y;
-					unsigned int ui;
-					CompOption   o[4];
-
-					XQueryPointer (d->display, s->root,
-					            &win, &win, &x, &y, &i, &i, &ui);
-
-					if (dx * 2 > s->hsize)
-						dx -= s->hsize;
-					else if (dx * 2 < -s->hsize)
-						dx += s->hsize;
-
-					o[0].type    = CompOptionTypeInt;
-					o[0].name    = "x";
-					o[0].value.i = x;
-
-					o[1].type    = CompOptionTypeInt;
-					o[1].name    = "y";
-					o[1].value.i = y;
-
-					o[2].type    = CompOptionTypeInt;
-					o[2].name    = "root";
-					o[2].value.i = s->root;
-
-					o[3].type    = CompOptionTypeInt;
-					o[3].name    = "direction";
-					o[3].value.i = dx;
-
-					rotate (d, NULL, 0, o, 4);
-				}
-			}
-		}
-	default:
-		break;
-	}
-
-	UNWRAP (rd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (rd, d, handleEvent, rotateHandleEvent);
-}
-
-static void
-rotateActivateWindow (CompWindow *w)
-{
-	CompScreen *s = w->screen;
-
-	ROTATE_SCREEN (s);
-
-	if (w->placed &&
-		!otherScreenGrabExist (s, "rotate", "switcher", "cube", NULL))
-	{
-		int dx;
-
-		/* reset movement */
-		rs->moveTo = 0.0f;
-
-		defaultViewportForWindow (w, &dx, NULL);
-		dx -= s->x;
-		if (dx)
-		{
-			Window       win;
-			int          i, x, y;
-			unsigned int ui;
-			CompOption   o[5];
-
-			XQueryPointer (s->display->display, s->root,
-			               &win, &win, &x, &y, &i, &i, &ui);
-
-			if (dx * 2 > s->hsize)
-				dx -= s->hsize;
-			else if (dx * 2 < -s->hsize)
-				dx += s->hsize;
-
-			o[0].type    = CompOptionTypeInt;
-			o[0].name    = "x";
-			o[0].value.i = x;
-
-			o[1].type    = CompOptionTypeInt;
-			o[1].name    = "y";
-			o[1].value.i = y;
-
-			o[2].type    = CompOptionTypeInt;
-			o[2].name    = "root";
-			o[2].value.i = s->root;
-
-			o[3].type    = CompOptionTypeInt;
-			o[3].name    = "direction";
-			o[3].value.i = dx;
-
-			o[4].type    = CompOptionTypeBool;
-			o[4].name    = "focus_default";
-			o[4].value.b = FALSE;
-
-			rotate (s->display, NULL, 0, o, 5);
-		}
-	}
-
-	UNWRAP (rs, s, activateWindow);
-	(*s->activateWindow) (w);
-	WRAP (rs, s, activateWindow, rotateActivateWindow);
-}
-
-static void
-rotateWindowGrabNotify (CompWindow   *w,
-                        int          x,
-                        int          y,
-                        unsigned int state,
-                        unsigned int mask)
-{
-	ROTATE_SCREEN (w->screen);
-
-	if (!rs->grabWindow)
-	{
-		rs->grabMask   = mask;
-		rs->grabWindow = w;
-	}
-
-	UNWRAP (rs, w->screen, windowGrabNotify);
-	(*w->screen->windowGrabNotify) (w, x, y, state, mask);
-	WRAP (rs, w->screen, windowGrabNotify, rotateWindowGrabNotify);
-}
-
-static void
-rotateWindowUngrabNotify (CompWindow *w)
-{
-	ROTATE_SCREEN (w->screen);
-
-	if (w == rs->grabWindow)
-	{
-		rs->grabMask   = 0;
-		rs->grabWindow = NULL;
-	}
-
-	UNWRAP (rs, w->screen, windowUngrabNotify);
-	(*w->screen->windowUngrabNotify) (w);
-	WRAP (rs, w->screen, windowUngrabNotify, rotateWindowUngrabNotify);
-}
-
-static CompOption *
-rotateGetDisplayOptions (CompPlugin  *plugin,
-                         CompDisplay *display,
-                         int         *count)
-{
-	ROTATE_DISPLAY (display);
-
-	*count = NUM_OPTIONS (rd);
-	return rd->opt;
-}
-
-static Bool
-rotateSetDisplayOption (CompPlugin      *plugin,
-                        CompDisplay     *display,
-                        const char      *name,
-                        CompOptionValue *value)
-{
-	CompOption *o;
-
-	ROTATE_DISPLAY (display);
-
-	o = compFindOption (rd->opt, NUM_OPTIONS (rd), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static const CompMetadataOptionInfo rotateDisplayOptionInfo[] = {
-	{ "initiate_button", "button", 0, rotateInitiate, rotateTerminate },
-	{ "rotate_left_key", "key", 0, rotateLeft, 0 },
-	{ "rotate_left_button", "button", 0, rotateLeft, 0 },
-	{ "rotate_right_key", "key", 0, rotateRight, 0 },
-	{ "rotate_right_button", "button", 0, rotateRight, 0 },
-	{ "rotate_left_window_key", "key", 0, rotateLeftWithWindow, 0 },
-	{ "rotate_left_window_button", "button", 0, rotateLeftWithWindow, 0 },
-	{ "rotate_right_window_key", "key", 0, rotateRightWithWindow, 0 },
-	{ "rotate_right_window_button", "button", 0, rotateRightWithWindow, 0 },
-	{ "edge_flip_pointer", "bool", 0, 0, 0 },
-	{ "edge_flip_window", "bool", 0, 0, 0 },
-	{ "edge_flip_dnd", "bool", 0, 0, 0 },
-	{ "flip_time", "int", "<min>0</min><max>1000</max>", 0, 0 },
-	{ "rotate_to_1_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_2_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_3_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_4_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_5_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_6_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_7_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_8_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_9_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_10_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_11_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_12_key", "key", 0, rotateTo, 0 },
-	{ "rotate_to_1_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_2_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_3_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_4_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_5_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_6_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_7_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_8_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_9_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_10_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_11_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_12_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_to_key", "key", 0, rotateTo, 0 },
-	{ "rotate_window_key", "key", 0, rotateToWithWindow, 0 },
-	{ "rotate_flip_left_edge", "edge", 0, rotateEdgeFlipLeft,
-	  rotateFlipTerminate },
-	{ "rotate_flip_right_edge", "edge", 0, rotateEdgeFlipRight,
-	  rotateFlipTerminate },
-	{ "raise_on_rotate", "bool", 0, 0, 0 }
-};
-
-static Bool
-rotateInitDisplay (CompPlugin  *p,
-                   CompDisplay *d)
-{
-	RotateDisplay *rd;
-
-	if (!checkPluginABI ("core", CORE_ABIVERSION) ||
-	    !checkPluginABI ("cube", CUBE_ABIVERSION))
-		return FALSE;
-
-	if (!getPluginDisplayIndex (d, "cube", &cubeDisplayPrivateIndex))
-		return FALSE;
-
-	rd = malloc (sizeof (RotateDisplay));
-	if (!rd)
-		return FALSE;
-
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &rotateMetadata,
-	                                 rotateDisplayOptionInfo,
-	                                 rd->opt,
-	                                 ROTATE_DISPLAY_OPTION_NUM))
-	{
-		free (rd);
-		return FALSE;
-	}
-
-	rd->screenPrivateIndex = allocateScreenPrivateIndex (d);
-	if (rd->screenPrivateIndex < 0)
-	{
-		compFiniDisplayOptions (d, rd->opt, ROTATE_DISPLAY_OPTION_NUM);
-		free (rd);
-		return FALSE;
-	}
-
-	WRAP (rd, d, handleEvent, rotateHandleEvent);
-
-	d->base.privates[displayPrivateIndex].ptr = rd;
-
-	return TRUE;
-}
-
-static void
-rotateFiniDisplay (CompPlugin  *p,
-                   CompDisplay *d)
-{
-	ROTATE_DISPLAY (d);
-
-	freeScreenPrivateIndex (d, rd->screenPrivateIndex);
-
-	UNWRAP (rd, d, handleEvent);
-
-	compFiniDisplayOptions (d, rd->opt, ROTATE_DISPLAY_OPTION_NUM);
-
-	free (rd);
-}
-
-static const CompMetadataOptionInfo rotateScreenOptionInfo[] = {
-	{ "invert_y", "bool", 0, 0, 0 },
-	{ "invert_x", "bool", 0, 0, 0 },
-	{ "sensitivity", "float", 0, 0, 0 },
-	{ "acceleration", "float", "<min>1.0</min>", 0, 0 },
-	{ "snap_top", "bool", 0, 0, 0 },
-	{ "snap_bottom", "bool", 0, 0, 0 },
-	{ "speed", "float", "<min>0.1</min>", 0, 0 },
-	{ "timestep", "float", "<min>0.1</min>", 0, 0 },
-	{ "zoom", "float", 0, 0, 0 }
-};
-
-static Bool
-rotateInitScreen (CompPlugin *p,
-                  CompScreen *s)
-{
-	RotateScreen *rs;
-
-	ROTATE_DISPLAY (s->display);
-	CUBE_SCREEN (s);
-
-	rs = malloc (sizeof (RotateScreen));
-	if (!rs)
-		return FALSE;
-
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &rotateMetadata,
-	                                rotateScreenOptionInfo,
-	                                rs->opt,
-	                                ROTATE_SCREEN_OPTION_NUM))
-	{
-		free (rs);
-		return FALSE;
-	}
-
-	rs->grabIndex = 0;
-
-	rs->xrot = 0.0f;
-	rs->xVelocity = 0.0f;
-	rs->yrot = 0.0f;
-	rs->yVelocity = 0.0f;
-
-	rs->baseXrot = 0.0f;
-
-	rs->moving = FALSE;
-	rs->moveTo = 0.0f;
-
-	rs->moveWindow = 0;
-
-	rs->savedPointer.x = 0;
-	rs->savedPointer.y = 0;
-
-	rs->focusDefault = TRUE;
-	rs->grabbed	     = FALSE;
-	rs->snapTop	     = FALSE;
-	rs->snapBottom   = FALSE;
-
-	rs->slow       = FALSE;
-	rs->grabMask   = FALSE;
-	rs->grabWindow = NULL;
-
-	rs->pointerSensitivity =
-	    rs->opt[ROTATE_SCREEN_OPTION_POINTER_SENSITIVITY].value.f *
-	    ROTATE_POINTER_SENSITIVITY_FACTOR;
-
-	rs->rotateHandle = 0;
-
-	rs->progress          = 0.0;
-	rs->progressVelocity  = 0.0;
-
-	rs->zoomTranslate = 0.0;
-
-	WRAP (rs, s, preparePaintScreen, rotatePreparePaintScreen);
-	WRAP (rs, s, donePaintScreen, rotateDonePaintScreen);
-	WRAP (rs, s, paintOutput, rotatePaintOutput);
-	WRAP (rs, s, windowGrabNotify, rotateWindowGrabNotify);
-	WRAP (rs, s, windowUngrabNotify, rotateWindowUngrabNotify);
-	WRAP (rs, s, activateWindow, rotateActivateWindow);
-
-	WRAP (rs, cs, getRotation, rotateGetRotation);
-
-	s->base.privates[rd->screenPrivateIndex].ptr = rs;
-
-	return TRUE;
-}
-
-static void
-rotateFiniScreen (CompPlugin *p,
-                  CompScreen *s)
-{
-	CUBE_SCREEN (s);
-	ROTATE_SCREEN (s);
-
-	if (rs->rotateHandle)
-		compRemoveTimeout (rs->rotateHandle);
-
-	UNWRAP (rs, cs, getRotation);
-
-	UNWRAP (rs, s, preparePaintScreen);
-	UNWRAP (rs, s, donePaintScreen);
-	UNWRAP (rs, s, paintOutput);
-	UNWRAP (rs, s, windowGrabNotify);
-	UNWRAP (rs, s, windowUngrabNotify);
-	UNWRAP (rs, s, activateWindow);
-
-	compFiniScreenOptions (s, rs->opt, ROTATE_SCREEN_OPTION_NUM);
-
-	free (rs);
-}
-static CompBool
-rotateInitObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) rotateInitDisplay,
-		(InitPluginObjectProc) rotateInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-rotateFiniObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) rotateFiniDisplay,
-		(FiniPluginObjectProc) rotateFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
-
-static CompOption *
-rotateGetObjectOptions (CompPlugin *plugin,
-                        CompObject *object,
-                        int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) rotateGetDisplayOptions,
-		(GetPluginObjectOptionsProc) rotateGetScreenOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-rotateSetObjectOption (CompPlugin      *plugin,
-                       CompObject      *object,
-                       const char      *name,
-                       CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) rotateSetDisplayOption,
-		(SetPluginObjectOptionProc) rotateSetScreenOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
-static Bool
-rotateInit (CompPlugin *p)
-{
-	if (!compInitPluginMetadataFromInfo (&rotateMetadata,
-	                             p->vTable->name,
-	                             rotateDisplayOptionInfo,
-	                             ROTATE_DISPLAY_OPTION_NUM,
-	                             rotateScreenOptionInfo,
-	                             ROTATE_SCREEN_OPTION_NUM))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
-	{
-		compFiniMetadata (&rotateMetadata);
-		return FALSE;
-	}
-
-	compAddMetadataFromFile (&rotateMetadata, p->vTable->name);
-
-	return TRUE;
-}
-
-static void
-rotateFini (CompPlugin *p)
-{
-	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&rotateMetadata);
-}
-
-static CompMetadata *
-rotateGetMetadata (CompPlugin *plugin)
-{
-	return &rotateMetadata;
-}
-
-CompPluginVTable rotateVTable = {
-	"rotate",
-	rotateGetMetadata,
-	rotateInit,
-	rotateFini,
-	rotateInitObject,
-	rotateFiniObject,
-	rotateGetObjectOptions,
-	rotateSetObjectOption
-};
-
-CompPluginVTable *
-getCompPluginInfo20070830 (void)
-{
-	return &rotateVTable;
-}
+#endif

@@ -141,8 +141,13 @@ imageToTexture (CompScreen   *screen,
 
 	glBindTexture (texture->target, texture->name);
 
+	const BananaValue *
+	option_texture_compression = bananaGetOption (coreBananaIndex,
+	                                              "texture_compression",
+	                                              screen->screenNum);
+
 	internalFormat =
-	     (screen->opt[COMP_SCREEN_OPTION_TEXTURE_COMPRESSION].value.b &&
+	     (option_texture_compression->b &&
 	     screen->textureCompression ?
 	     GL_COMPRESSED_RGBA_ARB : GL_RGBA);
 

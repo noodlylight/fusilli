@@ -33,8 +33,6 @@
 
 #include <fusilli-core.h>
 
-static CompMetadata regexMetadata;
-
 static int displayPrivateIndex;
 
 typedef struct _RegexDisplay {
@@ -368,9 +366,6 @@ regexInitDisplay (CompPlugin  *p,
 {
 	RegexDisplay *rd;
 
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
-
 	rd = malloc (sizeof (RegexDisplay));
 	if (!rd)
 		return FALSE;
@@ -520,18 +515,21 @@ regexFiniObject (CompPlugin *p,
 static Bool
 regexInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&regexMetadata, p->vTable->name,
-	                                     0, 0, 0, 0))
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&regexMetadata);
+		compLogMessage ("regex", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&regexMetadata, p->vTable->name);
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
 
 	return TRUE;
 }
@@ -540,28 +538,18 @@ static void
 regexFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-	compFiniMetadata (&regexMetadata);
-}
-
-static CompMetadata *
-regexGetMetadata (CompPlugin *plugin)
-{
-	return &regexMetadata;
 }
 
 static CompPluginVTable regexVTable = {
 	"regex",
-	regexGetMetadata,
 	regexInit,
 	regexFini,
 	regexInitObject,
-	regexFiniObject,
-	0, /* GetObjectOptions */
-	0  /* SetObjectOption */
+	regexFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &regexVTable;
 }

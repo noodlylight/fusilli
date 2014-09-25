@@ -37,7 +37,6 @@ stamp-h1
 cscope.*
 src/fusilli
 gtk/window-decorator/gtk-window-decorator
-metadata/core.xml.in
 mkinstalldirs
 po/.intltool-merge-cache
 po/Makefile.in.in

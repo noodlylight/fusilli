@@ -4,159 +4,175 @@
 		<_short>Place Windows</_short>
 		<_long>Place windows at appropriate positions when mapped</_long>
 		<category>Window Management</category>
-		<screen>
-			<option name="workarounds" type="bool">
-				<_short>Workarounds</_short>
-				<_long>Window placement workarounds</_long>
-				<default>true</default>
-			</option>
-			<option name="mode" type="int">
-				<_short>Placement Mode</_short>
-				<_long>Algorithm to use for window placement</_long>
-				<default>0</default>
-				<min>0</min>
-				<max>5</max>
-				<desc>
-					<value>0</value>
-					<_name>Cascade</_name>
-				</desc>
-				<desc>
-					<value>1</value>
-					<_name>Centered</_name>
-				</desc>
-				<desc>
-					<value>2</value>
-					<_name>Smart</_name>
-				</desc>
-				<desc>
-					<value>3</value>
-					<_name>Maximize</_name>
-				</desc>
-				<desc>
-					<value>4</value>
-					<_name>Random</_name>
-				</desc>
-				<desc>
-					<value>5</value>
-					<_name>Under pointer</_name>
-				</desc>
-			</option>
-			<option name="multioutput_mode" type="int">
-				<_short>Multi Output Mode</_short>
-				<_long>Selects how window placement should behave if multiple outputs are selected</_long>
-				<min>0</min>
-				<max>3</max>
-				<default>0</default>
-				<desc>
-					<value>0</value>
-					<_name>Use active output device</_name>
-				</desc>
-				<desc>
-					<value>1</value>
-					<_name>Use output device with pointer</_name>
-				</desc>
-				<desc>
-					<value>2</value>
-					<_name>Use output device of focussed window</_name>
-				</desc>
-				<desc>
-					<value>3</value>
-					<_name>Place across all outputs</_name>
-				</desc>
-			</option>
-			<option name="force_placement_match" type="match">
-				<_short>Force Placement Windows</_short>
-				<_long>Windows that should forcedly be placed, even if they indicate the window manager should avoid placing them.</_long>
-				<default></default>
-			</option>
-			<group>
-				<_short>Fixed Window Placement</_short>
-				<subgroup>
-					<_short>Windows with fixed positions</_short>
-					<option name="position_matches" type="list">
-						<_short>Positioned windows</_short>
-						<_long>Windows that should be positioned by default</_long>
-						<type>match</type>
-					</option>
-					<option name="position_x_values" type="list">
-						<_short>X Positions</_short>
-						<_long>X position values</_long>
-						<type>int</type>
-					</option>
-					<option name="position_y_values" type="list">
-						<_short>Y Positions</_short>
-						<_long>Y position values</_long>
-						<type>int</type>
-					</option>
-					<option name="position_constrain_workarea" type="list">
-						<_short>Keep In Workarea</_short>
-						<_long>Keep placed window in work area, even if that means that the position might differ from the specified position</_long>
-						<type>bool</type>
-					</option>
-				</subgroup>
-				<subgroup>
-					<_short>Windows with fixed placement mode</_short>
-					<option name="mode_matches" type="list">
-						<_short>Windows</_short>
-						<_long>Windows that should have a certain positioning mode</_long>
-						<type>match</type>
-					</option>
-					<option name="mode_modes" type="list">
-						<_short>Mode</_short>
-						<_long>Positioning modes</_long>
-						<type>int</type>
-						<default>0</default>
-						<min>0</min>
-						<max>5</max>
-						<desc>
-						    <value>0</value>
-						    <_name>Cascade</_name>
+
+		<group>
+			<_short>General</_short>
+
+			<subgroup>
+				<option name="workarounds" type="bool" per_screen="true">
+					<_short>Workarounds</_short>
+					<_long>Window placement workarounds</_long>
+					<default>true</default>
+				</option>
+
+				<option name="mode" type="int" per_screen="true">
+					<_short>Placement Mode</_short>
+					<_long>Algorithm to use for window placement</_long>
+					<default>0</default>
+					<min>0</min>
+					<max>5</max>
+					<desc>
+						<value>0</value>
+						<_name>Cascade</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Centered</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Smart</_name>
+					</desc>
+					<desc>
+						<value>3</value>
+						<_name>Maximize</_name>
+					</desc>
+					<desc>
+						<value>4</value>
+						<_name>Random</_name>
+					</desc>
+					<desc>
+						<value>5</value>
+						<_name>Under pointer</_name>
+					</desc>
+				</option>
+
+				<option name="multioutput_mode" type="int" per_screen="true">
+					<_short>Multi Output Mode</_short>
+					<_long>Selects how window placement should behave if multiple outputs are selected</_long>
+					<min>0</min>
+					<max>3</max>
+					<default>0</default>
+					<desc>
+						<value>0</value>
+						<_name>Use active output device</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Use output device with pointer</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Use output device of focussed window</_name>
+					</desc>
+					<desc>
+						<value>3</value>
+						<_name>Place across all outputs</_name>
+					</desc>
+				</option>
+
+				<option name="force_placement_match" type="string" per_screen="true">
+					<_short>Force Placement Windows</_short>
+					<_long>Windows that should forcedly be placed, even if they indicate the window manager should avoid placing them.</_long>
+					<hint>match</hint>
+					<default></default>
+				</option>
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>Fixed Window Placement</_short>
+
+			<subgroup multilist="true">
+				<_short>Windows with fixed positions</_short>
+
+				<option name="position_matches" type="list_string" per_screen="true">
+					<_short>Positioned windows</_short>
+					<_long>Windows that should be positioned by default</_long>
+					<hint>match</hint>
+				</option>
+
+				<option name="position_x_values" type="list_int" per_screen="true">
+					<_short>X Positions</_short>
+					<_long>X position values</_long>
+				</option>
+
+				<option name="position_y_values" type="list_int" per_screen="true">
+					<_short>Y Positions</_short>
+					<_long>Y position values</_long>
+				</option>
+
+				<option name="position_constrain_workarea" type="list_bool" per_screen="true">
+					<_short>Keep In Workarea</_short>
+					<_long>Keep placed window in work area, even if that means that the position might differ from the specified position</_long>
+				</option>
+			</subgroup>
+
+			<subgroup multilist="true">
+				<_short>Windows with fixed placement mode</_short>
+
+				<option name="mode_matches" type="list_string" per_screen="true">
+					<_short>Windows</_short>
+					<_long>Windows that should have a certain positioning mode</_long>
+					<hint>match</hint>
+				</option>
+
+				<option name="mode_modes" type="list_int" per_screen="true">
+					<_short>Mode</_short>
+					<_long>Positioning modes</_long>
+					<default>0</default>
+					<min>0</min>
+					<max>5</max>
+					<desc>
+						<value>0</value>
+						<_name>Cascade</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Centered</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Smart</_name>
+					</desc>
+					<desc>
+						<value>3</value>
+						<_name>Maximize</_name>
+					</desc>
+					<desc>
+						<value>4</value>
+						<_name>Random</_name>
+					</desc>
+					<desc>
+						<value>5</value>
+						<_name>Under pointer</_name>
 						</desc>
-						<desc>
-						    <value>1</value>
-						    <_name>Centered</_name>
-						</desc>
-						<desc>
-						    <value>2</value>
-						    <_name>Smart</_name>
-						</desc>
-						<desc>
-						    <value>3</value>
-						    <_name>Maximize</_name>
-						</desc>
-						<desc>
-						    <value>4</value>
-						    <_name>Random</_name>
-						</desc>
-						<desc>
-						    <value>5</value>
-						    <_name>Under pointer</_name>
-						</desc>
 					</option>
-				</subgroup>
-				<subgroup>
-					<_short>Windows with fixed viewport</_short>
-					<option name="viewport_matches" type="list">
-						<_short>Viewport positioned windows</_short>
-						<_long>Windows that should be positioned in specific viewports by default</_long>
-						<type>match</type>
-					</option>
-					<option name="viewport_x_values" type="list">
-						<_short>X Viewport Positions</_short>
-						<_long>Horizontal viewport positions</_long>
-						<type>int</type>
-						<min>1</min>
-						<max>32</max>
-					</option>
-					<option name="viewport_y_values" type="list">
-						<_short>Y Viewport Positions</_short>
-						<_long>Vertical viewport positions</_long>
-						<type>int</type>
-						<min>1</min>
-						<max>32</max>
-					</option>
-				</subgroup>
-			</group>
-		</screen>
+			</subgroup>
+
+			<subgroup multilist="true">
+				<_short>Windows with fixed viewport</_short>
+
+				<option name="viewport_matches" type="list_string" per_screen="true">
+					<_short>Viewport positioned windows</_short>
+					<_long>Windows that should be positioned in specific viewports by default</_long>
+					<hint>match</hint>
+				</option>
+
+				<option name="viewport_x_values" type="list_int" per_screen="true">
+					<_short>X Viewport Positions</_short>
+					<_long>Horizontal viewport positions</_long>
+					<min>1</min>
+					<max>32</max>
+				</option>
+
+				<option name="viewport_y_values" type="list_int" per_screen="true">
+					<_short>Y Viewport Positions</_short>
+					<_long>Vertical viewport positions</_long>
+					<min>1</min>
+					<max>32</max>
+				</option>
+			</subgroup>
+		</group>
 	</plugin>
 </fusilli>

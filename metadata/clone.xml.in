@@ -4,12 +4,18 @@
 		<_short>Clone Output</_short>
 		<_long>Output clone handler</_long>
 		<category>Desktop</category>
-		<display>
-			<option name="initiate_button" type="button">
-				<_short>Initiate</_short>
-				<_long>Initiate clone selection</_long>
-				<default>&lt;Super&gt;&lt;Shift&gt;Button1</default>
-			</option>
-		</display>
+
+		<group>
+			<_short>General</_short>
+
+			<subgroup>
+				<option name="initiate_button" type="string">
+					<_short>Initiate</_short>
+					<_long>Initiate clone selection</_long>
+					<hint>button</hint>
+					<default>&lt;Super&gt;&lt;Shift&gt;Button1</default>
+				</option>
+			</subgroup>
+		</group>
 	</plugin>
 </fusilli>

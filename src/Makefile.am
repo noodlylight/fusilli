@@ -29,4 +29,5 @@ fusilli_SOURCES =   \
 	matrix.c   \
 	cursor.c   \
 	match.c    \
-	metadata.c
+	banana.c
+

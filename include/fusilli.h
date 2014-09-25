@@ -26,8 +26,6 @@
 #ifndef _FUSILLI_H
 #define _FUSILLI_H
 
-#include <libxml/parser.h>
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -41,83 +39,11 @@ typedef union _CompOptionValue CompOptionValue;
 typedef struct _CompObject   CompObject;
 typedef struct _CompCore     CompCore;
 typedef struct _CompDisplay  CompDisplay;
-typedef struct _CompMetadata CompMetadata;
-typedef struct _CompOption   CompOption;
 typedef struct _CompPlugin   CompPlugin;
 typedef struct _CompScreen   CompScreen;
 typedef struct _CompWindow   CompWindow;
 
 typedef CompBool (*CallBackProc) (void *closure);
-
-typedef enum {
-	CompOptionTypeBool,
-	CompOptionTypeInt,
-	CompOptionTypeFloat,
-	CompOptionTypeString,
-	CompOptionTypeColor,
-	CompOptionTypeAction,
-	CompOptionTypeKey,
-	CompOptionTypeButton,
-	CompOptionTypeEdge,
-	CompOptionTypeBell,
-	CompOptionTypeMatch,
-	CompOptionTypeList
-} CompOptionType;
-
-void
-compInitOptionValue (CompOptionValue *v);
-
-void
-compFiniOptionValue (CompOptionValue *v,
-                     CompOptionType  type);
-
-void
-compInitOption (CompOption *option);
-
-void
-compFiniOption (CompOption *option);
-
-CompOption *
-compFindOption (CompOption *option,
-                int        nOption,
-                const char *name,
-                int        *index);
-
-CompBool
-compSetBoolOption (CompOption      *option,
-                   CompOptionValue *value);
-
-CompBool
-compSetIntOption (CompOption      *option,
-                  CompOptionValue *value);
-
-CompBool
-compSetFloatOption (CompOption      *option,
-                    CompOptionValue *value);
-
-CompBool
-compSetStringOption (CompOption	     *option,
-                     CompOptionValue *value);
-
-CompBool
-compSetColorOption (CompOption      *option,
-                    CompOptionValue *value);
-
-CompBool
-compSetActionOption (CompOption      *option,
-                     CompOptionValue *value);
-
-CompBool
-compSetMatchOption (CompOption      *option,
-                    CompOptionValue *value);
-
-CompBool
-compSetOptionList (CompOption      *option,
-                   CompOptionValue *value);
-
-CompBool
-compSetOption (CompOption      *option,
-               CompOptionValue *value);
 
 CompTimeoutHandle
 compAddTimeout (int          minTime,
@@ -139,40 +65,6 @@ compRemoveWatchFd (CompWatchFdHandle handle);
 
 short int
 compWatchFdEvents (CompWatchFdHandle handle);
-
-CompBool
-compInitMetadata (CompMetadata *metadata);
-
-CompBool
-compInitPluginMetadata (CompMetadata *metadata,
-                        const char   *plugin);
-
-void
-compFiniMetadata (CompMetadata *metadata);
-
-CompBool
-compAddMetadataFromFile (CompMetadata *metadata,
-                         const char   *file);
-
-CompBool
-compAddMetadataFromString (CompMetadata *metadata,
-                           const char   *string);
-
-CompBool
-compAddMetadataFromIO (CompMetadata          *metadata,
-                       xmlInputReadCallback  ioread,
-                       xmlInputCloseCallback ioclose,
-                       void                  *ioctx);
-
-char *
-compGetStringFromMetadataPath (CompMetadata *metadata,
-                               const char   *path);
-
-int
-compReadXmlChunk (const char *src,
-                  int        *offset,
-                  char       *buffer,
-                  int        length);
 
 
 #ifdef  __cplusplus

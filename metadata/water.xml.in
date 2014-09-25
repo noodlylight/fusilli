@@ -9,50 +9,55 @@
 				<plugin>blur</plugin>
 			</relation>
 		</deps>
-		<display>
-			<option name="initiate_key" type="key">
-				<_short>Initiate</_short>
-				<_long>Enable pointer water effects</_long>
-				<default>&lt;Control&gt;&lt;Super&gt;</default>
-			</option>
-			<option name="toggle_rain_key" type="key">
-				<_short>Toggle rain</_short>
-				<_long>Toggle rain effect</_long>
-				<default>&lt;Shift&gt;F9</default>
-			</option>
-			<option name="toggle_wiper_key" type="key">
-				<_short>Toggle wiper</_short>
-				<_long>Toggle wiper effect</_long>
-				<default>&lt;Shift&gt;F8</default>
-			</option>
-			<option name="offset_scale" type="float">
-				<_short>Offset Scale</_short>
-				<_long>Water offset scale</_long>
-				<default>1</default>
-				<min>0</min>
-				<max>10</max>
-				<precision>0.1</precision>
-			</option>
-			<option name="rain_delay" type="int">
-				<_short>Rain Delay</_short>
-				<_long>Delay (in ms) between each rain-drop</_long>
-				<default>250</default>
-				<min>1</min>
-				<max>3600000</max>
-			</option>
-			<option name="title_wave" type="bell">
-				<_short>Title wave</_short>
-				<_long>Wave effect from window title</_long>
-				<default>false</default>
-			</option>
-			<option name="point" type="action">
-				<_short>Point</_short>
-				<_long>Add point</_long>
-			</option>
-			<option name="line" type="action">
-				<_short>Line</_short>
-				<_long>Add line</_long>
-			</option>
-		</display>
+
+		<group>
+			<_short>General</_short>
+
+			<subgroup>
+				<option name="initiate_key" type="string">
+					<_short>Initiate</_short>
+					<_long>Enable pointer water effects</_long>
+					<hint>key</hint>
+					<default>&lt;Control&gt;&lt;Super&gt;</default>
+				</option>
+
+				<option name="toggle_rain_key" type="string">
+					<_short>Toggle rain</_short>
+					<_long>Toggle rain effect</_long>
+					<hint>key</hint>
+					<default>&lt;Shift&gt;F9</default>
+				</option>
+
+				<option name="toggle_wiper_key" type="string">
+					<_short>Toggle wiper</_short>
+					<_long>Toggle wiper effect</_long>
+					<hint>key</hint>
+					<default>&lt;Shift&gt;F8</default>
+				</option>
+
+				<option name="offset_scale" type="float">
+					<_short>Offset Scale</_short>
+					<_long>Water offset scale</_long>
+					<default>1</default>
+					<min>0</min>
+					<max>10</max>
+					<precision>0.1</precision>
+				</option>
+
+				<option name="rain_delay" type="int">
+					<_short>Rain Delay</_short>
+					<_long>Delay (in ms) between each rain-drop</_long>
+					<default>250</default>
+					<min>1</min>
+					<max>3600000</max>
+				</option>
+
+				<option name="title_wave" type="bool">
+					<_short>Title wave</_short>
+					<_long>Wave effect from window title</_long>
+					<default>false</default>
+				</option>
+			</subgroup>
+		</group>
 	</plugin>
 </fusilli>

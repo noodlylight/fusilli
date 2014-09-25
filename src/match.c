@@ -716,10 +716,12 @@ matchInitExp (CompDisplay  *display,
 	}
 }
 
+#if 0
 static void
 matchUpdateMatchOptions (CompOption *option,
                          int        nOption)
 {
+
 	while (nOption--)
 	{
 		switch (option->type) {
@@ -743,11 +745,15 @@ matchUpdateMatchOptions (CompOption *option,
 
 		option++;
 	}
-}
 
+}
+#endif
+
+//TODO: remove this 
 void
 matchExpHandlerChanged (CompDisplay *display)
 {
+#if 0
 	CompOption *option;
 	int        nOption;
 	CompPlugin *p;
@@ -755,11 +761,11 @@ matchExpHandlerChanged (CompDisplay *display)
 
 	for (p = getPlugins (); p; p = p->next)
 	{
-		if (!p->vTable->getObjectOptions)
-			continue;
+		//if (!p->vTable->getObjectOptions)
+		//	continue;
 
-		option = (*p->vTable->getObjectOptions) (p, &display->base, &nOption);
-		matchUpdateMatchOptions (option, nOption);
+		//option = (*p->vTable->getObjectOptions) (p, &display->base, &nOption);
+		//matchUpdateMatchOptions (option, nOption);
 	}
 
 	for (s = display->screens; s; s = s->next)
@@ -773,6 +779,7 @@ matchExpHandlerChanged (CompDisplay *display)
 			matchUpdateMatchOptions (option, nOption);
 		}
 	}
+#endif
 }
 
 void

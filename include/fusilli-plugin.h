@@ -35,25 +35,13 @@ extern "C" {
 typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
 typedef void (*FiniPluginProc) (CompPlugin *plugin);
 
-typedef CompMetadata *(*GetMetadataProc) (CompPlugin *plugin);
-
 typedef CompBool (*InitPluginObjectProc) (CompPlugin *plugin,
                                           CompObject *object);
 typedef void (*FiniPluginObjectProc) (CompPlugin  *plugin,
                                       CompObject *object);
 
-typedef CompOption *(*GetPluginObjectOptionsProc) (CompPlugin *plugin,
-                                                   CompObject *object,
-                                                   int        *count);
-typedef CompBool (*SetPluginObjectOptionProc) (CompPlugin      *plugin,
-                                               CompObject      *object,
-                                               const char      *name,
-                                               CompOptionValue *value);
-
 typedef struct _CompPluginVTable {
 	const char *name;
-
-	GetMetadataProc getMetadata;
 
 	InitPluginProc init;
 	FiniPluginProc fini;
@@ -61,12 +49,10 @@ typedef struct _CompPluginVTable {
 	InitPluginObjectProc initObject;
 	FiniPluginObjectProc finiObject;
 
-	GetPluginObjectOptionsProc getObjectOptions;
-	SetPluginObjectOptionProc  setObjectOption;
 } CompPluginVTable;
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void);
+getCompPluginInfo20140724 (void);
 
 #ifdef  __cplusplus
 }

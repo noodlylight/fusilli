@@ -33,7 +33,7 @@
 #include <X11/Xatom.h>
 #include <GL/glu.h>
 
-static CompMetadata blurMetadata;
+static int bananaIndex;
 
 #define BLUR_GAUSSIAN_RADIUS_MAX 15
 
@@ -78,38 +78,17 @@ typedef struct _BlurCore {
 
 static int displayPrivateIndex;
 
-#define BLUR_DISPLAY_OPTION_PULSE 0
-#define BLUR_DISPLAY_OPTION_NUM   1
-
 typedef struct _BlurDisplay {
 	int                        screenPrivateIndex;
 	HandleEventProc            handleEvent;
 	MatchExpHandlerChangedProc matchExpHandlerChanged;
 	MatchPropertyChangedProc   matchPropertyChanged;
 
-	CompOption opt[BLUR_DISPLAY_OPTION_NUM];
-
 	Atom blurAtom[BLUR_STATE_NUM];
 } BlurDisplay;
 
-#define BLUR_SCREEN_OPTION_BLUR_SPEED        0
-#define BLUR_SCREEN_OPTION_FOCUS_BLUR_MATCH  1
-#define BLUR_SCREEN_OPTION_FOCUS_BLUR        2
-#define BLUR_SCREEN_OPTION_ALPHA_BLUR_MATCH  3
-#define BLUR_SCREEN_OPTION_ALPHA_BLUR        4
-#define BLUR_SCREEN_OPTION_FILTER            5
-#define BLUR_SCREEN_OPTION_GAUSSIAN_RADIUS   6
-#define BLUR_SCREEN_OPTION_GAUSSIAN_STRENGTH 7
-#define BLUR_SCREEN_OPTION_MIPMAP_LOD        8
-#define BLUR_SCREEN_OPTION_SATURATION        9
-#define BLUR_SCREEN_OPTION_BLUR_OCCLUSION    10
-#define BLUR_SCREEN_OPTION_INDEPENDENT_TEX   11
-#define BLUR_SCREEN_OPTION_NUM               12
-
 typedef struct _BlurScreen {
 	int	windowPrivateIndex;
-
-	CompOption opt[BLUR_SCREEN_OPTION_NUM];
 
 	PreparePaintScreenProc       preparePaintScreen;
 	DonePaintScreenProc          donePaintScreen;
@@ -204,8 +183,6 @@ typedef struct _BlurWindow {
                          GET_BLUR_SCREEN  (w->screen, \
                          GET_BLUR_DISPLAY (w->screen->display)))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 /* pascal triangle based kernel generator */
 static int
 blurCreateGaussianLinearKernel (int   radius,
@@ -285,13 +262,33 @@ blurUpdateFilterRadius (CompScreen *s)
 {
 	BLUR_SCREEN (s);
 
-	switch (bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i) {
+	const BananaValue *
+	filter = bananaGetOption (bananaIndex,
+	                          "filter",
+	                          s->screenNum);
+
+	const BananaValue *
+	gaussian_radius = bananaGetOption (bananaIndex,
+	                                   "gaussian_radius",
+	                                   s->screenNum);
+
+	const BananaValue *
+	gaussian_strength = bananaGetOption (bananaIndex,
+	                                     "gaussian_strength",
+	                                     s->screenNum);
+
+	const BananaValue *
+	mipmap_lod = bananaGetOption (bananaIndex,
+	                              "mipmap_lod",
+	                              s->screenNum);
+
+	switch (filter->i) {
 	case BLUR_FILTER_4X_BILINEAR:
 		bs->filterRadius = 2;
 		break;
 	case BLUR_FILTER_GAUSSIAN: {
-		int   radius   = bs->opt[BLUR_SCREEN_OPTION_GAUSSIAN_RADIUS].value.i;
-		float strength = bs->opt[BLUR_SCREEN_OPTION_GAUSSIAN_STRENGTH].value.f;
+		int   radius   = gaussian_radius->i;
+		float strength = gaussian_strength->f;
 
 		blurCreateGaussianLinearKernel (radius, strength, bs->amp, bs->pos,
 		                                &bs->numTexop);
@@ -299,7 +296,7 @@ blurUpdateFilterRadius (CompScreen *s)
 		bs->filterRadius = radius;
 	} break;
 	case BLUR_FILTER_MIPMAP: {
-		float lod = bs->opt[BLUR_SCREEN_OPTION_MIPMAP_LOD].value.f;
+		float lod = mipmap_lod->f;
 
 		bs->filterRadius = powf (2.0f, ceilf (lod));
 	} break;
@@ -511,10 +508,18 @@ blurUpdateAlphaWindowMatch (BlurScreen *bs,
 
 	if (!bw->propSet[BLUR_STATE_CLIENT])
 	{
-		CompMatch *match;
+		CompMatch match;
 
-		match = &bs->opt[BLUR_SCREEN_OPTION_ALPHA_BLUR_MATCH].value.match;
-		if (matchEval (match, w))
+		const BananaValue *
+		alpha_blur_match = bananaGetOption (bananaIndex,
+		                                    "alpha_blur_match",
+		                                    w->screen->screenNum);
+
+		matchInit (&match);
+		matchAddFromString (&match, alpha_blur_match->s);
+		matchUpdate (core.displays, &match);
+
+		if (matchEval (&match, w))
 		{
 			if (!bw->state[BLUR_STATE_CLIENT].threshold)
 				blurSetWindowBlur (w, BLUR_STATE_CLIENT, 4, NULL, 0);
@@ -524,6 +529,8 @@ blurUpdateAlphaWindowMatch (BlurScreen *bs,
 			if (bw->state[BLUR_STATE_CLIENT].threshold)
 				blurSetWindowBlur (w, BLUR_STATE_CLIENT, 0, NULL, 0);
 		}
+
+		matchFini (&match);
 	}
 }
 
@@ -531,168 +538,132 @@ static void
 blurUpdateWindowMatch (BlurScreen *bs,
                        CompWindow *w)
 {
-	CompMatch *match;
+	CompMatch match;
 	Bool      focus;
 
 	BLUR_WINDOW (w);
 
 	blurUpdateAlphaWindowMatch (bs, w);
 
-	match = &bs->opt[BLUR_SCREEN_OPTION_FOCUS_BLUR_MATCH].value.match;
+	const BananaValue *
+	focus_blur_match = bananaGetOption (bananaIndex,
+	                                    "focus_blur_match",
+	                                    w->screen->screenNum);
 
-	focus = w->screen->fragmentProgram && matchEval (match, w);
+	matchInit (&match);
+	matchAddFromString (&match, focus_blur_match->s);
+	matchUpdate (core.displays, &match);
+
+	focus = w->screen->fragmentProgram && matchEval (&match, w);
 	if (focus != bw->focusBlur)
 	{
 		bw->focusBlur = focus;
 		addWindowDamage (w);
 	}
+
+	matchFini (&match);
 }
 
-static CompOption *
-blurGetScreenOptions (CompPlugin *plugin,
-                      CompScreen *screen,
-                      int        *count)
+static void
+blurChangeNotify (const char        *optionName,
+                  BananaType        optionType,
+                  const BananaValue *optionValue,
+                  int               screenNum)
 {
-	BLUR_SCREEN (screen);
+	int        filter;
+	CompScreen *screen;
 
-	*count = NUM_OPTIONS (bs);
-	return bs->opt;
-}
-
-static Bool
-blurSetScreenOption (CompPlugin      *plugin,
-                     CompScreen      *screen,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	CompOption *o;
-	int        index, filter;
+	if (screenNum != -1)
+		screen = getScreenFromScreenNum (screenNum);
+	else
+		return;
 
 	BLUR_SCREEN (screen);
 
-	o = compFindOption (bs->opt, NUM_OPTIONS (bs), name, &index);
-	if (!o)
-		return FALSE;
-
-	switch (index) {
-	case BLUR_SCREEN_OPTION_BLUR_SPEED:
-		if (compSetFloatOption (o, value))
-		{
-			bs->blurTime = 1000.0f / o->value.f;
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_FOCUS_BLUR_MATCH:
-	case BLUR_SCREEN_OPTION_ALPHA_BLUR_MATCH:
-		if (compSetMatchOption (o, value))
-		{
-			CompWindow *w;
-
-			for (w = screen->windows; w; w = w->next)
-				blurUpdateWindowMatch (bs, w);
-
-			bs->moreBlur = TRUE;
-			damageScreen (screen);
-
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_FOCUS_BLUR:
-		if (compSetBoolOption (o, value))
-		{
-			bs->moreBlur = TRUE;
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_ALPHA_BLUR:
-		if (compSetBoolOption (o, value))
-		{
-			if (screen->fragmentProgram && o->value.b)
-				bs->alphaBlur = TRUE;
-			else
-				bs->alphaBlur = FALSE;
-
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_FILTER:
-		if (compSetIntOption (o, value))
-		{
-			blurReset (screen);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_GAUSSIAN_RADIUS:
-		if (compSetIntOption (o, value))
-		{
-			filter = bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i;
-			if (filter == BLUR_FILTER_GAUSSIAN)
-			{
-				blurReset (screen);
-				damageScreen (screen);
-			}
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_GAUSSIAN_STRENGTH:
-		if (compSetFloatOption (o, value))
-		{
-			filter = bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i;
-			if (filter == BLUR_FILTER_GAUSSIAN)
-			{
-				blurReset (screen);
-				damageScreen (screen);
-			}
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_MIPMAP_LOD:
-		if (compSetFloatOption (o, value))
-		{
-			filter = bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i;
-			if (filter == BLUR_FILTER_MIPMAP)
-			{
-				blurReset (screen);
-				damageScreen (screen);
-			}
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_SATURATION:
-		if (compSetIntOption (o, value))
-		{
-			blurReset (screen);
-			damageScreen (screen);
-			return TRUE;
-		}
-		break;
-	case BLUR_SCREEN_OPTION_BLUR_OCCLUSION:
-		if (compSetBoolOption (o, value))
-		{
-			bs->blurOcclusion = o->value.b;
-			blurReset (screen);
-			damageScreen (screen);
-			return TRUE;
-		}
-	case BLUR_SCREEN_OPTION_INDEPENDENT_TEX:
-		if (compSetBoolOption (o, value))
-		{
-			filter = bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i;
-			if (filter == BLUR_FILTER_GAUSSIAN)
-			{
-				blurReset (screen);
-				damageScreen (screen);
-			}
-			return TRUE;
-		}
-	default:
-		break;
+	if (strcasecmp (optionName, "blur_speed") == 0)
+	{
+		bs->blurTime = 1000.0f / optionValue->f;
 	}
+	else if (strcasecmp (optionName, "focus_blur_match") == 0 ||
+	         strcasecmp (optionName, "alpha_blur_match") == 0)
+	{
+		CompWindow *w;
 
-	return FALSE;
+		for (w = screen->windows; w; w = w->next)
+			blurUpdateWindowMatch (bs, w);
+
+		bs->moreBlur = TRUE;
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "focus_blur") == 0)
+	{
+		bs->moreBlur = TRUE;
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "alpha_blur") == 0)
+	{
+		if (screen->fragmentProgram && optionValue->b)
+			bs->alphaBlur = TRUE;
+		else
+			bs->alphaBlur = FALSE;
+
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "filter") == 0)
+	{
+		blurReset (screen);
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "gaussian_radius") == 0)
+	{
+		filter = optionValue->i;
+		if (filter == BLUR_FILTER_GAUSSIAN)
+		{
+			blurReset (screen);
+			damageScreen (screen);
+		}
+	}
+	else if (strcasecmp (optionName, "gaussian_strength") == 0)
+	{
+		filter = optionValue->i;
+		if (filter == BLUR_FILTER_GAUSSIAN)
+		{
+			blurReset (screen);
+			damageScreen (screen);
+		}
+	}
+	else if (strcasecmp (optionName, "mipmap_lod") == 0)
+	{
+		filter = optionValue->i;
+		if (filter == BLUR_FILTER_MIPMAP)
+		{
+			blurReset (screen);
+			damageScreen (screen);
+		}
+	}
+	else if (strcasecmp (optionName, "saturation") == 0)
+	{
+		blurReset (screen);
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "occlusion") == 0)
+	{
+		bs->blurOcclusion = optionValue->b;
+		blurReset (screen);
+		damageScreen (screen);
+	}
+	else if (strcasecmp (optionName, "independent_tex") == 0)
+	{
+		const BananaValue *
+		b_filter = bananaGetOption (bananaIndex,"filter", screenNum);
+
+		filter = b_filter->i;
+		if (filter == BLUR_FILTER_GAUSSIAN)
+		{
+			blurReset (screen);
+			damageScreen (screen);
+		}
+	}
 }
 
 static void
@@ -775,9 +746,15 @@ blurPreparePaintScreen (CompScreen *s,
 	{
 		CompWindow  *w;
 		int         steps;
-		Bool        focus = bs->opt[BLUR_SCREEN_OPTION_FOCUS_BLUR].value.b;
+		Bool        focus;
 		Bool        focusBlur;
 
+		const BananaValue *
+		focus_blur = bananaGetOption (bananaIndex,
+		                              "focus_blur",
+		                              s->screenNum);
+
+		focus = focus_blur->b;
 		steps = (msSinceLastPaint * 0xffff) / bs->blurTime;
 		if (steps < 12)
 			steps = 12;
@@ -1045,7 +1022,10 @@ getSrcBlurFragmentFunction (CompScreen  *s,
 
 		ok &= addDataOpToFunctionData (data, str);
 
-		switch (bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i) {
+		const BananaValue *
+		filter = bananaGetOption (bananaIndex, "filter", s->screenNum);
+
+		switch (filter->i) {
 		case BLUR_FILTER_4X_BILINEAR:
 		default:
 			ok &= addFetchOpToFunctionData (data, "output", "offset0", target);
@@ -1128,19 +1108,28 @@ getDstBlurFragmentFunction (CompScreen  *s,
 		static char *temp[] = { "fCoord", "mask", "sum", "dst" };
 		int     i, j, handle = 0;
 		char    str[1024];
-		int     saturation = bs->opt[BLUR_SCREEN_OPTION_SATURATION].value.i;
+		int     saturation;
 		Bool    ok = TRUE;
 		int     numIndirect;
 		int     numIndirectOp;
 		int     base, end, ITCbase;
 
+		const BananaValue *
+		b_saturation = bananaGetOption (bananaIndex,
+		                                "saturation",
+		                                s->screenNum);
+
+		saturation = b_saturation->i;
 		for (i = 0; i < sizeof (temp) / sizeof (temp[0]); i++)
 			ok &= addTempHeaderOpToFunctionData (data, temp[i]);
 
 		if (saturation < 100)
 			ok &= addTempHeaderOpToFunctionData (data, "sat");
 
-		switch (bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i) {
+		const BananaValue *
+		filter = bananaGetOption (bananaIndex, "filter", s->screenNum);
+
+		switch (filter->i) {
 		case BLUR_FILTER_4X_BILINEAR: {
 			static char *filterTemp[] = {
 				"t0", "t1", "t2", "t3",
@@ -1622,8 +1611,13 @@ fboUpdate (CompScreen *s,
 
 	BLUR_SCREEN (s);
 
+	const BananaValue *
+	independent_tex = bananaGetOption (bananaIndex,
+	                                   "independent_tex",
+	                                   s->screenNum);
+
 	if (s->maxTextureUnits &&
-	    bs->opt[BLUR_SCREEN_OPTION_INDEPENDENT_TEX].value.b)
+	    independent_tex->b)
 		iTC = MIN ((s->maxTextureUnits - 1) / 2, bs->numTexop);
 
 	if (!bs->program)
@@ -1879,7 +1873,10 @@ blurUpdateDstTexture (CompWindow          *w,
 	BLUR_SCREEN (s);
 	BLUR_WINDOW (w);
 
-	filter = bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i;
+	const BananaValue *
+	b_filter = bananaGetOption (bananaIndex, "filter", w->screen->screenNum);
+
+	filter = b_filter->i;
 
 	/* create empty region */
 	XSubtractRegion (&emptyRegion, &emptyRegion, bs->tmpRegion3);
@@ -2286,7 +2283,10 @@ blurDrawWindowTexture (CompWindow           *w,
 			FragmentAttrib dstFa = fa;
 			float      threshold = (float) bw->state[state].threshold;
 
-			switch (bs->opt[BLUR_SCREEN_OPTION_FILTER].value.i) {
+			const BananaValue *
+			filter = bananaGetOption (bananaIndex, "filter", s->screenNum);
+
+			switch (filter->i) {
 			case BLUR_FILTER_4X_BILINEAR:
 				dx = bs->tx / 2.1f;
 				dy = bs->ty / 2.1f;
@@ -2318,7 +2318,13 @@ blurDrawWindowTexture (CompWindow           *w,
 				}
 				break;
 			case BLUR_FILTER_GAUSSIAN:
-				if (bs->opt[BLUR_SCREEN_OPTION_INDEPENDENT_TEX].value.b)
+			{
+				const BananaValue *
+				independent_tex = bananaGetOption (bananaIndex,
+				                                   "independent_tex",
+				                                   s->screenNum);
+
+				if (independent_tex->b)
 				{
 					/* leave one free texture unit for fragment position */
 					iTC = MAX (0, s->maxTextureUnits - (w->texUnits + 1));
@@ -2450,6 +2456,7 @@ blurDrawWindowTexture (CompWindow           *w,
 
 				}
 				break;
+			}
 			case BLUR_FILTER_MIPMAP:
 				param = allocFragmentParameters (&dstFa, 2);
 				unit  = allocFragmentTextureUnits (&dstFa, 1);
@@ -2458,7 +2465,12 @@ blurDrawWindowTexture (CompWindow           *w,
 					getDstBlurFragmentFunction (s, texture, param, unit, 0, 0);
 				if (function)
 				{
-					float lod = bs->opt[BLUR_SCREEN_OPTION_MIPMAP_LOD].value.f;
+					const BananaValue *
+					mipmap_lod = bananaGetOption (bananaIndex,
+					                              "mipmap_lod",
+					                              s->screenNum);
+
+					float lod = mipmap_lod->f;
 
 					addFragmentFunction (&dstFa, function);
 
@@ -2544,6 +2556,35 @@ blurDrawWindowTexture (CompWindow           *w,
 	}
 }
 
+static Bool
+blurPulse (BananaArgument     *arg,
+           int                nArg)
+{
+	CompWindow *w;
+	int        xid;
+
+	BananaValue *window = getArgNamed ("window", arg, nArg);
+
+	if (window != NULL)
+		xid = window->i;
+	else
+		xid = core.displays->activeWindow;
+
+	w = findWindowAtDisplay (core.displays, xid);
+	if (w && w->screen->fragmentProgram)
+	{
+		BLUR_SCREEN (w->screen);
+		BLUR_WINDOW (w);
+
+		bw->pulse    = TRUE;
+		bs->moreBlur = TRUE;
+
+		addWindowDamage (w);
+	}
+
+	return FALSE;
+}
+
 static void
 blurHandleEvent (CompDisplay *d,
                  XEvent      *event)
@@ -2565,7 +2606,12 @@ blurHandleEvent (CompDisplay *d,
 		{
 			BLUR_SCREEN (w->screen);
 
-			if (bs->opt[BLUR_SCREEN_OPTION_FOCUS_BLUR].value.b)
+			const BananaValue *
+			focus_blur = bananaGetOption (bananaIndex,
+			                              "focus_blur",
+			                              w->screen->screenNum);
+
+			if (focus_blur->b)
 			{
 				addWindowDamage (w);
 				bs->moreBlur = TRUE;
@@ -2577,7 +2623,12 @@ blurHandleEvent (CompDisplay *d,
 		{
 			BLUR_SCREEN (w->screen);
 
-			if (bs->opt[BLUR_SCREEN_OPTION_FOCUS_BLUR].value.b)
+			const BananaValue *
+			focus_blur = bananaGetOption (bananaIndex,
+			                              "focus_blur",
+			                              w->screen->screenNum);
+
+			if (focus_blur->b)
 			{
 				addWindowDamage (w);
 				bs->moreBlur = TRUE;
@@ -2599,6 +2650,19 @@ blurHandleEvent (CompDisplay *d,
 				if (w)
 					blurWindowUpdate (w, i);
 			}
+		}
+	}
+
+	if (event->type == d->xkbEvent)
+	{
+		XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
+
+		const BananaValue *
+		pulse = bananaGetOption (bananaIndex, "pulse", -1);
+
+		if (xkbEvent->xkb_type == XkbBellNotify && pulse->b == TRUE)
+		{
+			blurPulse (NULL, 0);
 		}
 	}
 }
@@ -2643,60 +2707,7 @@ blurWindowMoveNotify (CompWindow *w,
 	WRAP (bs, w->screen, windowMoveNotify, blurWindowMoveNotify);
 }
 
-static CompOption *
-blurGetDisplayOptions (CompPlugin  *plugin,
-                       CompDisplay *display,
-                       int         *count)
-{
-	BLUR_DISPLAY (display);
 
-	*count = NUM_OPTIONS (bd);
-	return bd->opt;
-}
-
-static Bool
-blurSetDisplayOption (CompPlugin      *plugin,
-                      CompDisplay     *display,
-                      const char      *name,
-                      CompOptionValue *value)
-{
-	CompOption *o;
-
-	BLUR_DISPLAY (display);
-
-	o = compFindOption (bd->opt, NUM_OPTIONS (bd), name, NULL);
-	if (!o)
-		return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static Bool
-blurPulse (CompDisplay     *d,
-           CompAction      *action,
-           CompActionState state,
-           CompOption      *option,
-           int             nOption)
-{
-	CompWindow *w;
-	int        xid;
-
-	xid = getIntOptionNamed (option, nOption, "window", d->activeWindow);
-
-	w = findWindowAtDisplay (d, xid);
-	if (w && w->screen->fragmentProgram)
-	{
-		BLUR_SCREEN (w->screen);
-		BLUR_WINDOW (w);
-
-		bw->pulse    = TRUE;
-		bs->moreBlur = TRUE;
-
-		addWindowDamage (w);
-	}
-
-	return FALSE;
-}
 
 static void
 blurMatchExpHandlerChanged (CompDisplay *d)
@@ -2741,6 +2752,7 @@ blurWindowAdd (CompScreen *s,
 	BLUR_SCREEN (s);
 
 	blurWindowUpdate (w, BLUR_STATE_CLIENT);
+
 	blurWindowUpdate (w, BLUR_STATE_DECOR);
 
 	blurUpdateWindowMatch (bs, w);
@@ -2771,9 +2783,6 @@ blurInitCore (CompPlugin *p,
               CompCore   *c)
 {
 	BlurCore *bc;
-
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
 
 	bc = malloc (sizeof (BlurCore));
 	if (!bc)
@@ -2806,10 +2815,6 @@ blurFiniCore (CompPlugin *p,
 	free (bc);
 }
 
-static const CompMetadataOptionInfo blurDisplayOptionInfo[] = {
-	{ "pulse", "bell", 0, blurPulse, 0 }
-};
-
 static Bool
 blurInitDisplay (CompPlugin  *p,
                  CompDisplay *d)
@@ -2820,20 +2825,9 @@ blurInitDisplay (CompPlugin  *p,
 	if (!bd)
 		return FALSE;
 
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &blurMetadata,
-	                                 blurDisplayOptionInfo,
-	                                 bd->opt,
-	                                 BLUR_DISPLAY_OPTION_NUM))
-	{
-		free (bd);
-		return FALSE;
-	}
-
 	bd->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (bd->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, bd->opt, BLUR_DISPLAY_OPTION_NUM);
 		free (bd);
 		return FALSE;
 	}
@@ -2864,25 +2858,8 @@ blurFiniDisplay (CompPlugin  *p,
 	UNWRAP (bd, d, matchExpHandlerChanged);
 	UNWRAP (bd, d, matchPropertyChanged);
 
-	compFiniDisplayOptions (d, bd->opt, BLUR_DISPLAY_OPTION_NUM);
-
 	free (bd);
 }
-
-static const CompMetadataOptionInfo blurScreenOptionInfo[] = {
-	{ "blur_speed", "float", "<min>0.1</min>", 0, 0 },
-	{ "focus_blur_match", "match", 0, 0, 0 },
-	{ "focus_blur", "bool", 0, 0, 0 },
-	{ "alpha_blur_match", "match", 0, 0, 0 },
-	{ "alpha_blur", "bool", 0, 0, 0 },
-	{ "filter", "int", RESTOSTRING (0, BLUR_FILTER_LAST), 0, 0 },
-	{ "gaussian_radius", "int", "<min>1</min><max>15</max>", 0, 0 },
-	{ "gaussian_strength", "float", "<min>0.0</min><max>1.0</max>", 0, 0 },
-	{ "mipmap_lod", "float", "<min>0.1</min><max>5.0</max>", 0, 0 },
-	{ "saturation", "int", "<min>0</min><max>100</max>", 0, 0 },
-	{ "occlusion", "bool", 0, 0, 0 },
-	{ "independent_tex", "bool", 0, 0, 0 }
-};
 
 static Bool
 blurInitScreen (CompPlugin *p,
@@ -2897,20 +2874,9 @@ blurInitScreen (CompPlugin *p,
 	if (!bs)
 		return FALSE;
 
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &blurMetadata,
-	                                blurScreenOptionInfo,
-	                                bs->opt,
-	                                BLUR_SCREEN_OPTION_NUM))
-	{
-		free (bs);
-		return FALSE;
-	}
-
 	bs->region = XCreateRegion ();
 	if (!bs->region)
 	{
-		compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
 		free (bs);
 		return FALSE;
 	}
@@ -2918,7 +2884,6 @@ blurInitScreen (CompPlugin *p,
 	bs->tmpRegion = XCreateRegion ();
 	if (!bs->tmpRegion)
 	{
-		compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
 		XDestroyRegion (bs->region);
 		free (bs);
 		return FALSE;
@@ -2927,7 +2892,6 @@ blurInitScreen (CompPlugin *p,
 	bs->tmpRegion2 = XCreateRegion ();
 	if (!bs->tmpRegion2)
 	{
-		compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
 		XDestroyRegion (bs->region);
 		XDestroyRegion (bs->tmpRegion);
 		free (bs);
@@ -2937,7 +2901,6 @@ blurInitScreen (CompPlugin *p,
 	bs->tmpRegion3 = XCreateRegion ();
 	if (!bs->tmpRegion3)
 	{
-		compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
 		XDestroyRegion (bs->region);
 		XDestroyRegion (bs->tmpRegion);
 		XDestroyRegion (bs->tmpRegion2);
@@ -2948,7 +2911,6 @@ blurInitScreen (CompPlugin *p,
 	bs->occlusion = XCreateRegion ();
 	if (!bs->occlusion)
 	{
-		compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
 		XDestroyRegion (bs->region);
 		XDestroyRegion (bs->tmpRegion);
 		XDestroyRegion (bs->tmpRegion2);
@@ -2961,7 +2923,6 @@ blurInitScreen (CompPlugin *p,
 	bs->windowPrivateIndex = allocateWindowPrivateIndex (s);
 	if (bs->windowPrivateIndex < 0)
 	{
-		compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
 		XDestroyRegion (bs->region);
 		XDestroyRegion (bs->tmpRegion);
 		XDestroyRegion (bs->tmpRegion2);
@@ -2978,11 +2939,16 @@ blurInitScreen (CompPlugin *p,
 
 	bs->srcBlurFunctions = NULL;
 	bs->dstBlurFunctions = NULL;
-	bs->blurTime         = 1000.0f /
-	    bs->opt[BLUR_SCREEN_OPTION_BLUR_SPEED].value.f;
+
+	const BananaValue *
+	blur_speed = bananaGetOption (bananaIndex, "blur_speed", s->screenNum);
+
+	const BananaValue *
+	blur_occlusion = bananaGetOption (bananaIndex, "occlusion", s->screenNum);
+
+	bs->blurTime         = 1000.0f / blur_speed->f;
 	bs->moreBlur         = FALSE;
-	bs->blurOcclusion    =
-	    bs->opt[BLUR_SCREEN_OPTION_BLUR_OCCLUSION].value.b;
+	bs->blurOcclusion    = blur_occlusion->b;
 
 	for (i = 0; i < 2; i++)
 		bs->texture[i] = 0;
@@ -2998,8 +2964,11 @@ blurInitScreen (CompPlugin *p,
 		                "No stencil buffer. Region based blur disabled");
 
 	/* We need GL_ARB_fragment_program for blur */
+	const BananaValue *
+	alpha_blur = bananaGetOption (bananaIndex, "alpha_blur", s->screenNum);
+
 	if (s->fragmentProgram)
-		bs->alphaBlur = bs->opt[BLUR_SCREEN_OPTION_ALPHA_BLUR].value.b;
+		bs->alphaBlur = alpha_blur->b;
 	else
 		bs->alphaBlur = FALSE;
 
@@ -3066,8 +3035,6 @@ blurFiniScreen (CompPlugin *p,
 	UNWRAP (bs, s, drawWindowTexture);
 	UNWRAP (bs, s, windowResizeNotify);
 	UNWRAP (bs, s, windowMoveNotify);
-
-	compFiniScreenOptions (s, bs->opt, BLUR_SCREEN_OPTION_NUM);
 
 	free (bs);
 }
@@ -3165,57 +3132,31 @@ blurFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
-static CompOption *
-blurGetObjectOptions (CompPlugin *plugin,
-                      CompObject *object,
-                      int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-		(GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-		(GetPluginObjectOptionsProc) blurGetDisplayOptions,
-		(GetPluginObjectOptionsProc) blurGetScreenOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-	                 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-blurSetObjectOption (CompPlugin      *plugin,
-                     CompObject      *object,
-                     const char      *name,
-                     CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-		(SetPluginObjectOptionProc) 0, /* SetCoreOption */
-		(SetPluginObjectOptionProc) blurSetDisplayOption,
-		(SetPluginObjectOptionProc) blurSetScreenOption
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
 static Bool
 blurInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&blurMetadata,
-	                             p->vTable->name,
-	                             blurDisplayOptionInfo,
-	                             BLUR_DISPLAY_OPTION_NUM,
-	                             blurScreenOptionInfo,
-	                             BLUR_SCREEN_OPTION_NUM))
-		return FALSE;
-
-	corePrivateIndex = allocateCorePrivateIndex ();
-	if (corePrivateIndex < 0)
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compFiniMetadata (&blurMetadata);
+		compLogMessage ("blur", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
-	compAddMetadataFromFile (&blurMetadata, p->vTable->name);
+	corePrivateIndex = allocateCorePrivateIndex ();
+
+	if (corePrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("blur");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, blurChangeNotify);
 
 	return TRUE;
 }
@@ -3224,28 +3165,20 @@ static void
 blurFini (CompPlugin *p)
 {
 	freeCorePrivateIndex (corePrivateIndex);
-	compFiniMetadata (&blurMetadata);
-}
 
-static CompMetadata *
-blurGetMetadata (CompPlugin *plugin)
-{
-	return &blurMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 static CompPluginVTable blurVTable = {
 	"blur",
-	blurGetMetadata,
 	blurInit,
 	blurFini,
 	blurInitObject,
-	blurFiniObject,
-	blurGetObjectOptions,
-	blurSetObjectOption
+	blurFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &blurVTable;
 }

@@ -22,26 +22,13 @@
  *
  * Author: Danny Baumann <dannybaumann@web.de>
  */
+#include <string.h>
 
 #include <fusilli-core.h>
 
-static CompMetadata obsMetadata;
+static int bananaIndex;
 
 static int displayPrivateIndex;
-
-#define OBS_DISPLAY_OPTION_OPACITY_INCREASE_KEY	       0
-#define OBS_DISPLAY_OPTION_OPACITY_INCREASE_BUTTON     1
-#define OBS_DISPLAY_OPTION_OPACITY_DECREASE_KEY	       2
-#define OBS_DISPLAY_OPTION_OPACITY_DECREASE_BUTTON     3
-#define OBS_DISPLAY_OPTION_SATURATION_INCREASE_KEY     4
-#define OBS_DISPLAY_OPTION_SATURATION_INCREASE_BUTTON  5
-#define OBS_DISPLAY_OPTION_SATURATION_DECREASE_KEY     6
-#define OBS_DISPLAY_OPTION_SATURATION_DECREASE_BUTTON  7
-#define OBS_DISPLAY_OPTION_BRIGHTNESS_INCREASE_KEY     8
-#define OBS_DISPLAY_OPTION_BRIGHTNESS_INCREASE_BUTTON  9
-#define OBS_DISPLAY_OPTION_BRIGHTNESS_DECREASE_KEY     10
-#define OBS_DISPLAY_OPTION_BRIGHTNESS_DECREASE_BUTTON  11
-#define OBS_DISPLAY_OPTION_NUM                         12
 
 typedef struct _ObsDisplay
 {
@@ -50,25 +37,23 @@ typedef struct _ObsDisplay
 	HandleEventProc            handleEvent;
 	MatchExpHandlerChangedProc matchExpHandlerChanged;
 	MatchPropertyChangedProc   matchPropertyChanged;
-
-	CompOption opt[OBS_DISPLAY_OPTION_NUM];
 } ObsDisplay;
 
-#define OBS_SCREEN_OPTION_OPACITY_STEP        0
-#define OBS_SCREEN_OPTION_SATURATION_STEP     1
-#define OBS_SCREEN_OPTION_BRIGHTNESS_STEP     2
-#define OBS_SCREEN_OPTION_OPACITY_MATCHES     3
-#define OBS_SCREEN_OPTION_OPACITY_VALUES      4
-#define OBS_SCREEN_OPTION_SATURATION_MATCHES  5
-#define OBS_SCREEN_OPTION_SATURATION_VALUES   6
-#define OBS_SCREEN_OPTION_BRIGHTNESS_MATCHES  7
-#define OBS_SCREEN_OPTION_BRIGHTNESS_VALUES   8
-#define OBS_SCREEN_OPTION_NUM                 9
 
 #define MODIFIER_OPACITY     0
-#define MODIFIER_SATURATION  1
-#define MODIFIER_BRIGHTNESS  2
+#define MODIFIER_BRIGHTNESS  1
+#define MODIFIER_SATURATION  2
 #define MODIFIER_COUNT       3
+
+char *modifierNames[MODIFIER_COUNT] = { "opacity", "brightness", "saturation" };
+
+static CompKeyBinding increase_key[MODIFIER_COUNT];
+static CompButtonBinding increase_button[MODIFIER_COUNT];
+
+static CompKeyBinding decrease_key[MODIFIER_COUNT];
+static CompButtonBinding decrease_button[MODIFIER_COUNT];
+
+#define MAX_LIST_LENGTH 100
 
 typedef struct _ObsScreen
 {
@@ -77,11 +62,11 @@ typedef struct _ObsScreen
 	PaintWindowProc paintWindow;
 	DrawWindowProc  drawWindow;
 
-	CompOption *stepOptions[MODIFIER_COUNT];
-	CompOption *matchOptions[MODIFIER_COUNT];
-	CompOption *valueOptions[MODIFIER_COUNT];
+	int step[MODIFIER_COUNT];
 
-	CompOption opt[OBS_SCREEN_OPTION_NUM];
+	CompMatch match[MODIFIER_COUNT][MAX_LIST_LENGTH];
+	int value[MODIFIER_COUNT][MAX_LIST_LENGTH];
+	int nValue[MODIFIER_COUNT];
 } ObsScreen;
 
 typedef struct _ObsWindow
@@ -112,8 +97,6 @@ typedef struct _ObsWindow
                         GET_OBS_SCREEN  (w->screen, \
                         GET_OBS_DISPLAY (w->screen->display)))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 static void
 changePaintModifier (CompWindow *w,
                      int        modifier,
@@ -131,10 +114,10 @@ changePaintModifier (CompWindow *w,
 		return;
 
 	value = ow->customFactor[modifier];
-	value += os->stepOptions[modifier]->value.i * direction;
+	value += os->step[modifier] * direction;
 
 	value = MIN (value, 100);
-	value = MAX (value, os->stepOptions[modifier]->value.i);
+	value = MAX (value, os->step[modifier]);
 
 	if (value != ow->customFactor[modifier])
 	{
@@ -142,6 +125,7 @@ changePaintModifier (CompWindow *w,
 		addWindowDamage (w);
 	}
 }
+
 
 static void
 updatePaintModifier (CompWindow *w,
@@ -161,21 +145,16 @@ updatePaintModifier (CompWindow *w,
 	}
 	else
 	{
-		int        i, min, lastMatchFactor;
-		CompOption *matches, *values;
-
-		matches = os->matchOptions[modifier];
-		values  = os->valueOptions[modifier];
-		min     = MIN (matches->value.list.nValue, values->value.list.nValue);
+		int        i, lastMatchFactor;
 
 		lastMatchFactor           = ow->matchFactor[modifier];
 		ow->matchFactor[modifier] = 100;
 
-		for (i = 0; i < min; i++)
+		for (i = 0; i < os->nValue[modifier]; i++)
 		{
-			if (matchEval (&matches->value.list.value[i].match, w))
+			if (matchEval (&os->match[modifier][i], w))
 			{
-				ow->matchFactor[modifier] = values->value.list.value[i].i;
+				ow->matchFactor[modifier] = os->value[modifier][i];
 				break;
 			}
 		}
@@ -189,23 +168,137 @@ updatePaintModifier (CompWindow *w,
 }
 
 static Bool
-alterPaintModifier (CompDisplay     *d,
-                    CompAction      *action,
-                    CompActionState state,
-                    CompOption      *option,
-                    int             nOption)
+alterPaintModifier (BananaArgument   *arg,
+                    int              nArg)
 {
 	CompWindow *w;
 	Window     xid;
 
-	xid = getIntOptionNamed (option, nOption, "window", 0);
-	w   = findTopLevelWindowAtDisplay (d, xid);
+	BananaValue *window = getArgNamed ("window", arg, nArg);
+
+	if (window != NULL)
+		xid = window->i;
+	else
+		xid = 0;
+
+	w   = findTopLevelWindowAtDisplay (core.displays, xid);
 
 	if (w)
-		changePaintModifier (w, abs (action->priv.val) - 1,
-		                     (action->priv.val < 0) ? -1 : 1);
+	{
+		BananaValue *modifier = getArgNamed ("modifier", arg, nArg);
+		if (modifier == NULL)
+			return FALSE;
+
+		BananaValue *direction = getArgNamed ("direction", arg, nArg);
+		if (direction == NULL)
+			return FALSE;
+
+		changePaintModifier (w, modifier->i, direction->i);
+	}
 
 	return TRUE;
+}
+
+static void
+obsHandleEvent (CompDisplay *d,
+                XEvent      *event)
+{
+	OBS_DISPLAY (d);
+
+	int i;
+
+	switch (event->type) {
+	case KeyPress:
+		for (i = 0; i < MODIFIER_COUNT; i++)
+		{
+			if (isKeyPressEvent (event, &increase_key[i]))
+			{
+				BananaArgument arg[3];
+
+				arg[0].name = "window";
+				arg[0].type = BananaInt;
+				arg[0].value.i = d->activeWindow;
+
+				arg[1].name = "modifier";
+				arg[1].type = BananaInt;
+				arg[1].value.i = i;
+
+				arg[2].name = "direction";
+				arg[2].type = BananaInt;
+				arg[2].value.i = 1;
+
+				alterPaintModifier (arg, 3);
+				break;
+			}
+			else if (isKeyPressEvent (event, &decrease_key[i]))
+			{
+				BananaArgument arg[3];
+
+				arg[0].name = "window";
+				arg[0].type = BananaInt;
+				arg[0].value.i = d->activeWindow;
+
+				arg[1].name = "modifier";
+				arg[1].type = BananaInt;
+				arg[1].value.i = i;
+
+				arg[2].name = "direction";
+				arg[2].type = BananaInt;
+				arg[2].value.i = -1;
+
+				alterPaintModifier (arg, 3);
+				break;
+			}
+		}
+		break;
+	case ButtonPress:
+		for (i = 0; i < MODIFIER_COUNT; i++)
+		{
+			if (isButtonPressEvent (event, &(increase_button[i])))
+			{
+				BananaArgument arg[3];
+
+				arg[0].name = "window";
+				arg[0].type = BananaInt;
+				arg[0].value.i = event->xbutton.window;
+
+				arg[1].name = "modifier";
+				arg[1].type = BananaInt;
+				arg[1].value.i = i;
+
+				arg[2].name = "direction";
+				arg[2].type = BananaInt;
+				arg[2].value.i = 1;
+
+				alterPaintModifier (arg, 3);
+				break;
+			}
+			else if (isButtonPressEvent (event, &decrease_button[i]))
+			{
+				BananaArgument arg[3];
+
+				arg[0].name = "window";
+				arg[0].type = BananaInt;
+				arg[0].value.i = event->xbutton.window;
+
+				arg[1].name = "modifier";
+				arg[1].type = BananaInt;
+				arg[1].value.i = i;
+
+				arg[2].name = "direction";
+				arg[2].type = BananaInt;
+				arg[2].value.i = -1;
+
+				alterPaintModifier (arg, 3);
+				break;
+			}
+		}
+		break;
+	}
+
+	UNWRAP (od, d, handleEvent);
+	(*d->handleEvent) (d, event);
+	WRAP (od, d, handleEvent, obsHandleEvent);
 }
 
 static Bool
@@ -232,9 +325,9 @@ obsPaintWindow (CompWindow              *w,
 }
 
 /* Note: Normally plugins should wrap into PaintWindow to modify opacity,
-		 brightness and saturation. As some plugins bypass paintWindow when
-		 they draw windows and our custom values always need to be applied,
-		 we wrap into DrawWindow here */
+         brightness and saturation. As some plugins bypass paintWindow when
+         they draw windows and our custom values always need to be applied,
+         we wrap into DrawWindow here */
 
 static Bool
 obsDrawWindow (CompWindow           *w,
@@ -344,204 +437,26 @@ obsUpdateWindow (void *closure)
 	return FALSE;
 }
 
-static CompOption *
-obsGetDisplayOptions (CompPlugin  *p,
-                      CompDisplay *display,
-                      int         *count)
-{
-	OBS_DISPLAY (display);
-
-	*count = NUM_OPTIONS (od);
-	return od->opt;
-}
-
-static Bool
-obsSetDisplayOption (CompPlugin      *p,
-                     CompDisplay     *display,
-                     char            *name, 
-                     CompOptionValue *value)
-{
-	CompOption *o;
-
-	OBS_DISPLAY (display);
-
-	o = compFindOption (od->opt, NUM_OPTIONS (od), name, NULL);
-	if (!o)
-	    return FALSE;
-
-	return compSetDisplayOption (display, o, value);
-}
-
-static CompOption *
-obsGetScreenOptions (CompPlugin *p,
-                     CompScreen *screen,
-                     int        *count)
-{
-	OBS_SCREEN (screen);
-
-	*count = NUM_OPTIONS (os);
-	return os->opt;
-}
-
-static Bool
-obsSetScreenOption (CompPlugin      *p,
-                    CompScreen      *s,
-                    char            *name,
-                    CompOptionValue *value)
-{
-	CompOption *o;
-	int        i;
-
-	OBS_SCREEN (s);
-
-	o = compFindOption (os->opt, NUM_OPTIONS (os), name, NULL);
-	if (!o)
-		return FALSE;
-
-	for (i = 0; i < MODIFIER_COUNT; i++)
-	{
-		if (o == os->matchOptions[i])
-		{
-			if (compSetOptionList (o, value))
-			{
-				CompWindow *w;
-				int        j;
-
-				for (j = 0; j < o->value.list.nValue; j++)
-					matchUpdate (s->display, &o->value.list.value[j].match);
-
-				for (w = s->windows; w; w = w->next)
-					updatePaintModifier (w, i);
-
-				return TRUE;
-			}
-		}
-		else if (o == os->valueOptions[i])
-		{
-			if (compSetOptionList (o, value))
-			{
-				CompWindow *w;
-
-				for (w = s->windows; w; w = w->next)
-					updatePaintModifier (w, i);
-
-				return TRUE;
-			}
-		}
-	}
-
-	return compSetScreenOption (s, o, value);
-}
-
-static CompOption *
-obsGetObjectOptions (CompPlugin *plugin,
-                     CompObject *object,
-                     int        *count)
-{
-	static GetPluginObjectOptionsProc dispTab[] = {
-	   (GetPluginObjectOptionsProc) 0, /* GetCoreOptions */
-	   (GetPluginObjectOptionsProc) obsGetDisplayOptions,
-	   (GetPluginObjectOptionsProc) obsGetScreenOptions
-	};
-
-	*count = 0;
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab),
-					 (void *) count, (plugin, object, count));
-}
-
-static CompBool
-obsSetObjectOption (CompPlugin      *plugin,
-                    CompObject      *object,
-                    const char      *name,
-                    CompOptionValue *value)
-{
-	static SetPluginObjectOptionProc dispTab[] = {
-	   (SetPluginObjectOptionProc) 0, /* SetCoreOption */
-	   (SetPluginObjectOptionProc) obsSetDisplayOption,
-	   (SetPluginObjectOptionProc) obsSetScreenOption
-
-	};
-
-	RETURN_DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), FALSE,
-	                 (plugin, object, name, value));
-}
-
-static const CompMetadataOptionInfo obsDisplayOptionInfo[] = {
-	{ "opacity_increase_key", "key", 0, alterPaintModifier, 0 },
-	{ "opacity_increase_button", "button", 0, alterPaintModifier, 0 },
-	{ "opacity_decrease_key", "key", 0, alterPaintModifier, 0 },
-	{ "opacity_decrease_button", "button", 0, alterPaintModifier, 0 },
-	{ "saturation_increase_key", "key", 0, alterPaintModifier, 0 },
-	{ "saturation_increase_button", "button", 0, alterPaintModifier, 0 },
-	{ "saturation_decrease_key", "key", 0, alterPaintModifier, 0 },
-	{ "saturation_decrease_button", "button", 0, alterPaintModifier, 0 },
-	{ "brightness_increase_key", "key", 0, alterPaintModifier, 0 },
-	{ "brightness_increase_button", "button", 0, alterPaintModifier, 0 },
-	{ "brightness_decrease_key", "key", 0, alterPaintModifier, 0 },
-	{ "brightness_decrease_button", "button", 0, alterPaintModifier, 0 }
-};
-
 static CompBool
 obsInitDisplay (CompPlugin  *p,
                 CompDisplay *d)
 {
 	ObsDisplay *od;
-	int        opt;
-
-	if (!checkPluginABI ("core", CORE_ABIVERSION))
-		return FALSE;
 
 	od = malloc (sizeof (ObsDisplay));
 	if (!od)
-	    return FALSE;
-
-	if (!compInitDisplayOptionsFromMetadata (d,
-	                                 &obsMetadata,
-	                                 obsDisplayOptionInfo,
-	                                 od->opt,
-	                                 OBS_DISPLAY_OPTION_NUM))
-	{
-		free (od);
 		return FALSE;
-	}
 
 	od->screenPrivateIndex = allocateScreenPrivateIndex (d);
 	if (od->screenPrivateIndex < 0)
 	{
-		compFiniDisplayOptions (d, od->opt, OBS_DISPLAY_OPTION_NUM);
 		free (od);
 		return FALSE;
 	}
 
-	opt = OBS_DISPLAY_OPTION_OPACITY_INCREASE_KEY;
-	od->opt[opt].value.action.priv.val = MODIFIER_OPACITY + 1;
-	opt = OBS_DISPLAY_OPTION_OPACITY_DECREASE_KEY;
-	od->opt[opt].value.action.priv.val = -(MODIFIER_OPACITY + 1);
-	opt = OBS_DISPLAY_OPTION_OPACITY_INCREASE_BUTTON;
-	od->opt[opt].value.action.priv.val = MODIFIER_OPACITY + 1;
-	opt = OBS_DISPLAY_OPTION_OPACITY_DECREASE_BUTTON;
-	od->opt[opt].value.action.priv.val = -(MODIFIER_OPACITY + 1);
-
-	opt = OBS_DISPLAY_OPTION_SATURATION_INCREASE_KEY;
-	od->opt[opt].value.action.priv.val = MODIFIER_SATURATION + 1;
-	opt = OBS_DISPLAY_OPTION_SATURATION_DECREASE_KEY;
-	od->opt[opt].value.action.priv.val = -(MODIFIER_SATURATION + 1);
-	opt = OBS_DISPLAY_OPTION_SATURATION_INCREASE_BUTTON;
-	od->opt[opt].value.action.priv.val = MODIFIER_SATURATION + 1;
-	opt = OBS_DISPLAY_OPTION_SATURATION_DECREASE_BUTTON;
-	od->opt[opt].value.action.priv.val = -(MODIFIER_SATURATION + 1);
-
-	opt = OBS_DISPLAY_OPTION_BRIGHTNESS_INCREASE_KEY;
-	od->opt[opt].value.action.priv.val = MODIFIER_BRIGHTNESS + 1;
-	opt = OBS_DISPLAY_OPTION_BRIGHTNESS_DECREASE_KEY;
-	od->opt[opt].value.action.priv.val = -(MODIFIER_BRIGHTNESS + 1);
-	opt = OBS_DISPLAY_OPTION_BRIGHTNESS_INCREASE_BUTTON;
-	od->opt[opt].value.action.priv.val = MODIFIER_BRIGHTNESS + 1;
-	opt = OBS_DISPLAY_OPTION_BRIGHTNESS_DECREASE_BUTTON;
-	od->opt[opt].value.action.priv.val = -(MODIFIER_BRIGHTNESS + 1);
-
 	WRAP (od, d, matchExpHandlerChanged, obsMatchExpHandlerChanged);
 	WRAP (od, d, matchPropertyChanged, obsMatchPropertyChanged);
+	WRAP (od, d, handleEvent, obsHandleEvent);
 
 	d->base.privates[displayPrivateIndex].ptr = od;
 
@@ -558,70 +473,61 @@ obsFiniDisplay (CompPlugin  *p,
 	UNWRAP (od, d, matchPropertyChanged);
 
 	freeScreenPrivateIndex (d, od->screenPrivateIndex);
-	compFiniDisplayOptions (d, od->opt, OBS_DISPLAY_OPTION_NUM);
 
 	free (od);
 }
-
-static const CompMetadataOptionInfo obsScreenOptionInfo[] = {
-	{ "opacity_step", "int", 0, 0, 0 },
-	{ "saturation_step", "int", 0, 0, 0 },
-	{ "brightness_step", "int", 0, 0, 0 },
-	{ "opacity_matches", "list", "<type>match</type>", 0, 0 },
-	{ "opacity_values", "list", "<type>int</type>", 0, 0 },
-	{ "saturation_matches", "list", "<type>match</type>", 0, 0 },
-	{ "saturation_values", "list", "<type>int</type>", 0, 0 },
-	{ "brightness_matches", "list", "<type>match</type>", 0, 0 },
-	{ "brightness_values", "list", "<type>int</type>", 0, 0 }
-};
 
 static CompBool
 obsInitScreen (CompPlugin *p,
                CompScreen *s)
 {
 	ObsScreen  *os;
-	int        mod;
 
 	OBS_DISPLAY (s->display);
 
 	os = malloc (sizeof (ObsScreen));
 	if (!os)
-	    return FALSE;
-
-	if (!compInitScreenOptionsFromMetadata (s,
-	                                &obsMetadata,
-	                                obsScreenOptionInfo,
-	                                os->opt,
-	                                OBS_SCREEN_OPTION_NUM))
-	{
-		free (os);
 		return FALSE;
-	}
 
 	os->windowPrivateIndex = allocateWindowPrivateIndex (s);
 	if (os->windowPrivateIndex < 0)
 	{
-		compFiniScreenOptions (s, os->opt, OBS_SCREEN_OPTION_NUM);
 		free (os);
 		return FALSE;
 	}
 
-	mod = MODIFIER_OPACITY;
-	os->stepOptions[mod]  = &os->opt[OBS_SCREEN_OPTION_OPACITY_STEP];
-	os->matchOptions[mod] = &os->opt[OBS_SCREEN_OPTION_OPACITY_MATCHES];
-	os->valueOptions[mod] = &os->opt[OBS_SCREEN_OPTION_OPACITY_VALUES];
-
-	mod = MODIFIER_SATURATION;
-	os->stepOptions[mod]  = &os->opt[OBS_SCREEN_OPTION_SATURATION_STEP];
-	os->matchOptions[mod] = &os->opt[OBS_SCREEN_OPTION_SATURATION_MATCHES];
-	os->valueOptions[mod] = &os->opt[OBS_SCREEN_OPTION_SATURATION_VALUES];
-
-	mod = MODIFIER_BRIGHTNESS;
-	os->stepOptions[mod]  = &os->opt[OBS_SCREEN_OPTION_BRIGHTNESS_STEP];
-	os->matchOptions[mod] = &os->opt[OBS_SCREEN_OPTION_BRIGHTNESS_MATCHES];
-	os->valueOptions[mod] = &os->opt[OBS_SCREEN_OPTION_BRIGHTNESS_VALUES];
-
 	s->base.privates[od->screenPrivateIndex].ptr = os;
+
+	int i;
+
+	for (i = 0; i < MODIFIER_COUNT; i++)
+	{
+		char name[50];
+		const BananaValue *opt, *opt2;
+
+		sprintf (name, "%s_step", modifierNames[i]);
+		opt = bananaGetOption (bananaIndex, name, s->screenNum);
+		os->step[i] = opt->i;
+
+		sprintf (name, "%s_matches", modifierNames[i]);
+		opt = bananaGetOption (bananaIndex, name, s->screenNum);
+
+		sprintf (name, "%s_values", modifierNames[i]);
+		opt2 = bananaGetOption (bananaIndex, name, s->screenNum);
+
+		os->nValue[i] = MIN (opt->list.nItem, opt2->list.nItem);
+
+		int j;
+
+		for (j = 0; j < os->nValue[i]; j++)
+		{
+			matchInit (&os->match[i][j]);
+			matchAddFromString (&os->match[i][j], opt->list.item[j].s);
+			matchUpdate (core.displays, &os->match[i][j]);
+
+			os->value[i][j] = opt2->list.item[j].i;
+		}
+	}
 
 	WRAP (os, s, paintWindow, obsPaintWindow);
 	WRAP (os, s, drawWindow, obsDrawWindow);
@@ -640,7 +546,10 @@ obsFiniScreen (CompPlugin *p,
 
 	damageScreen (s);
 
-	compFiniScreenOptions (s, os->opt, OBS_SCREEN_OPTION_NUM);
+	int i, j;
+	for (i = 0; i < MODIFIER_COUNT; i++)
+		for (j = 0; j < os->nValue[i]; j++)
+			matchFini (&os->match[i][j]);
 
 	free (os);
 }
@@ -714,27 +623,146 @@ obsFiniObject (CompPlugin *p,
 	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
+static void
+obsChangeNotify (const char        *optionName,
+                 BananaType        optionType,
+                 const BananaValue *optionValue,
+                 int               screenNum)
+{
+	int i;
+
+	for (i = 0; i < MODIFIER_COUNT; i++)
+	{
+		char name[50];
+
+		sprintf (name, "%s_increase_key", modifierNames[i]);
+		if (strcasecmp (optionName, name) == 0)
+		{
+			updateKey (optionValue->s, &increase_key[i]);
+			break;
+		}
+
+		sprintf (name, "%s_increase_button", modifierNames[i]);
+		if (strcasecmp (optionName, name) == 0)
+		{
+			updateButton (optionValue->s, &increase_button[i]);
+			break;
+		}
+
+		sprintf (name, "%s_decrease_key", modifierNames[i]);
+		if (strcasecmp (optionName, name) == 0)
+		{
+			updateKey (optionValue->s, &decrease_key[i]);
+			break;
+		}
+
+		sprintf (name, "%s_decrease_button", modifierNames[i]);
+		if (strcasecmp (optionName, name) == 0)
+		{
+			updateButton (optionValue->s, &decrease_button[i]);
+			break;
+		}
+
+		sprintf (name, "%s_step", modifierNames[i]);
+		if (strcasecmp (optionName, name) == 0)
+		{
+			CompScreen *screen = getScreenFromScreenNum (screenNum);
+
+			OBS_SCREEN (screen);
+
+			os->step[i] = optionValue->i;
+		}
+
+		sprintf (name, "%s_values", modifierNames[i]);
+		char name2[50];
+		sprintf (name2, "%s_matches", modifierNames[i]);
+		if (strcasecmp (optionName, name) == 0 || 
+		    strcasecmp (optionName, name2) == 0)
+		{
+			CompScreen *screen = getScreenFromScreenNum (screenNum);
+
+			OBS_SCREEN (screen);
+
+			int j;
+
+			for (j = 0; j < os->nValue[i]; j++)
+				matchFini (&os->match[i][j]);
+
+			const BananaValue *
+			option_matches = bananaGetOption (bananaIndex, name2, screenNum);
+
+			const BananaValue *
+			option_values = bananaGetOption (bananaIndex, name, screenNum);
+
+			os->nValue[i] = MIN (option_matches->list.nItem,
+			                     option_values->list.nItem);
+
+			for (j = 0; j < os->nValue[i]; j++)
+			{
+				matchInit (&os->match[i][j]);
+				matchAddFromString (&os->match[i][j], option_matches->list.item[j].s);
+				matchUpdate (core.displays, &os->match[i][j]);
+				os->value[i][j] = option_values->list.item[j].i;
+			}
+
+			CompWindow *w;
+
+			for (w = screen->windows; w; w = w->next)
+				updatePaintModifier (w, i);
+		}
+	}
+}
+
 static CompBool
 obsInit (CompPlugin *p)
 {
-	if (!compInitPluginMetadataFromInfo (&obsMetadata,
-	                             p->vTable->name,
-	                             obsDisplayOptionInfo,
-	                             OBS_DISPLAY_OPTION_NUM,
-	                             obsScreenOptionInfo,
-	                             OBS_SCREEN_OPTION_NUM))
+	if (getCoreABI() != CORE_ABIVERSION)
 	{
+		compLogMessage ("obs", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
 		return FALSE;
 	}
 
 	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
-	{
-		compFiniMetadata (&obsMetadata);
-		return FALSE;
-	}
 
-	compAddMetadataFromFile (&obsMetadata, p->vTable->name);
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("obs");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, obsChangeNotify);
+
+	char name[50];
+
+	int i;
+
+	for (i = 0; i < MODIFIER_COUNT; i++)
+	{
+		const BananaValue *opt;
+
+		sprintf (name, "%s_increase_key", modifierNames[i]);
+		opt = bananaGetOption (bananaIndex, name, -1);
+		registerKey (opt->s, &increase_key[i]);
+
+		sprintf (name, "%s_increase_button", modifierNames[i]);
+		opt = bananaGetOption (bananaIndex, name, -1);
+		registerButton (opt->s, &increase_button[i]);
+
+		sprintf (name, "%s_decrease_key", modifierNames[i]);
+		opt = bananaGetOption (bananaIndex, name, -1);
+		registerKey (opt->s, &decrease_key[i]);
+
+		sprintf (name, "%s_decrease_button", modifierNames[i]);
+		opt = bananaGetOption (bananaIndex, name, -1);
+		registerButton (opt->s, &decrease_button[i]);
+	}
 
 	return TRUE;
 }
@@ -744,28 +772,20 @@ obsFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
 
-	compFiniMetadata (&obsMetadata);
-}
-
-static CompMetadata *
-obsGetMetadata (CompPlugin *plugin)
-{
-	return &obsMetadata;
+	bananaUnloadPlugin (bananaIndex);
 }
 
 CompPluginVTable obsVTable = {
 	"obs",
-	obsGetMetadata,
 	obsInit,
 	obsFini,
 	obsInitObject,
-	obsFiniObject,
-	obsGetObjectOptions,
-	obsSetObjectOption
+	obsFiniObject
 };
 
 CompPluginVTable *
-getCompPluginInfo20070830 (void)
+getCompPluginInfo20140724 (void)
 {
 	return &obsVTable;
 }
+

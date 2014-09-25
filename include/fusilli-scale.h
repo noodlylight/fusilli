@@ -39,11 +39,6 @@ extern "C" {
 #define SCALE_STATE_WAIT 2
 #define SCALE_STATE_IN   3
 
-#define SCALE_ICON_NONE   0
-#define SCALE_ICON_EMBLEM 1
-#define SCALE_ICON_BIG    2
-#define SCALE_ICON_LAST   SCALE_ICON_BIG
-
 #define SCALE_MOMODE_CURRENT 0
 #define SCALE_MOMODE_ALL     1
 #define SCALE_MOMODE_LAST    SCALE_MOMODE_ALL
@@ -59,31 +54,9 @@ typedef struct _SlotArea {
 	XRectangle workArea;
 } SlotArea;
 
-#define SCALE_DISPLAY_OPTION_ABI                    0
-#define SCALE_DISPLAY_OPTION_INDEX                  1
-#define SCALE_DISPLAY_OPTION_INITIATE_EDGE          2
-#define SCALE_DISPLAY_OPTION_INITIATE_BUTTON        3
-#define SCALE_DISPLAY_OPTION_INITIATE_KEY           4
-#define SCALE_DISPLAY_OPTION_INITIATE_ALL_EDGE      5
-#define SCALE_DISPLAY_OPTION_INITIATE_ALL_BUTTON    6
-#define SCALE_DISPLAY_OPTION_INITIATE_ALL_KEY       7
-#define SCALE_DISPLAY_OPTION_INITIATE_GROUP_EDGE    8
-#define SCALE_DISPLAY_OPTION_INITIATE_GROUP_BUTTON  9
-#define SCALE_DISPLAY_OPTION_INITIATE_GROUP_KEY     10
-#define SCALE_DISPLAY_OPTION_INITIATE_OUTPUT_EDGE   11
-#define SCALE_DISPLAY_OPTION_INITIATE_OUTPUT_BUTTON 12
-#define SCALE_DISPLAY_OPTION_INITIATE_OUTPUT_KEY    13
-#define SCALE_DISPLAY_OPTION_SHOW_DESKTOP           14
-#define SCALE_DISPLAY_OPTION_RELAYOUT               15
-#define SCALE_DISPLAY_OPTION_KEY_BINDINGS_TOGGLE    16
-#define SCALE_DISPLAY_OPTION_BUTTON_BINDINGS_TOGGLE 17
-#define SCALE_DISPLAY_OPTION_NUM                    18
-
 typedef struct _ScaleDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
-
-	CompOption opt[SCALE_DISPLAY_OPTION_NUM];
 
 	unsigned int lastActiveNum;
 	Window       lastActiveWindow;
@@ -94,17 +67,6 @@ typedef struct _ScaleDisplay {
 
 	KeyCode	 leftKeyCode, rightKeyCode, upKeyCode, downKeyCode;
 } ScaleDisplay;
-
-#define SCALE_SCREEN_OPTION_SPACING          0
-#define SCALE_SCREEN_OPTION_SPEED            1
-#define SCALE_SCREEN_OPTION_TIMESTEP         2
-#define SCALE_SCREEN_OPTION_WINDOW_MATCH     3
-#define SCALE_SCREEN_OPTION_DARKEN_BACK      4
-#define SCALE_SCREEN_OPTION_OPACITY          5
-#define SCALE_SCREEN_OPTION_ICON             6
-#define SCALE_SCREEN_OPTION_HOVER_TIME       7
-#define SCALE_SCREEN_OPTION_MULTIOUTPUT_MODE 8
-#define SCALE_SCREEN_OPTION_NUM              9
 
 typedef enum {
 	ScaleTypeNormal = 0,
@@ -140,12 +102,8 @@ typedef struct _ScaleScreen {
 	ScalePaintDecorationProc             scalePaintDecoration;
 	ScaleSelectWindowProc                selectWindow;
 
-	CompOption opt[SCALE_SCREEN_OPTION_NUM];
-
 	Bool grab;
 	int  grabIndex;
-
-	Window dndTarget;
 
 	CompTimeoutHandle hoverHandle;
 
@@ -169,8 +127,7 @@ typedef struct _ScaleScreen {
 
 	Window clientLeader;
 
-	CompMatch match;
-	CompMatch *currentMatch;
+	CompMatch window_match;
 } ScaleScreen;
 
 typedef struct _ScaleWindow {
