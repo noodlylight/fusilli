@@ -626,35 +626,68 @@ svgWindowResizeNotify (CompWindow *w,
 }
 
 static void
-svgHandleFusilliEvent (CompDisplay *d,
-                      const char  *pluginName,
-                      const char  *eventName,
-                      CompOption  *option,
-                      int         nOption)
+svgHandleFusilliEvent (CompDisplay    *d,
+                       const char     *pluginName,
+                       const char     *eventName,
+                       BananaArgument *arg,
+                       int            nArg)
 {
 	SVG_DISPLAY (d);
 
 	UNWRAP (sd, d, handleFusilliEvent);
-	(*d->handleFusilliEvent) (d, pluginName, eventName, option, nOption);
+	(*d->handleFusilliEvent) (d, pluginName, eventName, arg, nArg);
 	WRAP (sd, d, handleFusilliEvent, svgHandleFusilliEvent);
 
 	if (strcmp (pluginName, "zoom") == 0)
 	{
 		CompScreen *s;
-		int	   output = getIntOptionNamed (option, nOption, "output", 0);
+		int        output;
+		BananaValue *arg_output = getArgNamed ("output", arg, nArg);
 
-		s = findScreenAtDisplay (d, getIntOptionNamed (option, nOption,
-		                                  "root", 0));
+		if (arg_output != NULL)
+			output = arg_output->i;
+		else
+			output = 0;
+
+		int root;
+		BananaValue *arg_root = getArgNamed ("root", arg, nArg);
+
+		if (arg_root != NULL)
+			root = arg_root->i;
+		else
+			root = 0;
+
+		s = findScreenAtDisplay (d, root);
+
 		if (s && output == 0)
 		{
 			SVG_SCREEN (s);
 
 			if (strcmp (eventName, "in") == 0)
 			{
-				ss->zoom.x1 = getIntOptionNamed (option, nOption, "x1", 0);
-				ss->zoom.y1 = getIntOptionNamed (option, nOption, "y1", 0);
-				ss->zoom.x2 = getIntOptionNamed (option, nOption, "x2", 0);
-				ss->zoom.y2 = getIntOptionNamed (option, nOption, "y2", 0);
+				BananaValue *arg_x1 = getArgNamed ("x1", arg, nArg);
+				if (arg_x1 != NULL)
+					ss->zoom.x1 = arg_x1->i;
+				else
+					ss->zoom.x1 = 0;
+
+				BananaValue *arg_y1 = getArgNamed ("y1", arg, nArg);
+				if (arg_y1 != NULL)
+					ss->zoom.y1 = arg_y1->i;
+				else
+					ss->zoom.y1 = 0;
+
+				BananaValue *arg_x2 = getArgNamed ("x2", arg, nArg);
+				if (arg_x2 != NULL)
+					ss->zoom.x2 = arg_x2->i;
+				else
+					ss->zoom.x2 = 0;
+
+				BananaValue *arg_y2 = getArgNamed ("y2", arg, nArg);
+				if (arg_y2 != NULL)
+					ss->zoom.y2 = arg_y2->i;
+				else
+					ss->zoom.y2 = 0;
 			}
 			else if (strcmp (eventName, "out") == 0)
 			{
@@ -825,8 +858,6 @@ svgFiniDisplay (CompPlugin  *p,
 		updateDefaultIcon (s);
 
 	freeScreenPrivateIndex (d, sd->screenPrivateIndex);
-
-	compFiniDisplayOptions (d, sd->opt, SVG_DISPLAY_OPTION_NUM);
 
 	free (sd);
 }
