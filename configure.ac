@@ -4,8 +4,8 @@ dnl fusilli package version number
 dnl An odd micro number indicates in-progress development.
 dnl An even micro number indicates a released version.
 m4_define(fusilli_version_major, 0)
-m4_define(fusilli_version_minor, 8)
-m4_define(fusilli_version_micro, 9)
+m4_define(fusilli_version_minor, 0)
+m4_define(fusilli_version_micro, 0)
 
 AC_INIT([fusilli],
 	[fusilli_version_major().fusilli_version_minor().fusilli_version_micro()],
