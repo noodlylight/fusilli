@@ -409,6 +409,21 @@ AC_SUBST(KDE4_LIBS)
 AC_SUBST(QT4_MOC)
 AC_SUBST(QDBUSXML2CPP)
 
+AC_ARG_ENABLE(fsm,
+  [  --disable-fsm      Disable fsm],
+  [use_fsm=$enableval], [use_fsm=yes])
+
+if test "x$use_fsm" = "xyes"; then
+  dnl exclude python3 versions
+  m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python2 python2.7 python2.6])
+  AM_PATH_PYTHON([2.7], [use_fsm=yes], [use_fsm=no])
+fi
+
+AM_CONDITIONAL(USE_FSM, test "x$use_fsm" = "xyes")
+if test "$use_fsm" = yes; then
+  AC_DEFINE(USE_FSM, 1, [Build fsm])
+fi
+
 AC_ARG_WITH(max-desktops,
   [  --with-max-desktops     Max reasonable desktops],
   [MAX_DESKTOPS=$withval],
@@ -436,6 +451,7 @@ kde/Makefile
 kde/window-decorator-kde4/Makefile
 po/Makefile.in
 metadata/Makefile
+fsm/Makefile
 ])
 
 echo ""
@@ -450,4 +466,5 @@ echo "  gtk:      $use_gtk"
 echo "  metacity: $use_metacity"
 echo "  gnome:    $use_gnome"
 echo "  kde4:     $use_kde4"
+echo "  fsm:      $use_fsm"
 echo ""

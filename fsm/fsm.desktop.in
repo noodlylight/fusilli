@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+_Name=Fusilli Settings Manager
+_Comment=Configure Fusilli Window Manager
+Icon=fsm
+Exec=fsm
+Terminal=false
+Type=Application
+Categories=Fusilli;Settings;DesktopSettings;
+StartupNotify=true

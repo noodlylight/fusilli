@@ -1,3 +1,4 @@
+fsm/fsm.desktop.in
 gtk/gnome/50-fusilli-desktop-key.xml.in
 gtk/gnome/50-fusilli-key.xml.in
 gtk/gnome/fusilli.desktop.in

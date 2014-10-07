@@ -1,4 +1,4 @@
-SUBDIRS = include src libdecoration plugins images gtk kde po metadata
+SUBDIRS = include src libdecoration plugins images gtk kde po metadata fsm
 
 EXTRA_DIST =             \
 	COPYING              \

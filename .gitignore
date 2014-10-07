@@ -42,4 +42,4 @@ po/.intltool-merge-cache
 po/Makefile.in.in
 po/POTFILES
 po/stamp-it
-
+fsm

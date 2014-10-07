@@ -1,0 +1,1636 @@
+#!@path_to_python_interpreter@
+# -*- coding: UTF-8 -*-
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, 
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Authors: Michael Bitches (noodlylight@gmail.com)
+# Copyright (C) 2014 Michael Bitches
+
+import pygtk
+pygtk.require("2.0")
+import gtk
+import gtk.gdk
+import gobject
+
+import xml.etree.cElementTree as etree
+
+import locale
+locale.setlocale(locale.LC_ALL, "")
+
+import gettext
+gettext.bindtextdomain("fsm", "@installprefix@" + "/share/locale")
+gettext.textdomain("fsm")
+_ = gettext.gettext
+
+import glob
+import os
+
+import argparse
+
+class KeyBindings():
+    def __init__(self):
+        self.Options = []
+
+class ButtonBindings():
+    def __init__(self):
+        self.Options = []
+
+class ListWidget():
+    def __init__(self, name, shortDesc, longDesc, isPerScreen, options):
+        self.CurrentRow = None
+        self.Types = []
+        self.Options = options
+        self.ShortDesc = shortDesc
+        self.LongDesc = longDesc
+        self.IsPerScreen = isPerScreen
+        self.Name = name
+
+        for option in self.Options:
+            if option.OptionType == "list_bool":
+                self.Types.append(gobject.TYPE_BOOLEAN)
+            elif option.OptionType == "list_int":
+                self.Types.append(gobject.TYPE_INT)
+            elif option.OptionType == "list_float":
+                self.Types.append(gobject.TYPE_FLOAT)
+            elif option.OptionType == "list_string":
+                self.Types.append(gobject.TYPE_STRING)
+
+        self.GTKListStore = gtk.ListStore(*self.Types)
+
+        for row in range(len(self.Options[0].GetValue())):
+            rowValue = []
+            for option in self.Options:
+                rowValue.append(option.GetValue()[row])
+            self.GTKListStore.append(rowValue)
+
+        self.GTKTreeView = gtk.TreeView(model=self.GTKListStore)
+        self.GTKTreeView.set_headers_visible(True)
+        self.GTKTreeView.set_size_request(-1, 100)
+
+        self.GTKTreeSelection = self.GTKTreeView.get_selection()
+        self.GTKTreeSelection.set_mode(gtk.SELECTION_SINGLE)
+        self.GTKTreeSelection.connect("changed", self.SelectionChanged)
+
+        self.GTKCellRendererText = gtk.CellRendererText()
+        self.GTKTreeViewColumns = []
+        for i, option in enumerate(self.Options):
+            gtk_treeview_column = gtk.TreeViewColumn(option.ShortDesc,
+                                                     self.GTKCellRendererText,
+                                                     text=i)
+            self.GTKTreeViewColumns.append(gtk_treeview_column)
+            self.GTKTreeView.append_column(gtk_treeview_column)
+
+        self.GTKScrolledWindow = gtk.ScrolledWindow()
+        self.GTKScrolledWindow.set_policy(gtk.POLICY_NEVER,
+                                          gtk.POLICY_AUTOMATIC)
+        self.GTKScrolledWindow.add(self.GTKTreeView)
+
+        self.GTKButtonBox = gtk.HBox()
+        self.GTKButtonBox.set_spacing(5)
+        self.GTKButtonBox.set_border_width(5)
+
+        self.GTKNewButton = gtk.Button(gtk.STOCK_NEW)
+        self.GTKNewButton.connect("clicked", self.Add)
+
+        self.GTKEditButton = gtk.Button(gtk.STOCK_EDIT)
+        self.GTKEditButton.connect("clicked", self.Edit)
+
+        self.GTKMoveUpButton = gtk.Button(gtk.STOCK_GO_UP)
+        self.GTKMoveUpButton.connect("clicked", self.Move, "up")
+
+        self.GTKMoveDownButton = gtk.Button(gtk.STOCK_GO_DOWN)
+        self.GTKMoveDownButton.connect("clicked", self.Move, "down")
+
+        self.GTKDeleteButton = gtk.Button(gtk.STOCK_DELETE)
+        self.GTKDeleteButton.connect("clicked", self.Delete)
+
+        self.GTKNewButton.set_use_stock(True)
+        self.GTKEditButton.set_use_stock(True)
+        self.GTKMoveUpButton.set_use_stock(True)
+        self.GTKMoveDownButton.set_use_stock(True)
+        self.GTKDeleteButton.set_use_stock(True)
+
+        self.GTKNewButton.set_sensitive(True)
+        self.GTKEditButton.set_sensitive(False)
+        self.GTKMoveUpButton.set_sensitive(False)
+        self.GTKMoveDownButton.set_sensitive(False)
+        self.GTKDeleteButton.set_sensitive(False)
+
+        self.GTKButtonBox.pack_start(self.GTKNewButton, False)
+        self.GTKButtonBox.pack_start(self.GTKEditButton, False)
+        self.GTKButtonBox.pack_start(self.GTKMoveUpButton, False)
+        self.GTKButtonBox.pack_start(self.GTKMoveDownButton, False)
+        self.GTKButtonBox.pack_start(self.GTKDeleteButton, False)
+
+        #prepare edit dialog
+        self.GTKDialog = gtk.Dialog(_("Edit"))
+        self.GTKDialog.add_button(gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE)
+        self.GTKDialog.set_default_size(500, -1)
+        self.GTKDialog.set_default_response(gtk.RESPONSE_CLOSE)
+        for option in self.Options:
+            self.GTKDialog.vbox.pack_start(option.GTKWidget, False)
+
+        #Label
+        self.GTKLabel = gtk.Label(self.ShortDesc)
+        if self.IsPerScreen:
+            self.GTKLabel.set_markup("<span foreground='blue'>%s</span>" % 
+                                                         (self.ShortDesc))
+        self.GTKLabel.set_tooltip_markup("%s\n<small><i>%s</i></small>" % 
+                                               (self.LongDesc, self.Name))
+        self.GTKLabel.props.xalign = 0
+        self.GTKLabel.set_size_request(-1, 30)
+        self.GTKLabel.set_line_wrap(True)
+
+        self.GTKListBox = gtk.VBox()
+        self.GTKListBox.pack_start(self.GTKLabel, False)
+        self.GTKListBox.pack_start(self.GTKScrolledWindow, False)
+        self.GTKListBox.pack_start(self.GTKButtonBox, False)
+
+        self.GTKWidget = self.GTKListBox
+
+    def UpdateGTKModel(self):
+        self.GTKListStore.clear()
+
+        for row in range(len(self.Options[0].GetValue())):
+            rowValue = []
+            for option in self.Options:
+                rowValue.append(option.GetValue()[row])
+
+            self.GTKListStore.append(rowValue)
+
+    def Add(self, widget):
+        rowValue = []
+        for option in self.Options:
+            if option.OptionType == "list_bool":
+                newValue = False
+            elif option.OptionType == "list_int":
+                newValue = option.MinValue
+            elif option.OptionType == "list_float":
+                newValue = option.MinValue
+            elif option.OptionType == "list_string":
+                newValue = ""
+            rowValue.append(newValue)
+            if option.IsPerScreen:
+                option.Values[curScreenNum].append(newValue)
+                option.CurrentRow = len(option.Values[curScreenNum])
+            else:
+                option.Value.append(newValue)
+                option.CurrentRow = len(option.Value)
+
+        self.GTKListStore.append(rowValue)
+        self.GTKTreeView.set_cursor(option.CurrentRow - 1)
+
+    def Edit(self, widget):
+        model, treeiter = self.GTKTreeSelection.get_selected()
+        if treeiter != None:
+            path = model.get_path(treeiter)
+            if path != None:
+                row = path[0]
+            else:
+                return
+
+        self.GTKDialog.show_all()
+        self.GTKDialog.run()
+        self.GTKDialog.hide_all()
+
+        self.UpdateGTKModel()
+
+    def Move(self, widget, direction):
+        model, treeiter = self.GTKTreeSelection.get_selected()
+        if treeiter != None:
+            path = model.get_path(treeiter)
+            if path != None:
+                row = path[0]
+            else:
+                return
+
+            if direction == "up":
+                dest = row - 1
+            elif direction == "down":
+                dest = row + 1
+
+            for option in self.Options:
+                value = option.GetValue()
+                value.insert(dest, value.pop(row))
+
+            if autoSaveMode:
+                banana.WriteConfigFile()
+
+            order = range(len(model))
+            order.insert(dest, order.pop(row))
+            model.reorder(order)
+
+            self.GTKTreeView.set_cursor(dest)
+            self.SelectionChanged(self.GTKTreeSelection)
+
+    def Delete(self, widget):
+        model, treeiter = self.GTKTreeSelection.get_selected()
+        if treeiter != None:
+            path = model.get_path(treeiter)
+            if path != None:
+                row = path[0]
+            else:
+                return
+
+        for option in self.Options:
+            value = option.GetValue()
+            del value[row]
+            option.SetValue(value)
+
+        if autoSaveMode:
+            banana.WriteConfigFile()
+
+        model.remove(treeiter)
+
+        if len(model) > 0:
+            if row  > len(model) - 1:
+                self.GTKTreeView.set_cursor(row - 1)
+            else:
+                self.GTKTreeView.set_cursor(row)
+
+        self.SelectionChanged(self.GTKTreeSelection)
+
+    def SelectionChanged(self, selection):
+        model, treeiter = selection.get_selected()
+        self.GTKEditButton.set_sensitive(True)
+        self.GTKDeleteButton.set_sensitive(True)
+
+        if treeiter == None:
+            self.GTKMoveUpButton.set_sensitive(False)
+            self.GTKMoveDownButton.set_sensitive(False)
+        else:
+            path = model.get_path(treeiter)
+            if path != None:
+                row = path[0]
+                self.GTKMoveUpButton.set_sensitive(row > 0)
+                self.GTKMoveDownButton.set_sensitive(row < (len(model) - 1))
+                self.CurrentRow = row
+                for option in self.Options:
+                    option.CurrentRow = row
+                    option.UpdateGTKWidget()
+
+class BananaOption():
+    def __init__(self, isPerScreen, isMemberOfMultilist,
+                 name, optionType, hint, shortDesc, longDesc,
+                 minValue, maxValue, precision,
+                 defaultValue, plugin, group, subgroup):
+        self.IsPerScreen = isPerScreen
+        self.IsMemberOfMultilist = isMemberOfMultilist
+
+        self.Name = name
+        self.OptionType = optionType
+        self.Hint = hint
+        self.ShortDesc = shortDesc
+        self.LongDesc = longDesc
+
+        self.MinValue = minValue
+        self.MaxValue = maxValue
+        self.Precision = precision
+
+        self.DefaultValue = defaultValue
+
+        self.Plugin = plugin
+        self.Group = group
+        self.SubGroup = subgroup
+
+        self.Desc = {}
+
+        if isPerScreen:
+            self.Values = []
+            for i in range(nScreens):
+                self.Values.append(defaultValue)
+        else:
+            self.Value = defaultValue
+
+        self.CurrentRow = None
+
+    def toString(self, screenNum):
+        if screenNum >= 0:
+            value = self.Values[screenNum]
+        else:
+            value = self.Value
+
+        if self.OptionType == "bool":
+            return "true" if value else "false"
+        elif self.OptionType == "int":
+            return str(value)
+        elif self.OptionType == "float":
+            return str(value)
+        elif self.OptionType == "string":
+            return str(value)
+        elif self.OptionType == "list_bool":
+            retval = []
+            for val in value:
+                retval.append("true" if val else "false")
+            return retval
+        elif self.OptionType == "list_int":
+            retval = []
+            for val in value:
+                retval.append(str(val))
+            return retval
+        elif self.OptionType == "list_float":
+            retval = []
+            for val in value:
+                retval.append(str(val))
+            return retval
+        elif self.OptionType == "list_string":
+            return value
+
+    def GetValueAtRow(self):
+        value = self.GetValue()
+
+        return value[self.CurrentRow]
+
+    def SetValueAtRow(self, value):
+        val = self.GetValue()
+
+        #avoid writing to file if value was not changed
+        if val[self.CurrentRow] != value:
+            val[self.CurrentRow] = value
+            if autoSaveMode:
+                banana.WriteConfigFile()
+
+    def GetValue(self):
+        if self.IsPerScreen:
+            return self.Values[curScreenNum]
+        else:
+            return self.Value
+
+    def SetValue(self, value):
+        if self.IsPerScreen:
+            #avoid writing to file if value was not changed
+            if self.Values[curScreenNum] != value:
+                self.Values[curScreenNum] = value
+                if autoSaveMode:
+                    banana.WriteConfigFile()
+        else:
+            #avoid writing to file if value was not changed
+            if self.Value != value:
+                self.Value = value
+                if autoSaveMode:
+                    banana.WriteConfigFile()
+
+    def Changed(self, widget, data=None):
+        if self.OptionType[-4:] == "bool":
+            value = self.GTKCheckButton.get_active()
+            if self.OptionType[:4] == "list":
+                self.SetValueAtRow(value)
+            else:
+                self.SetValue(value)
+        elif self.OptionType[-3:] == "int":
+            if len(self.Desc) > 0:
+                treeiter = self.GTKComboBox.get_active_iter()
+                value = self.GTKListStore.get_value(treeiter, 0)
+                if self.OptionType[:4] == "list":
+                    self.SetValueAtRow(value)
+                else:
+                    self.SetValue(value)
+            else:
+                if self.OptionType[:4] == "list":
+                    self.SetValueAtRow(self.GTKSpinButton.get_value_as_int())
+                else:
+                    self.SetValue(self.GTKSpinButton.get_value_as_int())
+        elif self.OptionType[-5:] == "float":
+            if self.OptionType[:4] == "list":
+                self.SetValueAtRow(self.GTKSpinButton.get_value())
+            else:
+                self.SetValue(self.GTKSpinButton.get_value())
+        elif self.OptionType[-6:] == "string":
+            if self.Hint == "color":
+                color = self.GTKColorButton.get_color()
+                alpha = self.GTKColorButton.get_alpha()
+                value = ("#" + 
+                         format(color.red / 256, "02x") + 
+                         format(color.green / 256, "02x") + 
+                         format(color.blue / 256, "02x") + 
+                         format(alpha / 256, "02x"))
+                if self.OptionType[:4] == "list":
+                    self.SetValueAtRow(value)
+                else:
+                    self.SetValue(value)
+            else:
+                if self.OptionType[:4] == "list":
+                    self.SetValueAtRow(self.GTKEntry.get_text())
+                else:
+                    self.SetValue(self.GTKEntry.get_text())
+
+    def UpdateGTKWidget(self):
+        if self.OptionType == "bool":
+            self.GTKCheckButton.set_active(self.GetValue())
+        elif self.OptionType == "int":
+            if len(self.Desc) > 0:
+                listiter = self.GTKListStore.get_iter_first()
+                value = self.GetValue()
+                while listiter != None:
+                    if value == self.GTKListStore.get_value(listiter, 0):
+                        break
+                    listiter = self.GTKListStore.iter_next(listiter)
+
+                self.GTKComboBox.set_active_iter(listiter)
+            else:
+                self.GTKSpinButton.set_value(self.GetValue())
+        elif self.OptionType == "float":
+            self.GTKSpinButton.set_value(self.GetValue())
+        elif self.OptionType == "string":
+            if self.Hint == "color":
+                try:
+                    value = self.GetValue()
+                    red = int(value[1:3], 16)*256
+                    blue = int(value[3:5], 16)*256
+                    green = int(value[5:7], 16)*256
+                    alpha = int(value[7:9], 16)*256
+                except ValueError:
+                    red = blue = green = alpha = 65535
+                self.GTKColorButton.set_color(gtk.gdk.Color(red, blue, green))
+                self.GTKColorButton.set_alpha(alpha)
+            elif self.Hint == "button":
+                self.GTKEntry.set_text(self.GetValue())
+            elif self.Hint == "key":
+                self.GTKEntry.set_text(self.GetValue())
+            else:
+                self.GTKEntry.set_text(self.GetValue())
+        elif self.OptionType == "list_bool" and self.CurrentRow != None:
+            self.GTKCheckButton.set_active(self.GetValueAtRow())
+        elif self.OptionType == "list_int" and self.CurrentRow != None:
+            if len(self.Desc) > 0:
+                listiter = self.GTKListStore.get_iter_first()
+                while listiter != None:
+                    if value == self.GTKListStore.get_value(listiter, 0):
+                        break
+                    listiter = self.GTKListStore.iter_next(listiter)
+
+                self.GTKComboBox.set_active_iter(listiter)
+            else:
+                self.GTKSpinButton.set_value(self.GetValueAtRow())
+        elif self.OptionType == "list_float" and self.CurrentRow != None:
+            self.GTKSpinButton.set_value(self.GetValueAtRow())
+        elif self.OptionType == "list_string" and self.CurrentRow != None:
+            if self.Hint == "color":
+                try:
+                    value = self.GetValueAtRow()
+                    red = int(value[1:3], 16)*256
+                    blue = int(value[3:5], 16)*256
+                    green = int(value[5:7], 16)*256
+                    alpha = int(value[7:9], 16)*256
+                except ValueError:
+                    red = blue = green = alpha = 65535
+                self.GTKColorButton.set_color(gtk.gdk.Color(red, blue, green))
+                self.GTKColorButton.set_alpha(alpha)
+            elif self.Hint == "button":
+                self.GTKEntry.set_text(self.GetValueAtRow())
+            elif self.Hint == "key":
+                self.GTKEntry.set_text(self.GetValueAtRow())
+            else:
+                self.GTKEntry.set_text(self.GetValueAtRow())
+
+    def Default(self):
+        self.SetValue(self.DefaultValue)
+
+        self.UpdateGTKWidget()
+
+    def DefaultButtonCallback(self, widget, data=None):
+        self.Default()
+
+    def CreateGTKWidgets(self):
+        self.GTKMainOptionBox = gtk.HBox(spacing=5)
+        self.GTKMainOptionBox.set_border_width(5)
+        self.GTKListBox = None
+
+        if self.OptionType[0:4] != "list":
+            #Default Button
+            self.GTKDefaultButton = gtk.Button("Default")
+            self.GTKDefaultButton.connect("clicked", self.DefaultButtonCallback)
+            self.GTKMainOptionBox.pack_start(self.GTKDefaultButton, False)
+
+        #Label
+        self.GTKLabel = gtk.Label(self.ShortDesc)
+        if self.IsPerScreen:
+            self.GTKLabel.set_markup("<span foreground='blue'>%s</span>" % 
+                                                         (self.ShortDesc))
+        self.GTKLabel.set_tooltip_markup("%s\n<small><i>%s</i></small>" % 
+                                               (self.LongDesc, self.Name))
+        self.GTKLabel.props.xalign = 0
+        self.GTKLabel.set_size_request(160, -1)
+        self.GTKLabel.set_line_wrap(True)
+        self.GTKMainOptionBox.pack_start(self.GTKLabel, False)
+
+        if self.OptionType[-4:] == "bool":
+            self.GTKCheckButton = gtk.CheckButton()
+            self.UpdateGTKWidget()
+            self.GTKCheckButton.connect("toggled", self.Changed)
+            self.GTKMainOptionBox.pack_start(self.GTKCheckButton, False)
+        elif self.OptionType[-3:] == "int":
+            if len(self.Desc) > 0:
+                self.GTKListStore = gtk.ListStore(gobject.TYPE_INT,
+                                                  gobject.TYPE_STRING)
+
+                for (name, value) in sorted(self.Desc.items(),
+                                            key=lambda x: x[1]):
+                    self.GTKListStore.append([value, name])
+
+                self.GTKCellRendererText = gtk.CellRendererText()
+                self.GTKComboBox = gtk.ComboBox(self.GTKListStore)
+                self.GTKComboBox.pack_start(self.GTKCellRendererText, True)
+                self.GTKComboBox.add_attribute(self.GTKCellRendererText,
+                                               "text", 1)
+                self.UpdateGTKWidget()
+                self.GTKComboBox.connect("changed", self.Changed)
+                self.GTKMainOptionBox.pack_start(self.GTKComboBox, False)
+            else:
+                self.GTKAdjustment = gtk.Adjustment(self.MinValue,
+                                                    self.MinValue,
+                                                    self.MaxValue, 1, 10)
+                self.GTKSpinButton = gtk.SpinButton(self.GTKAdjustment)
+                self.GTKSpinButton.set_digits(0)
+                self.UpdateGTKWidget()
+                self.GTKSpinButton.connect("value-changed", self.Changed)
+                self.GTKMainOptionBox.pack_start(self.GTKSpinButton, False)
+        elif self.OptionType[-5:] == "float":
+            self.GTKAdjustment = gtk.Adjustment(self.MinValue,
+                                                self.MinValue,
+                                                self.MaxValue,
+                                                self.Precision,
+                                                self.Precision*10)
+            self.GTKSpinButton = gtk.SpinButton(self.GTKAdjustment)
+            self.GTKSpinButton.set_digits(4)
+            self.UpdateGTKWidget()
+            self.GTKSpinButton.connect("value-changed", self.Changed)
+            self.GTKMainOptionBox.pack_start(self.GTKSpinButton, False)
+        elif self.OptionType[-6:] == "string":
+            if self.Hint == "color":
+                self.GTKColorButton = gtk.ColorButton()
+                self.UpdateGTKWidget()
+                self.GTKColorButton.connect("color-set", self.Changed)
+                self.GTKColorButton.set_use_alpha(True)
+                self.GTKMainOptionBox.pack_start(self.GTKColorButton, False)
+            elif self.Hint == "button":
+                self.GTKEntry = gtk.Entry()
+                self.GTKEntry.set_size_request(300, -1)
+                self.UpdateGTKWidget()
+                self.GTKEntry.connect("activate", self.Changed)
+                self.GTKEntry.connect("focus-out-event", self.Changed)
+                self.GTKMainOptionBox.pack_start(self.GTKEntry, False)
+            elif self.Hint == "key":
+                self.GTKEntry = gtk.Entry()
+                self.GTKEntry.set_size_request(300, -1)
+                self.UpdateGTKWidget()
+                self.GTKEntry.connect("activate", self.Changed)
+                self.GTKEntry.connect("focus-out-event", self.Changed)
+                self.GTKMainOptionBox.pack_start(self.GTKEntry, False)
+            elif self.Hint == "edge":
+                pass
+            else:
+                self.GTKEntry = gtk.Entry()
+                self.UpdateGTKWidget()
+                self.GTKEntry.connect("activate", self.Changed)
+                self.GTKEntry.connect("focus-out-event", self.Changed)
+                self.GTKEntry.set_size_request(300, -1)
+                self.GTKMainOptionBox.pack_start(self.GTKEntry, False)
+
+        self.GTKWidget = gtk.VBox()
+        self.GTKWidget.pack_start(self.GTKMainOptionBox, False)
+
+        if self.OptionType[0:4] == "list" and not self.IsMemberOfMultilist:
+            self.GTKListBox = ListWidget(self.Name,
+                                         self.ShortDesc,
+                                         self.LongDesc,
+                                         self.IsPerScreen,
+                                         [self])
+
+class BananaSubGroup():
+    def __init__(self, shortDesc, longDesc, isCollapsible, isMultilist):
+        self.ShortDesc = shortDesc
+        self.LongDesc = longDesc
+
+        self.IsCollapsible = isCollapsible
+        self.IsMultilist = isMultilist
+
+        self.Options = []
+
+    def CreateGTKWidgets(self):
+        for option in self.Options:
+            option.CreateGTKWidgets()
+
+        self.GTKSubGroupBox = gtk.VBox()
+        self.GTKSubGroupBox.set_spacing(4)
+        self.GTKSubGroupBox.set_border_width(4)
+
+        self.GTKOptionsBox = gtk.VBox()
+
+        if self.IsCollapsible:
+
+            self.GTKExpander = gtk.Expander(self.ShortDesc)
+            self.GTKExpander.add(self.GTKOptionsBox)
+
+            self.GTKSubGroupBox.pack_start(self.GTKExpander, False)
+        else:
+            self.GTKOptionsBox = gtk.VBox()
+
+            self.GTKSubGroupBox.pack_start(self.GTKOptionsBox, False)
+
+        if self.IsMultilist:
+            self.ListWidget = ListWidget("",
+                                         self.ShortDesc,
+                                         self.LongDesc,
+                                         self.Options[0].IsPerScreen,
+                                         self.Options)
+
+            self.GTKOptionsBox.pack_start(self.ListWidget.GTKWidget, True, True)
+        else:
+            for option in self.Options:
+                if option.Name == "active_plugins" or option.Name == "index":
+                    continue
+
+                if option.GTKListBox != None:
+                    self.GTKOptionsBox.pack_start(option.GTKListBox.GTKWidget,
+                                                  True, True)
+                else:
+                    self.GTKOptionsBox.pack_start(option.GTKWidget, False)
+
+class BananaGroup():
+    def __init__(self, shortDesc, longDesc):
+        self.ShortDesc = shortDesc
+        self.LongDesc = longDesc
+        self.SubGroups = []
+
+class BananaPlugin():
+    def __init__(self, name, shortDesc, longDesc):
+        self.Name = name
+        self.ShortDesc = shortDesc
+        self.LongDesc = longDesc
+
+        self.RequiredPlugins = []
+        self.ConflictPlugins = []
+        self.RelationAfter = []
+        self.RelationBefore = []
+
+        self.Groups = []
+        self.Options = {} #quick access to an option
+
+    def CreateGTKWidgets(self):
+        self.GTKNotebook = gtk.Notebook()
+
+        self.GTKButton = gtk.Button()
+        if (self.Name in 
+            banana.Plugins["core"].Options["active_plugins"].Value):
+            self.GTKButton.set_label(_("Disable "+ self.Name))
+            self.GTKButton.connect("clicked", banana.TogglePlugin, self.Name)
+        else:
+            self.GTKButton.set_label(_("Enable " + self.Name))
+            self.GTKButton.connect("clicked", banana.TogglePlugin, self.Name)
+
+        self.GTKLabel = gtk.Label(self.LongDesc)
+        for group in self.Groups:
+            group.GTKScrolledWindow = gtk.ScrolledWindow()
+            group.GTKScrolledWindow.set_policy(gtk.POLICY_NEVER,
+                                               gtk.POLICY_AUTOMATIC)
+
+            group.GTKViewport = gtk.Viewport()
+            group.GTKViewport.set_shadow_type(gtk.SHADOW_NONE)
+
+            group.GTKEventBox = gtk.EventBox()
+            if (self.Name in 
+                banana.Plugins["core"].Options["active_plugins"].Value or 
+                self.Name == "core"):
+                group.GTKEventBox.modify_bg(gtk.STATE_NORMAL, 
+                                            gtk.gdk.color_parse("white"))
+            else:
+                group.GTKEventBox.modify_bg(gtk.STATE_NORMAL, 
+                                            gtk.gdk.color_parse("grey"))
+            group.GTKGroupBox = gtk.VBox()
+
+            for subgroup in group.SubGroups:
+                subgroup.CreateGTKWidgets()
+                group.GTKGroupBox.pack_start(subgroup.GTKSubGroupBox, False)
+
+            group.GTKEventBox.add(group.GTKGroupBox)
+            group.GTKViewport.add(group.GTKEventBox)
+            group.GTKScrolledWindow.add(group.GTKViewport)
+
+            self.GTKNotebook.append_page(group.GTKScrolledWindow,
+                                           gtk.Label(group.ShortDesc))
+
+class Banana():
+    def __init__(self, metadatadir, bananafile):
+        self.Plugins = {}
+        self.Core = None
+        self.locale = locale.getlocale()[0]
+
+        self.MetaDataDir = metadatadir
+        self.BananaFile = bananafile
+
+        self.Keys = KeyBindings()
+        self.Buttons =  ButtonBindings()
+
+        self.LoadMetadataDir(metadatadir)
+        self.LoadConfigFile(bananafile)
+
+    #xml:lang=
+    def getTranslation(self, nodes):
+        notTranslated = None
+        for i in nodes:
+            if (i.attrib.get("{http://www.w3.org/XML/1998/namespace}lang") ==
+                                                                         None):
+                notTranslated = i.text
+            elif (i.attrib.get("{http://www.w3.org/XML/1998/namespace}lang") ==
+                                                                   self.locale):
+                return i.text
+            elif (i.attrib.get("{http://www.w3.org/XML/1998/namespace}lang") ==
+                                                     self.locale.split("_")[0]):
+                return i.text
+        return notTranslated
+
+    def LoadMetadataDir(self, metadatadir):
+        os.chdir(metadatadir)
+        for xmlfile in glob.glob("*.xml"):
+            self.LoadMetadataFile(xmlfile)
+
+    #process <option></option>
+    def AddOption(self, option, bananaPlugin, bananaGroup, bananaSubGroup):
+        if option.attrib.get("per_screen") == "true":
+            isPerScreen = True
+        else:
+            isPerScreen = False
+
+        #<short></short>
+        shortDesc = self.getTranslation(option.findall("short"))
+
+        #<long></long>
+        longDesc = self.getTranslation(option.findall("long"))
+
+        #<default></default>
+        defaultElement = option.findall("default")
+
+        if option.attrib.get("type") == "bool":
+            if len(defaultElement) == 1 and defaultElement[0].text == "true":
+                default = True
+            else:
+                default = False
+        elif option.attrib.get("type") == "int":
+            if len(defaultElement) == 1 and defaultElement[0].text != None:
+                default = int(defaultElement[0].text)
+            else:
+                default = 0
+        elif option.attrib.get("type") == "float":
+            if len(defaultElement) == 1 and defaultElement[0].text != None:
+                default = float(defaultElement[0].text)
+            else:
+                default = 0.0
+        elif option.attrib.get("type") == "string":
+            if len(defaultElement) == 1 and defaultElement[0].text != None:
+                default = defaultElement[0].text
+            else:
+                default = ""
+        elif option.attrib.get("type") == "list_bool":
+            default = []
+            if len(defaultElement) == 1 and defaultElement[0].text != None:
+                items = defaultElement[0].findall("item")
+                for item in items:
+                    if item.text != None:
+                        default.append(True if item.text == "true" else False)
+        elif option.attrib.get("type") == "list_int":
+            default = []
+            if len(defaultElement) == 1 and defaultElement[0].text != None:
+                items = defaultElement[0].findall("item")
+                for item in items:
+                    if item.text != None:
+                        default.append(int(item.text))
+        elif option.attrib.get("type") == "list_float":
+            default = []
+            if len(defaultElement) == 1 and defaultElement[0].text != None:
+                items = defaultElement[0].findall("item")
+                for item in items:
+                    if item.text != None:
+                        default.append(float(item.text))
+        elif option.attrib.get("type") == "list_string":
+            default = []
+            if len(defaultElement) == 1 and defaultElement[0].text != None:
+                items = defaultElement[0].findall("item")
+                for item in items:
+                    if item.text != None:
+                        default.append(item.text)
+
+        #<hint></hint>
+        hint = option.findall("hint")
+        if len(hint) == 1:
+            hint = hint[0].text
+        else:
+            hint = None
+
+        if hint == "edge":
+            return
+
+        #<min></min>
+        min_ = option.findall("min")
+        if len(min_) == 1:
+            min_ = float(min_[0].text)
+        else:
+            min_ = 0.0
+
+        #<max></max>
+        max_ = option.findall("max")
+        if len(max_) == 1:
+            max_ = float(max_[0].text)
+        else:
+            max_ = 0.0
+
+        #<precision></precision>
+        precision = option.findall("precision")
+        if len(precision) == 1:
+            precision = float(precision[0].text)
+        else:
+            precision = 0.0
+
+        bananaOption = BananaOption(
+                        isPerScreen,
+                        bananaSubGroup.IsMultilist,
+                        option.attrib.get("name"),
+                        option.attrib.get("type"),
+                        hint,
+                        shortDesc,
+                        longDesc,
+                        min_,
+                        max_,
+                        precision,
+                        default,
+                        bananaPlugin,
+                        bananaGroup,
+                        bananaSubGroup
+        )
+
+        #<desc></desc>
+        descs = option.findall("desc")
+        for desc in descs:
+            value = int(desc.findall("value")[0].text)
+            name = self.getTranslation(desc.findall("name"))
+            bananaOption.Desc[name] = value
+
+        bananaSubGroup.Options.append(bananaOption)
+        bananaPlugin.Options[bananaOption.Name] = bananaOption
+
+        if bananaOption.Hint == "button":
+            self.Buttons.Options.append(bananaOption)
+
+        if bananaOption.Hint == "key":
+            self.Keys.Options.append(bananaOption)
+
+    def LoadMetadataFile(self, metadatafile):
+        tree = etree.parse(metadatafile)
+        root = tree.getroot()
+        shortDesc = self.getTranslation(root[0].findall("short"))
+        longDesc = self.getTranslation(root[0].findall("long"))
+        name = root[0].attrib["name"]
+
+        bananaPlugin = BananaPlugin(
+                       name,
+                       shortDesc,
+                       longDesc)
+
+        if name == "core":
+            self.Core = bananaPlugin
+
+        #<deps></deps>
+        deps = root[0].findall("deps")
+        if len(deps) == 1:
+            deps = deps[0]
+
+        #<relation></relation>
+        #<requirement></requirement>
+        #<conflict></conflict>
+        for dep in deps:
+            if dep.tag == "relation":
+                if dep.attrib.get("type") == "before":
+                    for plugin in dep.findall("plugin"):
+                        bananaPlugin.RelationBefore.append(plugin.text)
+                elif dep.attrib.get("type") == "after":
+                    for plugin in dep.findall("plugin"):
+                        bananaPlugin.RelationAfter.append(plugin.text)
+
+            elif dep.tag == "requirement":
+                for requirement in dep:
+                    if requirement.tag == "plugin":
+                        bananaPlugin.RequiredPlugins.append(requirement.text)
+
+            elif dep.tag == "conflict":
+                for conflict in dep:
+                    if conflict.tag == "plugin":
+                        bananaPlugin.ConflictPlugins.append(conflict.text)
+
+        #<group></group>
+        groups = root[0].findall("group")
+        for group in groups:
+            #<short></short>
+            shortDesc = self.getTranslation(group.findall("short"))
+
+            #<long></long>
+            longDesc = self.getTranslation(group.findall("long"))
+
+            bananaGroup = BananaGroup(shortDesc, longDesc)
+
+            subgroups = group.findall("subgroup")
+            for subgroup in subgroups:
+
+                #<short></short>
+                shortDesc = self.getTranslation(subgroup.findall("short"))
+
+                #<long></long>
+                longDesc = self.getTranslation(subgroup.findall("long"))
+
+                if subgroup.attrib.get("collapsible") == "true":
+                    isCollapsible = True
+                else:
+                    isCollapsible = False
+
+                if subgroup.attrib.get("multilist") == "true":
+                    isMultilist = True
+                else:
+                    isMultilist = False
+
+                bananaSubGroup = BananaSubGroup(shortDesc,
+                                                longDesc,
+                                                isCollapsible,
+                                                isMultilist)
+
+                subgroupOptions = subgroup.findall("option")
+                for option in subgroupOptions:
+                    self.AddOption(option, bananaPlugin,
+                                   bananaGroup, bananaSubGroup)
+
+                bananaGroup.SubGroups.append(bananaSubGroup)
+            bananaPlugin.Groups.append(bananaGroup)
+        self.Plugins[bananaPlugin.Name] = bananaPlugin
+
+    def LoadConfigFile(self, bananafile):
+        tree = etree.parse(bananafile)
+        root = tree.getroot()
+
+        for plugin in root:
+            if plugin.attrib.get("name") != None:
+                try:
+                    curPlugin = self.Plugins[plugin.attrib.get("name")];
+                except KeyError:
+                    pass
+
+                for option in plugin.findall("option"):
+                    if option.attrib.get("name") != None:
+                        try:
+                            curOption = (
+                                   curPlugin.Options[option.attrib.get("name")])
+                        except KeyError:
+                            continue
+
+                        screenNum = option.attrib.get("screen")
+                        if screenNum != None:
+                            try:
+                                screenNum = int(screenNum)
+                            except ValueError:
+                                continue
+
+                            if screenNum < 0 or screenNum >= nScreens:
+                                continue
+
+                        if screenNum == None and curOption.IsPerScreen:
+                            continue
+                        if screenNum != None and not curOption.IsPerScreen:
+                            continue
+
+                        if curOption.OptionType == "bool":
+                            curValue = True if option.text == "true" else False
+                        elif curOption.OptionType == "int":
+                            try:
+                                curValue = int(option.text)
+                            except ValueError:
+                                continue
+                        elif curOption.OptionType == "float":
+                            try:
+                                curValue = float(option.text)
+                            except ValueError:
+                                continue
+                        elif curOption.OptionType == "string":
+                            if option.text == None:
+                                curValue = ""
+                            else:
+                                curValue = option.text
+                        elif curOption.OptionType == "list_bool":
+                            curValue = []
+                            items = option.findall("item")
+                            for item in items:
+                                if item.text == "true" or item.text == "false":
+                                    curValue.append(True if item.text == "true"
+                                                         else False)
+                                else:
+                                    continue
+                        elif curOption.OptionType == "list_int":
+                            curValue = []
+                            items = option.findall("item")
+                            for item in items:
+                                try:
+                                    curValue.append(int(item.text))
+                                except ValueError:
+                                    continue
+                        elif curOption.OptionType == "list_float":
+                            curValue = []
+                            items = option.findall("item")
+                            for item in items:
+                                try:
+                                    curValue.append(float(item.text))
+                                except ValueError:
+                                    continue
+                        elif curOption.OptionType == "list_string":
+                            curValue = []
+                            items = option.findall("item")
+                            for item in items:
+                                curValue.append(item.text)
+
+                        if screenNum == None:
+                            curOption.Value = curValue
+                        else:
+                            curOption.Values[screenNum] = curValue
+
+    def indent(self, elem, level=0):
+        if level == 1:
+            i = "\n\n" + level*"\t"
+        else:
+            i = "\n" + level*"\t"
+
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "\t"
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+            for elem in elem:
+                self.indent(elem, level+1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = i
+
+    def WriteConfigFile(self, widget=None):
+        root = etree.Element("fusilli")
+        for plugin in (["core"] + 
+                      [p for p in sorted(banana.Plugins) if p != "core"]):
+            pluginElement = etree.SubElement(root, "plugin")
+            pluginElement.set("name", plugin)
+            for group in banana.Plugins[plugin].Groups:
+                for subgroup in group.SubGroups:
+                    for option in subgroup.Options:
+                        if option.IsPerScreen:
+                            for screen in range(nScreens):
+                                optionElement = etree.SubElement(pluginElement,
+                                                                 "option")
+                                optionElement.set("name", option.Name)
+                                optionElement.set("screen", "%s" % screen)
+                                if option.OptionType[0:4] == "list":
+                                    for item in option.toString(screen):
+                                        itemElement = etree.SubElement(
+                                                      optionElement, "item")
+                                        itemElement.text = item
+                                else:
+                                    optionElement.text = option.toString(screen)
+                        else:
+                            optionElement = etree.SubElement(pluginElement,
+                                                             "option")
+                            optionElement.text = "\n"
+                            optionElement.set("name", option.Name)
+                            if option.OptionType[0:4] == "list":
+                                for item in option.toString(-1):
+                                    itemElement = etree.SubElement(
+                                                        optionElement, "item")
+                                    itemElement.text = item
+                            else:
+                                optionElement.text = option.toString(-1)
+
+        self.indent(root)
+
+        tree = etree.ElementTree(root)
+        tree.write(configFile + ".tmp", encoding="utf-8", xml_declaration=True)
+        os.rename(configFile + ".tmp", configFile)
+
+    def TogglePlugin(self, widget, plugin):
+        if plugin in self.Core.Options["active_plugins"].Value:
+            if self.DeactivatePlugin(plugin):
+                widget.set_label(_("Enable " + plugin))
+                mainWin.RefreshPluginList()
+                if autoSaveMode:
+                    banana.WriteConfigFile()
+        else:
+            if self.ActivatePlugin(plugin):
+                widget.set_label(_("Disable " + plugin))
+                mainWin.RefreshPluginList()
+                if autoSaveMode:
+                    banana.WriteConfigFile()
+
+
+    def ActivatePlugin(self, plugin):
+        #check for conflicts in active plugins
+        for activeplugin in self.Core.Options["active_plugins"].Value:
+            for conflict in self.Plugins[activeplugin].ConflictPlugins:
+                if conflict == plugin:
+                    dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+                                            buttons=gtk.BUTTONS_OK)
+                    msg = "Plugin %s conflicts with plugin %s" % (plugin,
+                                                                  conflict)
+                    dlg.set_markup(msg)
+                    dlg.show_all()
+                    dlg.run()
+                    dlg.destroy()
+                    return False
+
+        #check if the requirements of the plugin are met
+        for requirement in self.Plugins[plugin].RequiredPlugins:
+            if requirement not in self.Core.Options["active_plugins"].Value:
+                dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+                                        buttons=gtk.BUTTONS_OK)
+                msg = "Plugin %s requires plugin %s" % (plugin,
+                                                        requirement)
+                dlg.set_markup(msg)
+                dlg.show_all()
+                dlg.run()
+                dlg.destroy()
+                return False
+
+        self.Core.Options["active_plugins"].Value.append(plugin)
+        self.SortActivePlugins()
+
+        return True
+
+    def DeactivatePlugin(self, plugin):
+        #check if the plugin is a requirement of other active plugins
+        for activeplugin in self.Core.Options["active_plugins"].Value:
+            if activeplugin != plugin:
+                for requirement in self.Plugins[activeplugin].RequiredPlugins:
+                    if requirement == plugin:
+                        dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+                                                buttons=gtk.BUTTONS_OK)
+                        msg = "Plugin %s is required by plugin %s" % (plugin,
+                                                                activeplugin)
+                        dlg.set_markup(msg)
+                        dlg.show_all()
+                        dlg.run()
+                        dlg.destroy()
+                        return False
+
+        self.Core.Options["active_plugins"].Value.remove(plugin)
+        self.SortActivePlugins()
+        return True
+
+    #ccsGetSortedPluginStringList from libcompizconfig's main.c
+    def SortActivePlugins(self):
+        activeplugins = self.Core.Options["active_plugins"].Value
+
+        #PluginSortHelper
+        plugins = []
+        after = []
+
+        for plugin in activeplugins:
+            plugins.append(plugin)
+            after.append([])
+
+        for i in range(len(activeplugins)):
+            for relAfter in self.Plugins[activeplugins[i]].RelationAfter:
+                if (relAfter in activeplugins) and (not relAfter in after[i]):
+                    after[i].append(relAfter)
+
+            for relBefore in self.Plugins[activeplugins[i]].RelationBefore:
+                if relBefore in activeplugins:
+                    for j in range(len(activeplugins)):
+                        if relBefore == plugins[j]:
+                            if activeplugins[i] not in after[j]:
+                                after[j].append(activeplugins[i])
+                            break
+
+        error = False
+        removed = 0
+        sortedlist = []
+
+        while(not error and removed < len(activeplugins)):
+            found = False
+
+            for i in range(len(activeplugins)):
+                if plugins[i] == "void":
+                    continue
+                if len(after[i]) > 0:
+                    continue
+
+                found = True
+                removed += 1
+
+                for j in range(len(activeplugins)):
+                    try:
+                        after[j].remove(plugins[i])
+                    except ValueError:
+                        pass
+
+                sortedlist.append(plugins[i])
+                plugins[i] = "void"
+
+        if not found:
+            error = True
+
+        self.Core.Options["active_plugins"].Value = sortedlist
+
+    def IsPluginActive(self, plugin):
+        return plugin in self.Plugins["core"].Options["active_plugins"].Value
+
+class BindingsWindow(gtk.Window):
+    def __init__(self):
+        gtk.Window.__init__(self)
+        self.set_title("Bindings Summary")
+        self.set_default_size(500, 300)
+
+    def UpdateKeysModel(self):
+        self.GTKKeysModel.clear()
+        tmp = [] #keep core bindings here to place them at the start of the list
+        for bindingOption in sorted(banana.Keys.Options,
+                              key=lambda pluginName: pluginName.Plugin.Name):
+            if bindingOption.Plugin.Name == "core": #core is always enabled 
+                if self.IncludeDisabledBindings or bindingOption.Value != "":
+                    tmp.append([bindingOption.ShortDesc,
+                                bindingOption.Value,
+                                bindingOption.Plugin.Name])
+                continue
+
+            if (self.IncludeDisabledPlugins or 
+                banana.IsPluginActive(bindingOption.Plugin.Name)):
+                if self.IncludeDisabledBindings or bindingOption.Value != "":
+                    self.GTKKeysModel.append([bindingOption.ShortDesc,
+                                          bindingOption.Value,
+                                          bindingOption.Plugin.Name])
+        #now add the core bindings
+        for coreBinding in reversed(tmp):
+            self.GTKKeysModel.prepend(coreBinding)
+
+    def UpdateButtonsModel(self):
+        self.GTKButtonsModel.clear()
+        tmp = [] #keep core bindings here to place them at the start of the list
+        for bindingOption in sorted(banana.Buttons.Options,
+                              key=lambda pluginName: pluginName.Plugin.Name):
+            if bindingOption.Plugin.Name == "core": #core is always enabled 
+                if self.IncludeDisabledBindings or bindingOption.Value != "":
+                    tmp.append([bindingOption.ShortDesc,
+                                bindingOption.Value,
+                                bindingOption.Plugin.Name])
+                continue
+
+            if (self.IncludeDisabledPlugins or
+                banana.IsPluginActive(bindingOption.Plugin.Name)):
+                if self.IncludeDisabledBindings or bindingOption.Value != "":
+                    self.GTKButtonsModel.append([bindingOption.ShortDesc,
+                                          bindingOption.Value,
+                                          bindingOption.Plugin.Name])
+        #now add the core bindings
+        for coreBinding in reversed(tmp):
+            self.GTKButtonsModel.prepend(coreBinding)
+
+    def On(self, widget):
+        self.connect("destroy", self.Off)
+        mainWin.set_sensitive(False)
+        self.IncludeDisabledPlugins = False
+        self.IncludeDisabledBindings = False
+
+        #Keys
+        self.GTKKeysModel = gtk.ListStore(str, str, str)
+        self.UpdateKeysModel()
+
+        self.GTKKeysTreeView = gtk.TreeView(model=self.GTKKeysModel)
+        self.GTKKeysTreeView.set_headers_visible(True)
+
+        self.GTKKeysCellRendererText = gtk.CellRendererText()
+
+        self.GTKTreeViewColumn1 = gtk.TreeViewColumn("Binding",
+                                        self.GTKKeysCellRendererText,
+                                        text=0)
+
+        self.GTKTreeViewColumn2 = gtk.TreeViewColumn("Value",
+                                        self.GTKKeysCellRendererText,
+                                        text=1)
+
+        self.GTKTreeViewColumn3 = gtk.TreeViewColumn("Plugin",
+                                        self.GTKKeysCellRendererText,
+                                        text=2)
+
+        self.GTKKeysTreeView.append_column(self.GTKTreeViewColumn1)
+        self.GTKKeysTreeView.append_column(self.GTKTreeViewColumn2)
+        self.GTKKeysTreeView.append_column(self.GTKTreeViewColumn3)
+
+        self.GTKKeysScrolledWindow = gtk.ScrolledWindow()
+        self.GTKKeysScrolledWindow.set_policy(gtk.POLICY_NEVER,
+                                              gtk.POLICY_AUTOMATIC)
+        self.GTKKeysScrolledWindow.add(self.GTKKeysTreeView)
+
+        #Buttons
+        self.GTKButtonsModel = gtk.ListStore(str, str, str)
+        self.UpdateButtonsModel()
+
+        self.GTKButtonsTreeView = gtk.TreeView(model=self.GTKButtonsModel)
+        self.GTKButtonsTreeView.set_headers_visible(True)
+
+        self.GTKButtonsCellRendererText = gtk.CellRendererText()
+
+        self.GTKButtonsTreeViewColumn1 = gtk.TreeViewColumn("Binding",
+                                        self.GTKButtonsCellRendererText,
+                                        text=0)
+
+        self.GTKButtonsTreeViewColumn2 = gtk.TreeViewColumn("Value",
+                                        self.GTKButtonsCellRendererText,
+                                        text=1)
+
+        self.GTKButtonsTreeViewColumn3 = gtk.TreeViewColumn("Plugin",
+                                        self.GTKButtonsCellRendererText,
+                                        text=2)
+
+        self.GTKButtonsTreeView.append_column(self.GTKButtonsTreeViewColumn1)
+        self.GTKButtonsTreeView.append_column(self.GTKButtonsTreeViewColumn2)
+        self.GTKButtonsTreeView.append_column(self.GTKButtonsTreeViewColumn3)
+
+        self.GTKButtonsScrolledWindow = gtk.ScrolledWindow()
+        self.GTKButtonsScrolledWindow.set_policy(gtk.POLICY_NEVER,
+                                                 gtk.POLICY_AUTOMATIC)
+        self.GTKButtonsScrolledWindow.add(self.GTKButtonsTreeView)
+
+        self.GTKNotebook = gtk.Notebook()
+        self.GTKNotebook.append_page(self.GTKKeysScrolledWindow,
+                                     gtk.Label(_("Key Bindings")))
+        self.GTKNotebook.append_page(self.GTKButtonsScrolledWindow,
+                                     gtk.Label(_("Button Bindings")))
+
+        self.GTKPluginCheckButton = gtk.CheckButton(
+                                  _("Include the bindings of disabled plugins"))
+        self.GTKPluginCheckButton.set_active(self.IncludeDisabledPlugins)
+        self.GTKPluginCheckButton.connect("toggled", self.TogglePlugins)
+
+        self.GTKBindingsCheckButton = gtk.CheckButton(
+                                  _("Include empty bindings"))
+        self.GTKBindingsCheckButton.set_active(self.IncludeDisabledBindings)
+        self.GTKBindingsCheckButton.connect("toggled", self.ToggleBindings)
+
+        self.GTKMainBox = gtk.VBox()
+        self.GTKMainBox.pack_start(self.GTKNotebook, True)
+
+        self.GTKCheckButtonsBox = gtk.HBox()
+        self.GTKCheckButtonsBox.pack_start(self.GTKPluginCheckButton, False)
+        self.GTKCheckButtonsBox.pack_start(self.GTKBindingsCheckButton, False)
+
+        self.GTKMainBox.pack_start(self.GTKCheckButtonsBox, False)
+        self.add(self.GTKMainBox)
+        self.show_all()
+
+    def TogglePlugins(self, widget):
+        self.IncludeDisabledPlugins = not self.IncludeDisabledPlugins
+        self.UpdateKeysModel()
+        self.UpdateButtonsModel()
+
+    def ToggleBindings(self, widget):
+        self.IncludeDisabledBindings = not self.IncludeDisabledBindings
+        self.UpdateKeysModel()
+        self.UpdateButtonsModel()
+
+    def Off(self, widget):
+        mainWin.set_sensitive(True)
+        self.hide()
+
+class MainWindow(gtk.Window):
+
+    def __init__(self):
+        gtk.Window.__init__(self)
+        self.set_title("Fusilli Settings Manager")
+        self.set_default_size(700, 580)
+        self.connect("destroy", self.Quit)
+
+        self.CurPlugin = None
+        self.CurPluginGroup = None
+
+        #Menu Bar
+        self.MenuBar = gtk.MenuBar()
+
+        self.FSMMenu = gtk.Menu()
+        self.FSMMenuItem = gtk.MenuItem("FSM")
+        self.FSMMenuItem.set_submenu(self.FSMMenu)
+
+        self.BindingsMenuItem = gtk.MenuItem("Bindings")
+        self.BindingsMenuItem.connect("activate", bindingsWin.On)
+        self.FSMMenu.append(self.BindingsMenuItem)
+
+        self.SeparatorMenuItem = gtk.SeparatorMenuItem()
+        self.FSMMenu.append(self.SeparatorMenuItem)
+
+        self.ExitMenuItem = gtk.MenuItem("Exit")
+        self.ExitMenuItem.connect("activate", gtk.main_quit)
+        self.FSMMenu.append(self.ExitMenuItem)
+
+        self.MenuBar.append(self.FSMMenuItem)
+
+        #Left Pane
+        self.Model = gtk.ListStore(str, str)
+        self.Model.append(["core","#FFFFFF"])
+        for plugin in sorted(banana.Plugins):
+            if plugin != "core":
+                if (plugin in 
+                    banana.Plugins["core"].Options["active_plugins"].Value):
+                    self.Model.append([plugin, "#FFFFFF"])
+                else:
+                    self.Model.append([plugin, "#808080"])
+
+        self.TreeView = gtk.TreeView(model=self.Model)
+        self.TreeView.set_headers_visible(False)
+        self.TreeView.get_selection().set_mode(gtk.SELECTION_SINGLE)
+        self.TreeView.get_selection().connect("changed", self.handlePluginClick)
+
+        self.Renderer = gtk.CellRendererText()
+        self.Renderer.set_property("background-set", True)
+        self.TreeViewColumn = gtk.TreeViewColumn("", self.Renderer, text=0)
+        self.TreeViewColumn.connect("clicked", self.handlePluginClick)
+        self.TreeViewColumn.set_attributes(self.Renderer, text=0, background=1)
+        self.TreeView.append_column(self.TreeViewColumn)
+
+        self.ScrolledWindow = gtk.ScrolledWindow()
+        self.ScrolledWindow.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        self.ScrolledWindow.add(self.TreeView)
+
+        self.LeftBox = gtk.VBox()
+        self.LeftBox.pack_start(self.ScrolledWindow, True, True)
+
+        #Right Pane
+        self.CurrentNotebook = None
+        self.CurrentLabel = None
+        self.CurrentButton = None
+        self.HeaderBox = gtk.HBox()
+        self.RightBox = gtk.VBox()
+        self.RightBox.pack_start(self.HeaderBox, False)
+
+        #Main Box (Left & Right Pane)
+        self.MainBox = gtk.HPaned()
+        self.MainBox.set_border_width(5)
+        self.MainBox.pack1(self.LeftBox, False)
+        self.MainBox.pack2(self.RightBox, True, False)
+
+        #Footer
+        self.ScreenComboBox = gtk.combo_box_new_text()
+        for i in range(nScreens):
+            self.ScreenComboBox.append_text(_("X Screen %i") % i)
+        self.ScreenComboBox.set_active(0)
+        self.ScreenComboBox.connect("changed", self.ChangeScreenNum)
+
+        self.FooterLabel = gtk.Label()
+        self.FooterLabel.set_line_wrap(True)
+        self.FooterLabel.set_text(_("Current File: %s") % banana.BananaFile)
+
+        self.SaveButton = gtk.Button(_("Save"))
+        self.SaveButton.set_size_request(100, -1)
+        self.SaveButton.connect("clicked", banana.WriteConfigFile)
+        self.SaveButton.set_sensitive(False)
+
+        self.AutoSave = gtk.CheckButton(_("Auto-Save  "))
+        self.AutoSave.set_active(autoSaveMode)
+        self.AutoSave.connect("clicked", self.AutoSaveToggled)
+
+        self.FooterBox = gtk.HBox()
+        self.FooterBox.set_border_width(10)
+        if nScreens > 1:
+            self.FooterBox.pack_start(self.ScreenComboBox, False)
+        self.FooterBox.pack_start(self.FooterLabel, False)
+        self.FooterBox.pack_end(self.SaveButton, False)
+        self.FooterBox.pack_end(self.AutoSave, False)
+
+        #RootBox - combine everything
+        self.RootBox = gtk.VBox()
+        self.RootBox.pack_start(self.MenuBar, False)
+        self.RootBox.pack_start(self.MainBox, True, True)
+        self.RootBox.pack_start(self.FooterBox, False)
+
+        self.add(self.RootBox)
+
+        for plugin in banana.Plugins.values():
+            plugin.CreateGTKWidgets()
+
+        self.GoToPlugin("core")
+        self.TreeView.set_cursor(0)
+
+    def RefreshPluginList(self):
+        cursor, column = self.TreeView.get_cursor()
+        self.Model.clear()
+        self.Model.append(["core","#FFFFFF"])
+        for plugin in sorted(banana.Plugins):
+            if plugin != "core":
+                if (plugin in 
+                    banana.Plugins["core"].Options["active_plugins"].Value):
+                    self.Model.append([plugin, "#FFFFFF"])
+                else:
+                    self.Model.append([plugin, "#808080"])
+        self.TreeView.set_cursor(cursor)
+
+        for plugin in banana.Plugins.values():
+            for group in banana.Plugins[plugin.Name].Groups:
+                if (plugin.Name in 
+                    banana.Plugins["core"].Options["active_plugins"].Value or
+                    plugin.Name == "core"):
+                    group.GTKEventBox.modify_bg(gtk.STATE_NORMAL,
+                                                gtk.gdk.color_parse("white"))
+                else:
+                    group.GTKEventBox.modify_bg(gtk.STATE_NORMAL,
+                                                gtk.gdk.color_parse("grey"))
+
+    def handlePluginClick(self, tree_selection):
+        (model, pathlist) = tree_selection.get_selected_rows()
+        for path in pathlist:
+            tree_iter = model.get_iter(path)
+            pluginSelected = model.get_value(tree_iter, 0)
+            self.GoToPlugin(pluginSelected)
+
+    def AutoSaveToggled(self, widget, data=None):
+        global autoSaveMode
+        autoSaveMode = widget.get_active()
+
+        if autoSaveMode:
+            self.SaveButton.set_sensitive(False)
+            banana.WriteConfigFile()
+        else:
+            self.SaveButton.set_sensitive(True)
+
+    def GoToPlugin(self, pluginSelected):
+        self.set_title("Fusilli Settings Manager --- " + 
+                       banana.Plugins[pluginSelected].ShortDesc)
+
+        self.HeaderBox.hide_all()
+        self.RightBox.hide_all()
+        if self.CurrentNotebook != None:
+            self.RightBox.remove(self.CurrentNotebook)
+        if self.CurrentLabel != None:
+            self.HeaderBox.remove(self.CurrentLabel)
+        if self.CurrentButton != None:
+            self.HeaderBox.remove(self.CurrentButton)
+
+        if pluginSelected != "core":
+            self.CurrentButton = banana.Plugins[pluginSelected].GTKButton
+            self.HeaderBox.pack_end(self.CurrentButton, False)
+        else:
+            self.CurrentButton = None
+
+        self.CurrentLabel = banana.Plugins[pluginSelected].GTKLabel
+        self.HeaderBox.pack_start(self.CurrentLabel, False)
+        self.CurrentNotebook = banana.Plugins[pluginSelected].GTKNotebook
+        self.RightBox.pack_start(self.CurrentNotebook, True, True)
+
+        self.RightBox.show_all()
+        self.HeaderBox.show_all()
+        self.CurrentNotebook.set_current_page(0)
+
+    def ChangeScreenNum(self, widget):
+        global curScreenNum 
+        curScreenNum = widget.get_active()
+        for plugin in banana.Plugins:
+            for option in banana.Plugins[plugin].Options.values():
+                option.CurrentRow = None
+                option.UpdateGTKWidget()
+                if (option.OptionType[0:4] == "list" and not 
+                    option.IsMemberOfMultilist):
+                    option.GTKListBox.UpdateGTKModel()
+            for group in banana.Plugins[plugin].Groups:
+                for subgroup in group.SubGroups:
+                    if subgroup.IsMultilist:
+                        subgroup.ListWidget.UpdateGTKModel()
+
+    def Quit(self, *args):
+        gtk.main_quit()
+
+nScreens = gtk.gdk.display_get_default().get_n_screens()
+
+curScreenNum = 0
+
+parser = argparse.ArgumentParser(description="Fusilli Settings Manager")
+parser.add_argument("--configfile",
+                    help="Select a custom option file.")
+
+args = parser.parse_args()
+
+if args.configfile != None:
+    configFile = args.configfile
+else:
+    configFile = os.getenv("HOME") + "/.config/fusilli/banana.xml"
+
+metaDataDir = "@installprefix@" + "/share/fusilli/"
+
+print "Fusilli Version", "@version@"
+
+banana = Banana(metaDataDir, configFile)
+
+autoSaveMode = True
+
+bindingsWin = BindingsWindow()
+mainWin = MainWindow()
+mainWin.show_all()
+
+gtk.main()
