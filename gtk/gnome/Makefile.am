@@ -89,9 +89,10 @@ noinst_DATA =		      \
 	$(xml_files)
 
 EXTRA_DIST =			 \
-	$(desktopfiles_in_files) \
-	$(wmproperties_in_files) \
-	$(xml_in_files)
+	50-fusilli-desktop-key.xml.in \
+	50-fusilli-key.xml.in \
+	fusilli.desktop.in \
+	fusilli-wm.desktop.in
 
 DISTCLEANFILES = \
 	$(noinst_DATA)

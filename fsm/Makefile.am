@@ -1,10 +1,10 @@
 if USE_FSM
 
-fsm: fsm.in Makefile
+fsm: $(srcdir)/fsm.in Makefile
 	sed -e 's,@version@,$(PACKAGE_VERSION),g' \
 	    -e 's,@installprefix@,$(prefix),g' \
 	    -e 's,@path_to_python_interpreter@,$(PYTHON),g' \
-	    <fsm.in >fsm
+	    <$(srcdir)/fsm.in >fsm
 	chmod +x fsm
 
 desktopfilesdir = $(DESTDIR)$(datadir)/applications
@@ -31,6 +31,6 @@ noinst_DATA =             \
 
 bin_SCRIPTS = fsm
 DISTCLEANFILES = $(bin_SCRIPTS) $(noinst_DATA)
-EXTRA_DIST = fsm.in $(desktopfiles_in_files)
+EXTRA_DIST = $(srcdir)/fsm.in $(desktopfiles_in_files)
 
 endif

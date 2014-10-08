@@ -28,7 +28,7 @@ AM_CPPFLAGS = \
 bin_PROGRAMS = $(gtk_window_decorator_program)
 
 EXTRA_DIST =		\
-	$(schema_in_files)
+	gwd.schemas.in
 
 DISTCLEANFILES = \
 	$(schema_files)
