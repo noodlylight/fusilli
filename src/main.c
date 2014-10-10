@@ -33,9 +33,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <fusilli-core.h>
 
+#define DEFAULT_CONFDIR ".config/fusilli"
 #define DEFAULT_CONFFILE ".config/fusilli/banana.xml"
 
 char *programName;
@@ -305,10 +308,15 @@ main (int argc, char **argv)
 		home = getenv ("HOME");
 		if (home)
 		{
+			//ensure that ~/.config/fusilli exists;
+			char *dir;
+			dir = malloc (strlen (home) + strlen (DEFAULT_CONFDIR) + 2);
+			sprintf (dir, "%s/%s", home, DEFAULT_CONFDIR);
+			mkdir (dir, 0744);
+			free (dir);
+
 			char *path;
-
 			path = malloc (strlen (home) + strlen (DEFAULT_CONFFILE) + 2);
-
 			sprintf (path, "%s/%s", home, DEFAULT_CONFFILE);
 			configurationFile = strdup (path);
 			free (path);

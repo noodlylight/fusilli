@@ -38,6 +38,7 @@ import glob
 import os
 
 import argparse
+import errno
 
 class KeyBindings():
     def __init__(self):
@@ -1618,8 +1619,21 @@ args = parser.parse_args()
 
 if args.configfile != None:
     configFile = args.configfile
+    if not os.path.isfile(configFile):
+        print "Cannot find file: ", configFile
+        raise SystemExit
 else:
     configFile = os.getenv("HOME") + "/.config/fusilli/banana.xml"
+    if not os.path.isfile(configFile): #if the default dir/file doesn't exist
+        #create it
+        try:
+            os.makedirs(os.getenv("HOME") + "/.config/fusilli")
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                raise
+        f = open(configFile, "w")
+        f.write("<?xml version='1.0' encoding='utf-8'?><fusilli></fusilli>")
+        f.close()
 
 metaDataDir = "@installprefix@" + "/share/fusilli/"
 

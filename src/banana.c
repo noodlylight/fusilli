@@ -768,7 +768,8 @@ confFileChanged (const char *name,
 {
 	int i;
 
-	if (strcmp(name, strrchr(bananaConfigurationFile, '/') + 1) == 0)
+	if (name != NULL &&
+	    strcmp(name, strrchr(bananaConfigurationFile, '/') + 1) == 0)
 		for (i = 0; i <= MAX_NUM_PLUGINS - 1; i++)
 			if (bananaTree[i].name)
 				loadOptionsForPlugin (i, FALSE);
