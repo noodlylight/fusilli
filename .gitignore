@@ -36,7 +36,7 @@ shave-libtool
 stamp-h1
 cscope.*
 src/fusilli
-gtk/window-decorator/gtk-window-decorator
+gtk/window-decorator/fusilli-decorator-gtk
 mkinstalldirs
 po/.intltool-merge-cache
 po/Makefile.in.in

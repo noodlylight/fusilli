@@ -37,7 +37,7 @@ msgid "None"
 msgstr "Cap"
 
 #: ../gtk/gnome/compiz-window-manager.c:427
-#: ../gtk/window-decorator/gtk-window-decorator.c:4625
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4625
 #, fuzzy
 msgid "Shade"
 msgstr "Canvia la mida"
@@ -72,7 +72,7 @@ msgid "Lower"
 msgstr ""
 
 #: ../gtk/gnome/compiz-window-manager.c:434
-#: ../gtk/window-decorator/gtk-window-decorator.c:4606
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4606
 #: ../metadata/core.xml.in.in.h:100
 msgid "Window Menu"
 msgstr "Menú de la finestra"
@@ -146,59 +146,59 @@ msgstr "Utilitzar el tema Metacity"
 msgid "Use metacity theme when drawing window decorations"
 msgstr "Utilitzar el tema Metacity quan dibuixes decoracions de finestres"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4414
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4414
 #: ../metadata/core.xml.in.in.h:12
 msgid "Close Window"
 msgstr "Tanca la finestra"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4436
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4436
 #: ../metadata/core.xml.in.in.h:93
 msgid "Unmaximize Window"
 msgstr "Desmaximitza la finestra"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4439
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4439
 #: ../metadata/core.xml.in.in.h:49
 msgid "Maximize Window"
 msgstr "Maximitza la finestra"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4481
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4481
 #: ../metadata/core.xml.in.in.h:55
 msgid "Minimize Window"
 msgstr "Minimitza la finestra"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4645
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4645
 msgid "Make Above"
 msgstr "Fer a sobre"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4671
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4671
 msgid "Stick"
 msgstr "Pal"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4691
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4691
 msgid "Unshade"
 msgstr "No canvia la mida"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4711
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4711
 msgid "Unmake Above"
 msgstr "No fer a sobre"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:4737
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:4737
 msgid "Unstick"
 msgstr "No pals"
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:5085
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:5085
 #, c-format
 msgid "The window \"%s\" is not responding."
 msgstr "La finestra «%s» no està responent."
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:5094
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:5094
 msgid ""
 "Forcing this application to quit will cause you to lose any unsaved changes."
 msgstr ""
 "Si forceu la sortida d'aquesta aplicació perdreu els canvis que encara no "
 "hagueu desat."
 
-#: ../gtk/window-decorator/gtk-window-decorator.c:5109
+#: ../gtk/window-decorator/fusilli-decorator-gtk.c:5109
 msgid "_Force Quit"
 msgstr "_Força'n la sortida"
 

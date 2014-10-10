@@ -5,7 +5,7 @@ gtk/gnome/fusilli.desktop.in
 gtk/gnome/fusilli-window-manager.c
 gtk/gnome/fusilli-wm.desktop.in
 gtk/window-decorator/gwd.schemas.in
-gtk/window-decorator/gtk-window-decorator.c
+gtk/window-decorator/fusilli-decorator-gtk.c
 metadata/annotate.xml.in
 metadata/blur.xml.in
 metadata/clone.xml.in

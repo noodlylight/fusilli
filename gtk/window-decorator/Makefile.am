@@ -4,17 +4,17 @@ if USE_METACITY
 metacitylibs = @METACITY_LIBS@
 endif
 
-gtk_window_decorator_DEPENDENCIES = \
+fusilli_decorator_gtk_DEPENDENCIES = \
 	$(top_builddir)/libdecoration/libdecoration.la
-gtk_window_decorator_LDADD	  =		       \
+fusilli_decorator_gtk_LDADD	  =		       \
 	$(top_builddir)/libdecoration/libdecoration.la \
 	@GTK_WINDOW_DECORATOR_LIBS@		       \
 	@DBUS_GLIB_LIBS@			       \
 	$(metacitylibs)
 
-gtk_window_decorator_SOURCES	  = \
-	gtk-window-decorator.c
-gtk_window_decorator_program = gtk-window-decorator
+fusilli_decorator_gtk_SOURCES	  = \
+	fusilli-decorator-gtk.c
+fusilli_decorator_gtk_program = fusilli-decorator-gtk
 endif
 
 AM_CPPFLAGS = \
@@ -25,7 +25,7 @@ AM_CPPFLAGS = \
 	-DALL_LINGUAS="\"@ALL_LINGUAS@\""  \
 	-DLOCALEDIR="\"@datadir@/locale"\"
 
-bin_PROGRAMS = $(gtk_window_decorator_program)
+bin_PROGRAMS = $(fusilli_decorator_gtk_program)
 
 EXTRA_DIST =		\
 	gwd.schemas.in
