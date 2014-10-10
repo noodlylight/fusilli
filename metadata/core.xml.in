@@ -13,6 +13,8 @@
 					<_short>Active Plugins</_short>
 					<_long>List of currently active plugins</_long>
 					<default>
+						<item>inotify</item>
+						<item>regex</item>
 						<item>move</item>
 						<item>resize</item>
 						<item>decoration</item>
