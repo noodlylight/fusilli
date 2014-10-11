@@ -5,9 +5,9 @@ metacitylibs = @METACITY_LIBS@
 endif
 
 fusilli_decorator_gtk_DEPENDENCIES = \
-	$(top_builddir)/libdecoration/libdecoration.la
+	$(top_builddir)/libfusillidecoration/libfusillidecoration.la
 fusilli_decorator_gtk_LDADD	  =		       \
-	$(top_builddir)/libdecoration/libdecoration.la \
+	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
 	@GTK_WINDOW_DECORATOR_LIBS@		       \
 	@DBUS_GLIB_LIBS@			       \
 	$(metacitylibs)

@@ -439,8 +439,8 @@ fusilli-cube.pc
 fusilli-scale.pc
 Makefile
 src/Makefile
-libdecoration/Makefile
-libdecoration/libdecoration.pc
+libfusillidecoration/Makefile
+libfusillidecoration/libfusillidecoration.pc
 include/Makefile
 plugins/Makefile
 images/Makefile

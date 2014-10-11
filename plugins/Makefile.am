@@ -28,9 +28,9 @@ libresize_la_SOURCES = resize.c
 libplace_la_LDFLAGS = -module -avoid-version -no-undefined
 libplace_la_SOURCES = place.c
 
-libdecoration_la_DEPENDENCIES = $(top_builddir)/libdecoration/libdecoration.la
+libdecoration_la_DEPENDENCIES = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libdecoration_la_LDFLAGS = -module -avoid-version -no-undefined
-libdecoration_la_LIBADD = $(top_builddir)/libdecoration/libdecoration.la
+libdecoration_la_LIBADD = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libdecoration_la_SOURCES = decoration.c
 
 libswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
@@ -49,9 +49,9 @@ libpng_la_LDFLAGS = -module -avoid-version -no-undefined
 libpng_la_LIBADD = @LIBPNG_LIBS@
 libpng_la_SOURCES = png.c
 
-libblur_la_DEPENDENCIES = $(top_builddir)/libdecoration/libdecoration.la
+libblur_la_DEPENDENCIES = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libblur_la_LDFLAGS = -module -avoid-version -no-undefined
-libblur_la_LIBADD = $(top_builddir)/libdecoration/libdecoration.la -lGLU
+libblur_la_LIBADD = $(top_builddir)/libfusillidecoration/libfusillidecoration.la -lGLU
 libblur_la_SOURCES = blur.c
 
 libregex_la_LDFLAGS = -module -avoid-version -no-undefined
@@ -67,10 +67,10 @@ libmatecompat_la_LDFLAGS = -module -avoid-version -no-undefined
 libmatecompat_la_SOURCES = matecompat.c
 
 if USE_LIBRSVG
-libsvg_la_DEPENDENCIES = $(top_builddir)/libdecoration/libdecoration.la
+libsvg_la_DEPENDENCIES = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libsvg_la_LDFLAGS = -module -avoid-version -no-undefined
 libsvg_la_LIBADD =				       \
-	$(top_builddir)/libdecoration/libdecoration.la \
+	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
 	@LIBRSVG_LIBS@
 libsvg_la_SOURCES = svg.c
 libsvg_module = libsvg.la

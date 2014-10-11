@@ -9,9 +9,9 @@ BUILDSOURCES =		      \
 	kwinadaptor.h
 
 kde4_window_decorator_DEPENDENCIES = \
-	$(top_builddir)/libdecoration/libdecoration.la
+	$(top_builddir)/libfusillidecoration/libfusillidecoration.la
 kde4_window_decorator_LDADD   =			       \
-	$(top_builddir)/libdecoration/libdecoration.la \
+	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
 	@KDE4_WINDOW_DECORATOR_LIBS@ @KDE4_LIBS@ -ldl
 
 nodist_kde4_window_decorator_SOURCES = \
