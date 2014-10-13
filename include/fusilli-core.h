@@ -28,7 +28,7 @@
 
 #include <fusilli-plugin.h>
 
-#define CORE_ABIVERSION 20091102
+#define CORE_ABIVERSION 20141013
 
 #include <stdio.h>
 #include <stdlib.h>
