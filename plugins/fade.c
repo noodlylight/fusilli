@@ -35,7 +35,6 @@ static int displayPrivateIndex;
 typedef struct _FadeDisplay {
 	int                        screenPrivateIndex;
 	HandleEventProc            handleEvent;
-	MatchExpHandlerChangedProc matchExpHandlerChanged;
 	int                        displayModals;
 	Bool                       suppressMinimizeOpenClose;
 	CompMatch                  alwaysFadeWindowMatch;
@@ -715,21 +714,6 @@ fadeWindowResizeNotify (CompWindow *w,
 	WRAP (fs, w->screen, windowResizeNotify, fadeWindowResizeNotify);
 }
 
-static void
-fadeMatchExpHandlerChanged (CompDisplay *d)
-{
-	CompScreen *s;
-
-	FADE_DISPLAY (d);
-
-	for (s = d->screens; s; s = s->next)
-		matchUpdate (d, &GET_FADE_SCREEN (s,fd)->match);
-
-	UNWRAP (fd, d, matchExpHandlerChanged);
-	(*d->matchExpHandlerChanged) (d);
-	WRAP (fd, d, matchExpHandlerChanged, fadeMatchExpHandlerChanged);
-}
-
 static Bool
 fadeInitDisplay (CompPlugin  *p,
                  CompDisplay *d)
@@ -760,7 +744,6 @@ fadeInitDisplay (CompPlugin  *p,
 	matchUpdate (d, &fd->alwaysFadeWindowMatch);
 
 	WRAP (fd, d, handleEvent, fadeHandleEvent);
-	WRAP (fd, d, matchExpHandlerChanged, fadeMatchExpHandlerChanged);
 
 	d->base.privates[displayPrivateIndex].ptr = fd;
 
@@ -778,7 +761,6 @@ fadeFiniDisplay (CompPlugin  *p,
 	matchFini (&fd->alwaysFadeWindowMatch);
 
 	UNWRAP (fd, d, handleEvent);
-	UNWRAP (fd, d, matchExpHandlerChanged);
 
 	free (fd);
 }

@@ -6,12 +6,6 @@
 		<category>Effects</category>
 
 		<deps>
-			<requirement>
-				<plugin>regex</plugin>
-			</requirement>
-			<relation type="after">
-				<plugin>regex</plugin>
-			</relation>
 			<relation type="before">
 				<plugin>cube</plugin>
 				<plugin>scale</plugin>

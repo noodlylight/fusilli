@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<fusilli>
-	<plugin name="regex">
-		<_short>Regex Matching</_short>
-		<_long>Regex window matching</_long>
-		<category>Utility</category>
-	</plugin>
-</fusilli>

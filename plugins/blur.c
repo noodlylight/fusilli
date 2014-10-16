@@ -81,7 +81,6 @@ static int displayPrivateIndex;
 typedef struct _BlurDisplay {
 	int                        screenPrivateIndex;
 	HandleEventProc            handleEvent;
-	MatchExpHandlerChangedProc matchExpHandlerChanged;
 	MatchPropertyChangedProc   matchPropertyChanged;
 
 	Atom blurAtom[BLUR_STATE_NUM];
@@ -2707,30 +2706,6 @@ blurWindowMoveNotify (CompWindow *w,
 	WRAP (bs, w->screen, windowMoveNotify, blurWindowMoveNotify);
 }
 
-
-
-static void
-blurMatchExpHandlerChanged (CompDisplay *d)
-{
-	CompScreen *s;
-	CompWindow *w;
-
-	BLUR_DISPLAY (d);
-
-	UNWRAP (bd, d, matchExpHandlerChanged);
-	(*d->matchExpHandlerChanged) (d);
-	WRAP (bd, d, matchExpHandlerChanged, blurMatchExpHandlerChanged);
-
-	/* match options are up to date after the call to matchExpHandlerChanged */
-	for (s = d->screens; s; s = s->next)
-	{
-		BLUR_SCREEN (s);
-
-		for (w = s->windows; w; w = w->next)
-			blurUpdateWindowMatch (bs, w);
-	}
-}
-
 static void
 blurMatchPropertyChanged (CompDisplay *d,
                           CompWindow  *w)
@@ -2838,7 +2813,6 @@ blurInitDisplay (CompPlugin  *p,
 		XInternAtom (d->display, DECOR_BLUR_ATOM_NAME, 0);
 
 	WRAP (bd, d, handleEvent, blurHandleEvent);
-	WRAP (bd, d, matchExpHandlerChanged, blurMatchExpHandlerChanged);
 	WRAP (bd, d, matchPropertyChanged, blurMatchPropertyChanged);
 
 	d->base.privates[displayPrivateIndex].ptr = bd;
@@ -2855,7 +2829,6 @@ blurFiniDisplay (CompPlugin  *p,
 	freeScreenPrivateIndex (d, bd->screenPrivateIndex);
 
 	UNWRAP (bd, d, handleEvent);
-	UNWRAP (bd, d, matchExpHandlerChanged);
 	UNWRAP (bd, d, matchPropertyChanged);
 
 	free (bd);

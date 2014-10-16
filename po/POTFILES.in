@@ -22,7 +22,6 @@ metadata/move.xml.in
 metadata/obs.xml.in
 metadata/place.xml.in
 metadata/png.xml.in
-metadata/regex.xml.in
 metadata/resize.xml.in
 metadata/rotate.xml.in
 metadata/scale.xml.in

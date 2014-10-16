@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
+#include <limits.h>
 
 #include <fusilli-core.h>
 
@@ -1539,6 +1540,12 @@ freeWindow (CompWindow *w)
 	if (w->resClass)
 		free (w->resClass);
 
+	if (w->title)
+		free (w->title);
+
+	if (w->role)
+		free (w->role);
+
 	free (w);
 }
 
@@ -2353,6 +2360,9 @@ addWindow (CompScreen *screen,
 		              w->attrib.x, w->attrib.y,
 		              w->attrib.width, ++w->attrib.height - 1,
 		              w->attrib.border_width);
+
+	w->title = getWindowTitle (w);
+	w->role  = getWindowStringProperty (w, d->roleAtom, XA_STRING);
 }
 
 void
@@ -5619,4 +5629,56 @@ getWindowMovementForOffset (CompWindow *w,
 			*retY = offY;
 	}
 
+}
+
+char *
+getWindowStringProperty (CompWindow *w,
+                         Atom       propAtom,
+                         Atom       formatAtom)
+{
+	Atom          type;
+	unsigned long nItems;
+	unsigned long bytesAfter;
+	unsigned char *str = NULL;
+	int           format, result;
+	char          *retval;
+
+	result = XGetWindowProperty (w->screen->display->display,
+	                         w->id, propAtom, 0, LONG_MAX,
+	                         FALSE, formatAtom, &type, &format, &nItems,
+	                         &bytesAfter, (unsigned char **) &str);
+
+	if (result != Success)
+		return NULL;
+
+	if (type != formatAtom)
+	{
+		XFree (str);
+		return NULL;
+	}
+
+	retval = strdup ((char *) str);
+
+	XFree (str);
+
+	return retval;
+}
+
+char *
+getWindowTitle (CompWindow *w)
+{
+	CompDisplay *d = w->screen->display;
+	char        *title;
+
+	title = getWindowStringProperty (w, d->visibleNameAtom,
+	                                    d->utf8StringAtom);
+	if (title)
+		return title;
+
+	title = getWindowStringProperty (w, d->wmNameAtom, d->utf8StringAtom);
+
+	if (title)
+		return title;
+
+	return getWindowStringProperty (w, XA_WM_NAME, XA_STRING);
 }

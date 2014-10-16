@@ -1318,6 +1318,33 @@ handleEvent (CompDisplay *d,
 			w = findWindowAtDisplay (d, event->xproperty.window);
 			if (w)
 				updateWindowClassHints (w);
+				(*d->matchPropertyChanged) (d, w);
+		}
+		else if (event->xproperty.atom == XA_WM_NAME)
+		{
+			w = findWindowAtDisplay (d, event->xproperty.window);
+			if (w)
+			{
+				if (w->title)
+					free (w->title);
+
+				w->title = getWindowTitle (w);
+
+				(*d->matchPropertyChanged) (d, w);
+			}
+		}
+		else if (event->xproperty.atom == d->roleAtom)
+		{
+			w = findWindowAtDisplay (d, event->xproperty.window);
+			if (w)
+			{
+				if (w->role)
+					free (w->role);
+
+				w->role = getWindowStringProperty (w, d->roleAtom, XA_STRING);
+
+				(*d->matchPropertyChanged) (d, w);
+			}
 		}
 		break;
 	case MotionNotify:

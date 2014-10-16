@@ -25,8 +25,106 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <regex.h>
 
 #include <fusilli-core.h>
+
+static void
+regexMatchExpFini (CompDisplay *d,
+                   CompPrivate private)
+{
+	regex_t *preg = (regex_t *) private.ptr;
+
+	if (preg)
+	{
+		regfree (preg);
+		free (preg);
+	}
+}
+
+static Bool
+regexMatchExpEvalTitle (CompDisplay *d,
+                        CompWindow  *w,
+                        CompPrivate private)
+{
+	regex_t *preg = (regex_t *) private.ptr;
+	int     status;
+
+	if (!preg)
+		return FALSE;
+
+	if (!w->title)
+		return FALSE;
+
+	status = regexec (preg, w->title, 0, NULL, 0);
+	if (status)
+		return FALSE;
+
+	return TRUE;
+}
+
+static Bool
+regexMatchExpEvalRole (CompDisplay *d,
+                       CompWindow  *w,
+                       CompPrivate private)
+{
+	regex_t *preg = (regex_t *) private.ptr;
+	int     status;
+
+	if (!preg)
+		return FALSE;
+
+	if (!w->role)
+		return FALSE;
+
+	status = regexec (preg, w->role, 0, NULL, 0);
+	if (status)
+		return FALSE;
+
+	return TRUE;
+}
+
+static Bool
+regexMatchExpEvalClass (CompDisplay *d,
+                        CompWindow  *w,
+                        CompPrivate private)
+{
+	regex_t *preg = (regex_t *) private.ptr;
+	int     status;
+
+	if (!preg)
+		return FALSE;
+
+	if (!w->resClass)
+		return FALSE;
+
+	status = regexec (preg, w->resClass, 0, NULL, 0);
+	if (status)
+		return FALSE;
+
+	return TRUE;
+}
+
+static Bool
+regexMatchExpEvalName (CompDisplay *d,
+                       CompWindow  *w,
+                       CompPrivate private)
+{
+	regex_t *preg = (regex_t *) private.ptr;
+	int     status;
+
+	if (!preg)
+		return FALSE;
+
+	if (!w->resName)
+		return FALSE;
+
+	status = regexec (preg, w->resName, 0, NULL, 0);
+	if (status)
+		return FALSE;
+
+	return TRUE;
+}
 
 static void
 matchResetOps (CompDisplay *display,
@@ -283,7 +381,7 @@ matchAddExp (CompMatch  *match,
              const char *str)
 {
 	CompMatchOp *op;
-	char	*value;
+	char        *value;
 
 	value = strdup (str);
 	if (!value)
@@ -551,6 +649,156 @@ matchToString (CompMatch *match)
 	return str;
 }
 
+static Bool
+matchEvalTypeExp (CompDisplay *display,
+                  CompWindow  *window,
+                  CompPrivate private)
+{
+	return (private.uval & window->wmType);
+}
+
+static Bool
+matchEvalStateExp (CompDisplay *display,
+                   CompWindow  *window,
+                   CompPrivate private)
+{
+	return (private.uval & window->state);
+}
+
+static Bool
+matchEvalIdExp (CompDisplay *display,
+                CompWindow  *window,
+                CompPrivate private)
+{
+	return (private.val == window->id);
+}
+
+static Bool
+matchEvalOverrideRedirectExp (CompDisplay *display,
+                              CompWindow  *window,
+                              CompPrivate private)
+{
+	Bool overrideRedirect = window->attrib.override_redirect;
+	return ((private.val == 1 && overrideRedirect) ||
+	        (private.val == 0 && !overrideRedirect));
+}
+
+static Bool
+matchEvalAlphaExp (CompDisplay *display,
+                   CompWindow  *window,
+                   CompPrivate private)
+{
+	return ((private.val && window->alpha) ||
+	        (!private.val && !window->alpha));
+}
+
+static void
+regexMatchExpInit (CompMatchExp *exp,
+                   const char   *value,
+                   int          flags)
+{
+	regex_t *preg;
+
+	preg = malloc (sizeof (regex_t));
+	if (preg)
+	{
+		int status;
+
+		status = regcomp (preg, value, REG_NOSUB | flags);
+		if (status)
+		{
+			char errMsg[1024];
+
+			regerror (status, preg, errMsg, sizeof (errMsg));
+
+			compLogMessage ("regex", CompLogLevelWarn,
+			                "%s = %s", errMsg, value);
+
+			regfree (preg);
+			free (preg);
+			preg = NULL;
+		}
+	}
+
+	exp->fini     = regexMatchExpFini;
+	exp->priv.ptr = preg;
+}
+
+static void
+matchInitExp (CompDisplay  *display,
+              CompMatchExp *exp,
+              const char   *value)
+{
+	if (strncmp (value, "title=", 6) == 0)
+	{
+		exp->eval = regexMatchExpEvalTitle;
+		regexMatchExpInit (exp, value + 6, 0);
+	}
+	else if (strncmp (value, "role=", 5) == 0)
+	{
+		exp->eval = regexMatchExpEvalRole;
+		regexMatchExpInit (exp, value + 5, 0);
+	}
+	else if (strncmp (value, "class=", 6) == 0)
+	{
+		exp->eval = regexMatchExpEvalClass;
+		regexMatchExpInit (exp, value + 6, 0);
+	}
+	else if (strncmp (value, "name=", 5) == 0)
+	{
+		exp->eval = regexMatchExpEvalName;
+		regexMatchExpInit (exp, value + 5, 0);
+	}
+	else if (strncmp (value, "ititle=", 7) == 0)
+	{
+		exp->eval = regexMatchExpEvalTitle;
+		regexMatchExpInit (exp, value + 7, REG_ICASE);
+	}
+	else if (strncmp (value, "irole=", 6) == 0)
+	{
+		exp->eval = regexMatchExpEvalRole;
+		regexMatchExpInit (exp, value + 6, REG_ICASE);
+	}
+	else if (strncmp (value, "iclass=", 7) == 0)
+	{
+		exp->eval = regexMatchExpEvalClass;
+		regexMatchExpInit (exp, value + 7, REG_ICASE);
+	}
+	else if (strncmp (value, "iname=", 6) == 0)
+	{
+		exp->eval = regexMatchExpEvalName;
+		regexMatchExpInit (exp, value + 6, REG_ICASE);
+	}
+	else if (strncmp (value, "xid=", 4) == 0)
+	{
+		exp->eval     = matchEvalIdExp;
+		exp->priv.val = strtol (value + 4, NULL, 0);
+	}
+	else if (strncmp (value, "state=", 6) == 0)
+	{
+		exp->eval      = matchEvalStateExp;
+		exp->priv.uval = windowStateFromString (value + 6);
+	}
+	else if (strncmp (value, "override_redirect=", 18) == 0)
+	{
+		exp->eval     = matchEvalOverrideRedirectExp;
+		exp->priv.val = strtol (value + 18, NULL, 0);
+	}
+	else if (strncmp (value, "rgba=", 5) == 0)
+	{
+		exp->eval     = matchEvalAlphaExp;
+		exp->priv.val = strtol (value + 5, NULL, 0);
+	}
+	else
+	{
+		if (strncmp (value, "type=", 5) == 0)
+			value += 5;
+
+		exp->eval      = matchEvalTypeExp;
+		exp->priv.uval = windowTypeFromString (value);
+	}
+}
+
 static void
 matchUpdateOps (CompDisplay *display,
                 CompMatchOp *op,
@@ -563,7 +811,7 @@ matchUpdateOps (CompDisplay *display,
 			matchUpdateOps (display, op->group.op, op->group.nOp);
 			break;
 		case CompMatchOpTypeExp:
-			(*display->matchInitExp) (display, &op->exp.e, op->exp.value);
+			matchInitExp (display, &op->exp.e, op->exp.value);
 			break;
 		}
 
@@ -638,149 +886,8 @@ matchEval (CompMatch  *match,
 	return FALSE;
 }
 
-static Bool
-matchEvalTypeExp (CompDisplay *display,
-                  CompWindow  *window,
-                  CompPrivate private)
-{
-	return (private.uval & window->wmType);
-}
 
-static Bool
-matchEvalStateExp (CompDisplay *display,
-                   CompWindow  *window,
-                   CompPrivate private)
-{
-	return (private.uval & window->state);
-}
 
-static Bool
-matchEvalIdExp (CompDisplay *display,
-                CompWindow  *window,
-                CompPrivate private)
-{
-	return (private.val == window->id);
-}
-
-static Bool
-matchEvalOverrideRedirectExp (CompDisplay *display,
-                              CompWindow  *window,
-                              CompPrivate private)
-{
-	Bool overrideRedirect = window->attrib.override_redirect;
-	return ((private.val == 1 && overrideRedirect) ||
-	        (private.val == 0 && !overrideRedirect));
-}
-
-static Bool
-matchEvalAlphaExp (CompDisplay *display,
-                   CompWindow  *window,
-                   CompPrivate private)
-{
-	return ((private.val && window->alpha) ||
-	        (!private.val && !window->alpha));
-}
-
-void
-matchInitExp (CompDisplay  *display,
-              CompMatchExp *exp,
-              const char   *value)
-{
-	if (strncmp (value, "xid=", 4) == 0)
-	{
-		exp->eval     = matchEvalIdExp;
-		exp->priv.val = strtol (value + 4, NULL, 0);
-	}
-	else if (strncmp (value, "state=", 6) == 0)
-	{
-		exp->eval      = matchEvalStateExp;
-		exp->priv.uval = windowStateFromString (value + 6);
-	}
-	else if (strncmp (value, "override_redirect=", 18) == 0)
-	{
-		exp->eval     = matchEvalOverrideRedirectExp;
-		exp->priv.val = strtol (value + 18, NULL, 0);
-	}
-	else if (strncmp (value, "rgba=", 5) == 0)
-	{
-		exp->eval     = matchEvalAlphaExp;
-		exp->priv.val = strtol (value + 5, NULL, 0);
-	}
-	else
-	{
-		if (strncmp (value, "type=", 5) == 0)
-			value += 5;
-
-		exp->eval      = matchEvalTypeExp;
-		exp->priv.uval = windowTypeFromString (value);
-	}
-}
-
-#if 0
-static void
-matchUpdateMatchOptions (CompOption *option,
-                         int        nOption)
-{
-
-	while (nOption--)
-	{
-		switch (option->type) {
-		case CompOptionTypeMatch:
-			if (option->value.match.display)
-				matchUpdate (option->value.match.display, &option->value.match);
-			break;
-		case CompOptionTypeList:
-			if (option->value.list.type == CompOptionTypeMatch)
-			{
-				int i;
-
-				for (i = 0; i < option->value.list.nValue; i++)
-					if (option->value.list.value[i].match.display)
-						matchUpdate (option->value.list.value[i].match.display,
-						             &option->value.list.value[i].match);
-			}
-		default:
-			break;
-		}
-
-		option++;
-	}
-
-}
-#endif
-
-//TODO: remove this 
-void
-matchExpHandlerChanged (CompDisplay *display)
-{
-#if 0
-	CompOption *option;
-	int        nOption;
-	CompPlugin *p;
-	CompScreen *s;
-
-	for (p = getPlugins (); p; p = p->next)
-	{
-		//if (!p->vTable->getObjectOptions)
-		//	continue;
-
-		//option = (*p->vTable->getObjectOptions) (p, &display->base, &nOption);
-		//matchUpdateMatchOptions (option, nOption);
-	}
-
-	for (s = display->screens; s; s = s->next)
-	{
-		for (p = getPlugins (); p; p = p->next)
-		{
-			if (!p->vTable->getObjectOptions)
-				continue;
-
-			option = (*p->vTable->getObjectOptions) (p, &s->base, &nOption);
-			matchUpdateMatchOptions (option, nOption);
-		}
-	}
-#endif
-}
 
 void
 matchPropertyChanged (CompDisplay *display,

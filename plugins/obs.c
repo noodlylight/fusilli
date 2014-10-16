@@ -35,7 +35,6 @@ typedef struct _ObsDisplay
 	int screenPrivateIndex;
 
 	HandleEventProc            handleEvent;
-	MatchExpHandlerChangedProc matchExpHandlerChanged;
 	MatchPropertyChangedProc   matchPropertyChanged;
 } ObsDisplay;
 
@@ -386,26 +385,6 @@ obsDrawWindow (CompWindow           *w,
 }
 
 static void
-obsMatchExpHandlerChanged (CompDisplay *d)
-{
-	CompScreen *s;
-	CompWindow *w;
-	int        i;
-
-	OBS_DISPLAY (d);
-
-	UNWRAP (od, d, matchExpHandlerChanged);
-	(*d->matchExpHandlerChanged) (d);
-	WRAP (od, d, matchExpHandlerChanged, obsMatchExpHandlerChanged);
-
-	/* match options are up to date after the call to matchExpHandlerChanged */
-	for (s = d->screens; s; s = s->next)
-		for (w = s->windows; w; w = w->next)
-			for (i = 0; i < MODIFIER_COUNT; i++)
-				updatePaintModifier (w, i);
-}
-
-static void
 obsMatchPropertyChanged (CompDisplay *d,
                          CompWindow  *w)
 {
@@ -454,7 +433,6 @@ obsInitDisplay (CompPlugin  *p,
 		return FALSE;
 	}
 
-	WRAP (od, d, matchExpHandlerChanged, obsMatchExpHandlerChanged);
 	WRAP (od, d, matchPropertyChanged, obsMatchPropertyChanged);
 	WRAP (od, d, handleEvent, obsHandleEvent);
 
@@ -469,7 +447,6 @@ obsFiniDisplay (CompPlugin  *p,
 {
 	OBS_DISPLAY (d);
 
-	UNWRAP (od, d, matchExpHandlerChanged);
 	UNWRAP (od, d, matchPropertyChanged);
 
 	freeScreenPrivateIndex (d, od->screenPrivateIndex);

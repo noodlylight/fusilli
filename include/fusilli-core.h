@@ -28,7 +28,7 @@
 
 #include <fusilli-plugin.h>
 
-#define CORE_ABIVERSION 20141013
+#define CORE_ABIVERSION 20141016
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -792,12 +792,6 @@ union _CompMatchOp {
 	CompMatchExpOp   exp;
 };
 
-typedef void (*MatchInitExpProc) (CompDisplay  *display,
-                                  CompMatchExp *exp,
-                                  const char   *value);
-
-typedef void (*MatchExpHandlerChangedProc) (CompDisplay *display);
-
 typedef void (*MatchPropertyChangedProc) (CompDisplay *display,
                                           CompWindow  *window);
 
@@ -871,6 +865,9 @@ struct _CompDisplay {
 	Atom desktopGeometryAtom;
 	Atom currentDesktopAtom;
 	Atom numberOfDesktopsAtom;
+
+	Atom roleAtom;
+	Atom visibleNameAtom;
 
 	Atom winStateAtom;
 	Atom winStateModalAtom;
@@ -993,8 +990,6 @@ struct _CompDisplay {
 	FileToImageProc fileToImage;
 	ImageToFileProc imageToFile;
 
-	MatchInitExpProc           matchInitExp;
-	MatchExpHandlerChangedProc matchExpHandlerChanged;
 	MatchPropertyChangedProc   matchPropertyChanged;
 
 	LogMessageProc logMessage;
@@ -2574,6 +2569,9 @@ struct _CompWindow {
 	char *resName;
 	char *resClass;
 
+	char *title;
+	char *role;
+
 	CompGroup *group;
 
 	unsigned int lastPong;
@@ -3055,6 +3053,14 @@ getWindowMovementForOffset (CompWindow *w,
                             int        *retX,
                             int        *retY);
 
+char *
+getWindowStringProperty (CompWindow *w,
+                         Atom       propAtom,
+                         Atom       formatAtom);
+
+char *
+getWindowTitle (CompWindow *w);
+
 /* plugin.c */
 
 #define HOME_PLUGINDIR ".fusilli/plugins"
@@ -3306,14 +3312,6 @@ matchUpdate (CompDisplay *display,
 Bool
 matchEval (CompMatch  *match,
            CompWindow *window);
-
-void
-matchInitExp (CompDisplay  *display,
-              CompMatchExp *exp,
-              const char   *value);
-
-void
-matchExpHandlerChanged (CompDisplay *display);
 
 void
 matchPropertyChanged (CompDisplay *display,

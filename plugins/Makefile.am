@@ -54,9 +54,6 @@ libblur_la_LDFLAGS = -module -avoid-version -no-undefined
 libblur_la_LIBADD = $(top_builddir)/libfusillidecoration/libfusillidecoration.la -lGLU
 libblur_la_SOURCES = blur.c
 
-libregex_la_LDFLAGS = -module -avoid-version -no-undefined
-libregex_la_SOURCES = regex.c
-
 libobs_la_LDFLAGS = -module -avoid-version -no-undefined
 libobs_la_SOURCES = obs.c
 
@@ -131,7 +128,6 @@ module_LTLIBRARIES =		\
 	libclone.la		\
 	libpng.la		\
 	libblur.la		\
-	libregex.la		\
 	libobs.la		\
 	libcommands.la		\
 	libmatecompat.la	\

@@ -1497,8 +1497,6 @@ addDisplay (const char *name)
 	d->fileToImage = fileToImage;
 	d->imageToFile = imageToFile;
 
-	d->matchInitExp	          = matchInitExp;
-	d->matchExpHandlerChanged = matchExpHandlerChanged;
 	d->matchPropertyChanged   = matchPropertyChanged;
 
 	d->supportedAtom         = XInternAtom (dpy, "_NET_SUPPORTED", 0);
@@ -1548,6 +1546,9 @@ addDisplay (const char *name)
 	d->desktopGeometryAtom  = XInternAtom (dpy, "_NET_DESKTOP_GEOMETRY", 0);
 	d->currentDesktopAtom   = XInternAtom (dpy, "_NET_CURRENT_DESKTOP", 0);
 	d->numberOfDesktopsAtom = XInternAtom (dpy, "_NET_NUMBER_OF_DESKTOPS", 0);
+
+	d->roleAtom        = XInternAtom (d->display, "WM_WINDOW_ROLE", 0);
+	d->visibleNameAtom = XInternAtom (d->display, "_NET_WM_VISIBLE_NAME", 0);
 
 	d->winStateAtom	            = XInternAtom (dpy, "_NET_WM_STATE", 0);
 	d->winStateModalAtom        =
