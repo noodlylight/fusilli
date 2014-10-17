@@ -34,7 +34,8 @@ if args.prefix != None:
     data = f.read ()
     f.close ()
 
-    data = data.replace ("@prefix@", args.prefix)
+    data = data.replace ("path_to_python_interpreter", "/usr/bin/python2")
+    data = data.replace ("@installprefix@", args.prefix)
     data = data.replace ("@version@", "1.2.3.4")
 
     f = open (os.path.join ("fsm"), "wt")

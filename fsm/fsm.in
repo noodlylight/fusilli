@@ -982,7 +982,7 @@ class Banana():
                 try:
                     curPlugin = self.Plugins[plugin.attrib.get("name")];
                 except KeyError:
-                    pass
+                    continue
 
                 for option in plugin.findall("option"):
                     if option.attrib.get("name") != None:
@@ -1059,6 +1059,13 @@ class Banana():
                             curOption.Value = curValue
                         else:
                             curOption.Values[screenNum] = curValue
+
+        #check if the plugins in active_plugins exist
+        for plugin in self.Plugins["core"].Options["active_plugins"].Value:
+            try:
+                self.Plugins[plugin]
+            except KeyError:
+                self.Plugins["core"].Options["active_plugins"].Value.remove(plugin)
 
     def indent(self, elem, level=0):
         if level == 1:
