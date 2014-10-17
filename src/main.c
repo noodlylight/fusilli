@@ -296,6 +296,14 @@ main (int argc, char **argv)
 		}
 	}
 
+	printf("Fusilli Window Manager\n");
+	printf("Version: %s\n", PACKAGE_VERSION);
+#ifdef USE_INOTIFY
+	printf("Built with inotify support\n");
+#else
+	printf("Built without inotify support\n");
+#endif
+
 	if (!initCore ())
 		return 1;
 

@@ -10,7 +10,6 @@ xml_in_files =         \
 	fade.xml.in        \
 	glib.xml.in        \
 	matecompat.xml.in  \
-	inotify.xml.in     \
 	minimize.xml.in    \
 	move.xml.in        \
 	obs.xml.in         \

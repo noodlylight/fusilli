@@ -87,12 +87,6 @@ libglib_la_SOURCES = glib.c
 libglib_module = libglib.la
 endif
 
-if INOTIFY_PLUGIN
-libinotify_la_LDFLAGS = -module -avoid-version -no-undefined
-libinotify_la_SOURCES = inotify.c
-libinotify_module = libinotify.la
-endif
-
 AM_CPPFLAGS =					\
 	@FUSILLI_CFLAGS@				\
 	@LIBPNG_CFLAGS@				\
@@ -133,6 +127,5 @@ module_LTLIBRARIES =		\
 	libmatecompat.la	\
 	$(libsvg_module)	\
 	$(libannotate_module)	\
-	$(libinotify_module)	\
 	$(libfs_module)
 

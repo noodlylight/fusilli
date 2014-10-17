@@ -23,7 +23,17 @@
  * Author: David Reveman <davidr@novell.com>
  */
 
+#ifdef HAVE_CONFIG_H
+#  include "../config.h"
+#endif
+
 #include <string.h>
+
+#ifdef USE_INOTIFY
+#include <unistd.h>
+#include <poll.h>
+#include <sys/inotify.h>
+#endif
 
 #include <fusilli-core.h>
 
@@ -31,6 +41,20 @@ CompCore core;
 
 static char *corePrivateIndices = 0;
 static int  corePrivateLen = 0;
+
+#ifdef USE_INOTIFY
+typedef struct _CompInotifyWatch {
+	struct _CompInotifyWatch *next;
+	CompFileWatchHandle      handle;
+	int                      wd;  //inotify_add_watch
+} CompInotifyWatch;
+
+static int               fd; //inotify_init
+
+static CompInotifyWatch  *watch; //linked list - one node per watched file.
+
+static CompWatchFdHandle watchFdHandle; //compAddWatchFd
+#endif
 
 static int
 reallocCorePrivate (int  size,
@@ -123,17 +147,126 @@ coreObjectRemove (CompObject *parent,
 	object->parent = NULL;
 }
 
-static void
-fileWatchAdded (CompCore      *core,
-                CompFileWatch *fileWatch)
+#ifdef USE_INOTIFY
+
+static Bool
+inotifyProcessEvents (void *data)
 {
+	char buf[256 * (sizeof (struct inotify_event) + 16)];
+	int  len;
+
+	len = read (fd, buf, sizeof (buf));
+	if (len < 0)
+	{
+		perror ("read");
+	}
+	else
+	{
+		struct inotify_event *event;
+		CompInotifyWatch     *iw;
+		CompFileWatch        *fw;
+		int                  i = 0;
+
+		while (i < len)
+		{
+			event = (struct inotify_event *) &buf[i];
+
+			for (iw = watch; iw; iw = iw->next)
+				if (iw->wd == event->wd)
+					break;
+
+			if (iw)
+			{
+				for (fw = core.fileWatch; fw; fw = fw->next)
+					if (fw->handle == iw->handle)
+						break;
+
+				if (fw)
+				{
+					if (event->len)
+						(*fw->callBack) (event->name, fw->closure);
+					else
+						(*fw->callBack) (NULL, fw->closure);
+				}
+			}
+
+			i += sizeof (*event) + event->len;
+		}
+	}
+
+	return TRUE;
 }
 
 static void
-fileWatchRemoved (CompCore      *core,
-                  CompFileWatch *fileWatch)
+inotifyAddFile (CompFileWatch *fileWatch)
 {
+	if (fd < 0)
+		return;
+
+	CompInotifyWatch *iw;
+	int mask = 0;
+
+	if (fileWatch->mask & NOTIFY_CREATE_MASK)
+		mask |= IN_CREATE;
+
+	if (fileWatch->mask & NOTIFY_DELETE_MASK)
+		mask |= IN_DELETE;
+
+	if (fileWatch->mask & NOTIFY_MOVE_MASK)
+		mask |= IN_MOVE;
+
+	if (fileWatch->mask & NOTIFY_MODIFY_MASK)
+		mask |= IN_MODIFY;
+
+	iw = malloc (sizeof (CompInotifyWatch));
+	if (!iw)
+		return;
+
+	iw->handle = fileWatch->handle;
+	iw->wd     = inotify_add_watch (fd, fileWatch->path, mask);
+
+	if (iw->wd < 0)
+	{
+		perror ("inotify_add_watch");
+		free (iw);
+		return;
+	}
+
+	iw->next  = watch;
+	watch = iw;
 }
+
+static void
+inotifyRemoveFile (CompFileWatch *fileWatch)
+{
+	if (fd < 0)
+		return;
+
+	CompInotifyWatch *p = 0, *iw;
+
+	for (iw = watch; iw; iw = iw->next)
+	{
+		if (iw->handle == fileWatch->handle)
+			break;
+
+		p = iw;
+	}
+
+	if (iw)
+	{
+		if (p)
+			p->next = iw->next;
+		else
+			watch = iw->next;
+
+		if (inotify_rm_watch (fd, iw->wd))
+			perror ("inotify_rm_watch");
+
+		free (iw);
+	}
+}
+
+#endif
 
 CompBool
 initCore (void)
@@ -174,11 +307,26 @@ initCore (void)
 	core.objectAdd    = coreObjectAdd;
 	core.objectRemove = coreObjectRemove;
 
-	core.fileWatchAdded   = fileWatchAdded;
-	core.fileWatchRemoved = fileWatchRemoved;
-
 	core.sessionEvent = sessionEvent;
 	core.logMessage   = logMessage;
+
+#ifdef USE_INOTIFY
+	watch = NULL;
+
+	fd = inotify_init ();
+
+	if (fd >= 0)
+	{
+		watchFdHandle = compAddWatchFd (fd,
+		                            POLLIN | POLLPRI | POLLHUP | POLLERR,
+		                            inotifyProcessEvents,
+		                            NULL);
+	}
+	else
+	{
+		perror ("inotify_init");
+	}
+#endif
 
 	corePlugin = loadPlugin ("core");
 	if (!corePlugin)
@@ -202,6 +350,20 @@ void
 finiCore (void)
 {
 	CompPlugin *p;
+
+#ifdef USE_INOTIFY
+	if (fd >= 0)
+	{
+		CompFileWatch *fw;
+
+		compRemoveWatchFd (watchFdHandle);
+
+		for (fw = core.fileWatch; fw; fw = fw->next)
+			inotifyRemoveFile (fw);
+
+		close (fd);
+	}
+#endif
 
 	while (core.displays)
 		removeDisplay (core.displays);
@@ -253,7 +415,9 @@ addFileWatch (const char             *path,
 	fileWatch->next = core.fileWatch;
 	core.fileWatch = fileWatch;
 
-	(*core.fileWatchAdded) (&core, fileWatch);
+#ifdef USE_INOTIFY
+	inotifyAddFile (fileWatch);
+#endif
 
 	return fileWatch->handle;
 }
@@ -278,7 +442,9 @@ removeFileWatch (CompFileWatchHandle handle)
 		else
 			core.fileWatch = w->next;
 
-		(*core.fileWatchRemoved) (&core, w);
+#ifdef USE_INOTIFY
+			inotifyRemoveFile (w);
+#endif
 
 		if (w->path)
 			free (w->path);

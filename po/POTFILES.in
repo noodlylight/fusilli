@@ -16,7 +16,6 @@ metadata/decoration.xml.in
 metadata/fade.xml.in
 metadata/glib.xml.in
 metadata/matecompat.xml.in
-metadata/inotify.xml.in
 metadata/minimize.xml.in
 metadata/move.xml.in
 metadata/obs.xml.in

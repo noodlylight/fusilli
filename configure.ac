@@ -195,16 +195,16 @@ if test "$use_dbus" = yes; then
 fi
 
 AC_ARG_ENABLE(inotify,
-  [  --disable-inotify       Disable inotify plugin],
+  [  --disable-inotify       Disable inotify support],
   [use_inotify=$enableval], [use_inotify=yes])
 
 if test "x$use_inotify" = "xyes"; then
   AC_CHECK_HEADERS([sys/inotify.h], [use_inotify=yes], [use_inotify=no])
 fi
 
-AM_CONDITIONAL(INOTIFY_PLUGIN, test "x$use_inotify" = "xyes")
+AM_CONDITIONAL(USE_INOTIFY, test "x$use_inotify" = "xyes")
 if test "$use_inotify" = yes; then
-  AC_DEFINE(USE_INOTIFY, 1, [Build inotify plugin])
+  AC_DEFINE(USE_INOTIFY, 1, [Build with inotify])
 fi
 
 AC_ARG_ENABLE(annotate,
@@ -459,9 +459,9 @@ echo "the following optional plugins will be compiled:"
 echo "  glib:     $use_glib"
 echo "  annotate: $use_annotate"
 echo "  svg:      $use_librsvg"
-echo "  inotify:  $use_inotify"
 echo ""
 echo "and the following optional features will be compiled:"
+echo "  inotify:  $use_inotify"
 echo "  gtk:      $use_gtk"
 echo "  metacity: $use_metacity"
 echo "  gnome:    $use_gnome"

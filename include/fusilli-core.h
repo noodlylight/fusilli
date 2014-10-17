@@ -605,12 +605,6 @@ typedef struct _CompFileWatch {
 	CompFileWatchHandle   handle;
 } CompFileWatch;
 
-typedef void (*FileWatchAddedProc) (CompCore      *core,
-                                    CompFileWatch *fileWatch);
-
-typedef void (*FileWatchRemovedProc) (CompCore      *core,
-                                      CompFileWatch *fileWatch);
-
 typedef struct _CompTimeout {
 	struct _CompTimeout *next;
 	int                 minTime;
@@ -659,9 +653,6 @@ struct _CompCore {
 
 	ObjectAddProc    objectAdd;
 	ObjectRemoveProc objectRemove;
-
-	FileWatchAddedProc   fileWatchAdded;
-	FileWatchRemovedProc fileWatchRemoved;
 
 	SessionEventProc sessionEvent;
 	LogMessageProc   logMessage;
