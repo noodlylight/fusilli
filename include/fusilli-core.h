@@ -3308,6 +3308,24 @@ void
 matchPropertyChanged (CompDisplay *display,
                       CompWindow  *window);
 
+/* png.c */
+Bool
+pngImageToFile (CompDisplay *d,
+                const char  *path,
+                const char  *name,
+                int         width,
+                int         height,
+                int         stride,
+                void        *data);
+
+Bool
+pngFileToImage (CompDisplay *d,
+                const char  *path,
+                const char  *name,
+                int         *width,
+                int         *height,
+                int         *stride,
+                void        **data);
 
 /* metadata.c */
 

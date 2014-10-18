@@ -14,7 +14,6 @@ xml_in_files =         \
 	move.xml.in        \
 	obs.xml.in         \
 	place.xml.in       \
-	png.xml.in         \
 	resize.xml.in      \
 	rotate.xml.in      \
 	scale.xml.in       \

@@ -33,20 +33,6 @@
 
 #define PNG_SIG_SIZE 8
 
-static int displayPrivateIndex;
-
-typedef struct _PngDisplay {
-	FileToImageProc fileToImage;
-	ImageToFileProc imageToFile;
-} PngDisplay;
-
-#define GET_PNG_DISPLAY(d) \
-        ((PngDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
-
-#define PNG_DISPLAY(d) \
-        PngDisplay *pd = GET_PNG_DISPLAY (d)
-
-
 static void
 premultiplyData (png_structp   png,
                  png_row_infop row_info,
@@ -190,57 +176,6 @@ readPngFileToImage (FILE *file,
 	return status;
 }
 
-#if 0
-static void
-userReadData (png_structp png_ptr,
-			  png_bytep   data,
-			  png_size_t  length)
-{
-	const unsigned char **buffer = (const unsigned char **)
-		png_get_io_ptr (png_ptr);
-
-	memcpy (data, *buffer, length);
-	*buffer += length;
-}
-
-static Bool
-readPngBuffer (const unsigned char *buffer,
-			   char		   **data,
-			   unsigned int	   *width,
-			   unsigned int	   *height)
-{
-	unsigned char	png_sig[PNG_SIG_SIZE];
-	png_struct		*png;
-	png_info		*info;
-	const unsigned char *b = buffer + PNG_SIG_SIZE;
-	Bool		status;
-
-	memcpy (png_sig, buffer, PNG_SIG_SIZE);
-	if (png_sig_cmp (png_sig, 0, PNG_SIG_SIZE) != 0)
-		return FALSE;
-
-	png = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (!png)
-		return FALSE;
-
-	info = png_create_info_struct (png);
-	if (!info)
-	{
-		png_destroy_read_struct (&png, NULL, NULL);
-		return FALSE;
-	}
-
-	png_set_read_fn (png, (void *) &b, userReadData);
-	png_set_sig_bytes (png, PNG_SIG_SIZE);
-
-	status = readPngData (png, info, data, width, height);
-
-	png_destroy_read_struct (&png, &info, NULL);
-
-	return status;
-}
-#endif
-
 static Bool
 writePng (unsigned char *buffer,
           png_rw_ptr    writeFunc,
@@ -337,11 +272,10 @@ pngExtension (const char *name)
 	return ".png";
 }
 
-static Bool
+Bool
 pngImageToFile (CompDisplay *d,
                 const char  *path,
                 const char  *name,
-                const char  *format,
                 int         width,
                 int         height,
                 int         stride,
@@ -353,8 +287,6 @@ pngImageToFile (CompDisplay *d,
 	FILE *fp;
 	int  len;
 
-	PNG_DISPLAY (d);
-
 	len = (path ? strlen (path) : 0) + strlen (name) + strlen (extension) + 2;
 
 	file = malloc (len);
@@ -364,10 +296,7 @@ pngImageToFile (CompDisplay *d,
 			sprintf (file, "%s/%s%s", path, name, extension);
 		else
 			sprintf (file, "%s%s", name, extension);
-	}
 
-	if (file && strcasecmp (format, "png") == 0)
-	{
 		fp = fopen (file, "wb");
 		if (fp)
 		{
@@ -375,35 +304,13 @@ pngImageToFile (CompDisplay *d,
 			fclose (fp);
 		}
 
-		if (status)
-		{
-			free (file);
-			return TRUE;
-		}
-	}
-
-	UNWRAP (pd, d, imageToFile);
-	status = (*d->imageToFile) (d, path, name, format, width, height, stride,
-	                            data);
-	WRAP (pd, d, imageToFile, pngImageToFile);
-
-	if (!status && file)
-	{
-		fp = fopen (file, "wb");
-		if (fp)
-		{
-			status = writePng (data, stdioWriteFunc, fp, width, height, stride);
-			fclose (fp);
-		}
-	}
-
-	if (file)
 		free (file);
+	}
 
 	return status;
 }
 
-static Bool
+Bool
 pngFileToImage (CompDisplay *d,
                 const char  *path,
                 const char  *name,
@@ -416,8 +323,6 @@ pngFileToImage (CompDisplay *d,
 	char *extension = pngExtension (name);
 	char *file;
 	int  len;
-
-	PNG_DISPLAY (d);
 
 	len = (path ? strlen (path) : 0) + strlen (name) + strlen (extension) + 2;
 
@@ -434,10 +339,7 @@ pngFileToImage (CompDisplay *d,
 		fp = fopen (file, "r");
 		if (fp)
 		{
-			status = readPngFileToImage (fp,
-			                     width,
-			                     height,
-			                     data);
+			status = readPngFileToImage (fp, width, height, data);
 			fclose (fp);
 		}
 
@@ -450,114 +352,56 @@ pngFileToImage (CompDisplay *d,
 		}
 	}
 
-	UNWRAP (pd, d, fileToImage);
-	status = (*d->fileToImage) (d, path, name, width, height, stride, data);
-	WRAP (pd, d, fileToImage, pngFileToImage);
-
 	return status;
 }
 
-static Bool
-pngInitDisplay (CompPlugin  *p,
-                CompDisplay *d)
+#if 0
+static void
+userReadData (png_structp png_ptr,
+			  png_bytep   data,
+			  png_size_t  length)
 {
-	PngDisplay *pd;
-	CompScreen *s;
+	const unsigned char **buffer = (const unsigned char **)
+		png_get_io_ptr (png_ptr);
 
-	pd = malloc (sizeof (PngDisplay));
-	if (!pd)
+	memcpy (data, *buffer, length);
+	*buffer += length;
+}
+
+static Bool
+readPngBuffer (const unsigned char *buffer,
+			   char		   **data,
+			   unsigned int	   *width,
+			   unsigned int	   *height)
+{
+	unsigned char	png_sig[PNG_SIG_SIZE];
+	png_struct		*png;
+	png_info		*info;
+	const unsigned char *b = buffer + PNG_SIG_SIZE;
+	Bool		status;
+
+	memcpy (png_sig, buffer, PNG_SIG_SIZE);
+	if (png_sig_cmp (png_sig, 0, PNG_SIG_SIZE) != 0)
 		return FALSE;
 
-	WRAP (pd, d, fileToImage, pngFileToImage);
-	WRAP (pd, d, imageToFile, pngImageToFile);
+	png = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if (!png)
+		return FALSE;
 
-	d->base.privates[displayPrivateIndex].ptr = pd;
-
-	for (s = d->screens; s; s = s->next)
-		updateDefaultIcon (s);
-
-	return TRUE;
-}
-
-static void
-pngFiniDisplay (CompPlugin  *p,
-                CompDisplay *d)
-{
-	CompScreen *s;
-
-	PNG_DISPLAY (d);
-
-	UNWRAP (pd, d, fileToImage);
-	UNWRAP (pd, d, imageToFile);
-
-	for (s = d->screens; s; s = s->next)
-		updateDefaultIcon (s);
-
-	free (pd);
-}
-
-static CompBool
-pngInitObject (CompPlugin *p,
-               CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) pngInitDisplay
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-pngFiniObject (CompPlugin *p,
-               CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) pngFiniDisplay
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
-
-static Bool
-pngInit (CompPlugin *p)
-{
-	if (getCoreABI() != CORE_ABIVERSION)
+	info = png_create_info_struct (png);
+	if (!info)
 	{
-		compLogMessage ("png", CompLogLevelError,
-		                "ABI mismatch\n"
-		                "\tPlugin was compiled with ABI: %d\n"
-		                "\tFusilli Core was compiled with ABI: %d\n",
-		                CORE_ABIVERSION, getCoreABI());
-
+		png_destroy_read_struct (&png, NULL, NULL);
 		return FALSE;
 	}
 
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
+	png_set_read_fn (png, (void *) &b, userReadData);
+	png_set_sig_bytes (png, PNG_SIG_SIZE);
 
-	if (displayPrivateIndex < 0)
-		return FALSE;
+	status = readPngData (png, info, data, width, height);
 
-	return TRUE;
+	png_destroy_read_struct (&png, &info, NULL);
+
+	return status;
 }
-
-static void
-pngFini (CompPlugin *p)
-{
-	freeDisplayPrivateIndex (displayPrivateIndex);
-}
-
-CompPluginVTable pngVTable = {
-	"png",
-	pngInit,
-	pngFini,
-	pngInitObject,
-	pngFiniObject
-};
-
-CompPluginVTable *
-getCompPluginInfo20140724 (void)
-{
-	return &pngVTable;
-}
+#endif

@@ -45,10 +45,6 @@ libscreenshot_la_SOURCES = screenshot.c
 libclone_la_LDFLAGS = -module -avoid-version -no-undefined
 libclone_la_SOURCES = clone.c
 
-libpng_la_LDFLAGS = -module -avoid-version -no-undefined
-libpng_la_LIBADD = @LIBPNG_LIBS@
-libpng_la_SOURCES = png.c
-
 libblur_la_DEPENDENCIES = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libblur_la_LDFLAGS = -module -avoid-version -no-undefined
 libblur_la_LIBADD = $(top_builddir)/libfusillidecoration/libfusillidecoration.la -lGLU
@@ -120,7 +116,6 @@ module_LTLIBRARIES =		\
 	libwater.la		\
 	libscreenshot.la	\
 	libclone.la		\
-	libpng.la		\
 	libblur.la		\
 	libobs.la		\
 	libcommands.la		\

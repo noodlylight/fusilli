@@ -2717,7 +2717,7 @@ fileToImage (CompDisplay *display,
              int         *stride,
              void        **data)
 {
-	return FALSE;
+	return pngFileToImage (display, path, name, width, height, stride, data);
 }
 
 Bool
@@ -2730,6 +2730,10 @@ imageToFile (CompDisplay *display,
              int         stride,
              void        *data)
 {
+	if (strcasecmp (format, "png") == 0)
+		return pngImageToFile (display, path, name,
+		                       width, height, stride, data);
+
 	return FALSE;
 }
 
