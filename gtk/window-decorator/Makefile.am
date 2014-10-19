@@ -9,7 +9,6 @@ fusilli_decorator_gtk_DEPENDENCIES = \
 fusilli_decorator_gtk_LDADD	  =		       \
 	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
 	@GTK_WINDOW_DECORATOR_LIBS@		       \
-	@DBUS_GLIB_LIBS@			       \
 	$(metacitylibs)
 
 fusilli_decorator_gtk_SOURCES	  = \
@@ -21,7 +20,6 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/include            \
 	@GTK_WINDOW_DECORATOR_CFLAGS@      \
 	@METACITY_CFLAGS@                  \
-	@DBUS_GLIB_CFLAGS@                 \
 	-DALL_LINGUAS="\"@ALL_LINGUAS@\""  \
 	-DLOCALEDIR="\"@datadir@/locale"\"
 

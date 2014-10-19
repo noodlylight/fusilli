@@ -47,12 +47,6 @@
 #include <gconf/gconf-client.h>
 #endif
 
-#ifdef USE_DBUS_GLIB
-#define DBUS_API_SUBJECT_TO_CHANGE
-#include <dbus/dbus.h>
-#include <dbus/dbus-glib-lowlevel.h>
-#endif
-
 #define WNCK_I_KNOW_THIS_IS_UNSTABLE
 #include <libwnck/libwnck.h>
 #include <libwnck/window-action-menu.h>
@@ -145,11 +139,6 @@
 
 #define WHEEL_ACTION_KEY \
         GCONF_DIR "/mouse_wheel_action"
-
-#define DBUS_DEST       "org.freedesktop.fusilli"
-#define DBUS_PATH       "/org/freedesktop/fusilli/decoration/allscreens"
-#define DBUS_INTERFACE  "org.freedesktop.fusilli"
-#define DBUS_METHOD_GET "get"
 
 #define STROKE_ALPHA 0.6
 
@@ -6551,139 +6540,6 @@ value_changed (GConfClient *client,
 	if (changed)
 		decorations_changed (data);
 }
-
-#elif USE_DBUS_GLIB
-
-static DBusHandlerResult
-dbus_handle_message (DBusConnection *connection,
-                     DBusMessage    *message,
-                     void           *user_data)
-{
-	WnckScreen        *screen = user_data;
-	char              **path;
-	const char        *interface, *member;
-	DBusHandlerResult result = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-
-	interface = dbus_message_get_interface (message);
-	member    = dbus_message_get_member (message);
-
-	(void) connection;
-
-	if (!interface || !member)
-		return result;
-
-	if (!dbus_message_is_signal (message, interface, member))
-		return result;
-
-	if (strcmp (member, "changed"))
-		return result;
-
-	if (!dbus_message_get_path_decomposed (message, &path))
-		return result;
-
-	if (!path[0] || !path[1] || !path[2] || !path[3] || !path[4] || !path[5])
-	{
-		dbus_free_string_array (path);
-		return result;
-	}
-
-	if (!strcmp (path[0], "org")         &&
-	    !strcmp (path[1], "freedesktop") &&
-	    !strcmp (path[2], "fusilli")      &&
-	    !strcmp (path[3], "decoration")  &&
-	    !strcmp (path[4], "allscreens"))
-	{
-		result = DBUS_HANDLER_RESULT_HANDLED;
-
-		if (strcmp (path[5], "shadow_radius") == 0)
-		{
-			dbus_message_get_args (message, NULL,
-			                       DBUS_TYPE_DOUBLE, &shadow_radius,
-			                       DBUS_TYPE_INVALID);
-		}
-		else if (strcmp (path[5], "shadow_opacity") == 0)
-		{
-			dbus_message_get_args (message, NULL,
-			                       DBUS_TYPE_DOUBLE, &shadow_opacity,
-			                       DBUS_TYPE_INVALID);
-		}
-		else if (strcmp (path[5], "shadow_color") == 0)
-		{
-			DBusError error;
-			char      *str;
-
-			dbus_error_init (&error);
-
-			dbus_message_get_args (message, &error,
-			                       DBUS_TYPE_STRING, &str,
-			                       DBUS_TYPE_INVALID);
-
-			if (!dbus_error_is_set (&error))
-			{
-				int c[4];
-
-				if (sscanf (str, "#%2x%2x%2x%2x",
-				            &c[0], &c[1], &c[2], &c[3]) == 4)
-				{
-					shadow_color[0] = c[0] << 8 | c[0];
-					shadow_color[1] = c[1] << 8 | c[1];
-					shadow_color[2] = c[2] << 8 | c[2];
-				}
-			}
-
-			dbus_error_free (&error);
-		}
-		else if (strcmp (path[5], "shadow_x_offset") == 0)
-		{
-			dbus_message_get_args (message, NULL,
-			                       DBUS_TYPE_INT32, &shadow_offset_x,
-			                       DBUS_TYPE_INVALID);
-		}
-		else if (strcmp (path[5], "shadow_y_offset") == 0)
-		{
-			dbus_message_get_args (message, NULL,
-			                       DBUS_TYPE_INT32, &shadow_offset_y,
-			                       DBUS_TYPE_INVALID);
-		}
-
-		decorations_changed (screen);
-	}
-
-	dbus_free_string_array (path);
-
-	return result;
-}
-
-static DBusMessage *
-send_and_block_for_shadow_option_reply (DBusConnection *connection,
-                                        char           *path)
-{
-	DBusMessage *message;
-
-	message = dbus_message_new_method_call (NULL,
-	                                        path,
-	                                        DBUS_INTERFACE,
-	                                        DBUS_METHOD_GET);
-	if (message)
-	{
-		DBusMessage *reply;
-		DBusError   error;
-
-		dbus_message_set_destination (message, DBUS_DEST);
-
-		dbus_error_init (&error);
-		reply = dbus_connection_send_with_reply_and_block (connection,
-		                                                   message, -1,
-		                                                   &error);
-		dbus_message_unref (message);
-
-		if (!dbus_error_is_set (&error))
-			return reply;
-	}
-
-	return NULL;
-}
-
 #endif
 
 static gboolean
@@ -6718,95 +6574,6 @@ init_settings (WnckScreen *screen)
 	                  "value_changed",
 	                  G_CALLBACK (value_changed),
 	                  screen);
-#elif USE_DBUS_GLIB
-	DBusConnection *connection;
-	DBusMessage    *reply;
-	DBusError      error;
-
-	dbus_error_init (&error);
-
-	connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
-	if (!dbus_error_is_set (&error))
-	{
-		dbus_bus_add_match (connection, "type='signal'", &error);
-
-		dbus_connection_add_filter (connection,
-		                            dbus_handle_message,
-		                            screen, NULL);
-
-		dbus_connection_setup_with_g_main (connection, NULL);
-	}
-
-	reply = send_and_block_for_shadow_option_reply (connection, DBUS_PATH
-	                                                "/shadow_radius");
-	if (reply)
-	{
-		dbus_message_get_args (reply, NULL,
-		                       DBUS_TYPE_DOUBLE, &shadow_radius,
-		                       DBUS_TYPE_INVALID);
-
-		dbus_message_unref (reply);
-	}
-
-	reply = send_and_block_for_shadow_option_reply (connection, DBUS_PATH
-	                                                "/shadow_opacity");
-	if (reply)
-	{
-		dbus_message_get_args (reply, NULL,
-		                       DBUS_TYPE_DOUBLE, &shadow_opacity,
-		                       DBUS_TYPE_INVALID);
-		dbus_message_unref (reply);
-	}
-
-	reply = send_and_block_for_shadow_option_reply (connection, DBUS_PATH
-	                                                "/shadow_color");
-	if (reply)
-	{
-		DBusError error;
-		char      *str;
-
-		dbus_error_init (&error);
-
-		dbus_message_get_args (reply, &error,
-		                       DBUS_TYPE_STRING, &str,
-		                       DBUS_TYPE_INVALID);
-
-		if (!dbus_error_is_set (&error))
-		{
-			int c[4];
-
-			if (sscanf (str, "#%2x%2x%2x%2x", &c[0], &c[1], &c[2], &c[3]) == 4)
-			{
-				shadow_color[0] = c[0] << 8 | c[0];
-				shadow_color[1] = c[1] << 8 | c[1];
-				shadow_color[2] = c[2] << 8 | c[2];
-			}
-		}
-
-		dbus_error_free (&error);
-
-		dbus_message_unref (reply);
-	}
-
-	reply = send_and_block_for_shadow_option_reply (connection, DBUS_PATH
-	                                                "/shadow_x_offset");
-	if (reply)
-	{
-		dbus_message_get_args (reply, NULL,
-		                       DBUS_TYPE_INT32, &shadow_offset_x,
-		                       DBUS_TYPE_INVALID);
-		dbus_message_unref (reply);
-	}
-
-	reply = send_and_block_for_shadow_option_reply (connection, DBUS_PATH
-	                                                "/shadow_y_offset");
-	if (reply)
-	{
-		dbus_message_get_args (reply, NULL,
-		                       DBUS_TYPE_INT32, &shadow_offset_y,
-		                       DBUS_TYPE_INVALID);
-		dbus_message_unref (reply);
-	}
 #endif
 
 	style_window = gtk_window_new (GTK_WINDOW_POPUP);
