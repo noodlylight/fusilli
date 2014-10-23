@@ -18,16 +18,6 @@ wmproperties_files    = $(wmproperties_in_files:.desktop.in=.desktop)
 
 @INTLTOOL_DESKTOP_RULE@
 
-if USE_GNOME_KEYBINDINGS
-
-xmldir       = $(DESTDIR)$(keybindingsdir)
-xml_in_files = 50-fusilli-desktop-key.xml.in 50-fusilli-key.xml.in
-xml_files    = $(xml_in_files:.xml.in=.xml)
-
-@INTLTOOL_XML_NOMERGE_RULE@
-
-endif
-
 install-exec-local:
 	if mkdir -p $(moduledir) && test -w $(moduledir); then ( \
 		$(LIBTOOL) --mode=install $(INSTALL) $(libfusilli_module) \
@@ -47,14 +37,6 @@ install-data-local:
 		); \
 	fi
 
-if USE_GNOME_KEYBINDINGS
-	if mkdir -p $(xmldir) && test -w $(xmldir); then ( \
-		$(INSTALL) -m 644 $(xml_files) \
-		$(xmldir) \
-		); \
-	fi
-endif
-
 uninstall-local:
 	if test -w $(moduledir); then ( \
 		rm -f $(moduledir)/libfusilli.* \
@@ -68,12 +50,7 @@ uninstall-local:
 		rm -f $(wmpropertiesdir)/fusilli-wm.desktop \
 		); \
 	fi
-if USE_GNOME_KEYBINDINGS
-	if test -w $(xmldir); then ( \
-		rm -f $(xmldir)/50-fusilli*key.xml \
-		); \
-	fi
-endif
+
 endif
 
 AM_CPPFLAGS = @GNOME_WINDOW_SETTINGS_CFLAGS@			   \
@@ -85,12 +62,9 @@ noinst_LTLIBRARIES = \
 
 noinst_DATA =		      \
 	$(desktopfiles_files) \
-	$(wmproperties_files) \
-	$(xml_files)
+	$(wmproperties_files)
 
 EXTRA_DIST =			 \
-	50-fusilli-desktop-key.xml.in \
-	50-fusilli-key.xml.in \
 	fusilli.desktop.in \
 	fusilli-wm.desktop.in
 
