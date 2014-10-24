@@ -229,10 +229,6 @@ AC_ARG_ENABLE(metacity,
   [  --disable-metacity      Disable metacity theme support],
   [use_metacity=$enableval], [use_metacity=yes])
 
-AC_ARG_ENABLE(gnome,
-  [  --disable-gnome         Disable gnome settings module],
-  [use_gnome=$enableval], [use_gnome=yes])
-
 if test "x$use_gtk" = "xyes"; then
   PKG_CHECK_MODULES(GTK_WINDOW_DECORATOR,
 		    xrender >= 0.8.4  \
@@ -266,25 +262,12 @@ if test "x$use_gtk" = "xyes"; then
 		       [have_metacity_2_23_2=yes], [have_metacity_2_23_2=no])
     fi
 
-    if test "x$use_gnome" = "xyes"; then
-      PKG_CHECK_MODULES(GNOME_WINDOW_SETTINGS,
-			gnome-window-settings-2.0 gnome-desktop-2.0 gconf-2.0,
-			[use_gnome=yes], [use_gnome=no])
-    fi
-
-    windowsettingsdatadir=`pkg-config --variable=prefix gnome-window-settings-2.0`/share
-    windowsettingslibdir=`pkg-config --variable=libdir gnome-window-settings-2.0`
   else
     use_metacity="no"
-    use_gnome="no"
   fi
 else
   use_metacity="no"
-  use_gnome="no"
 fi
-
-AC_SUBST(windowsettingsdatadir)
-AC_SUBST(windowsettingslibdir)
 
 AM_CONDITIONAL(USE_GTK, test "x$use_gtk" = "xyes")
 if test "$use_gtk" = yes; then
@@ -314,11 +297,6 @@ if test "$use_metacity" = yes; then
     AC_DEFINE(HAVE_METACITY_2_23_2, 1,
 	      [Define to 1 if metacity version >= 2.23.2])
   fi
-fi
-
-AM_CONDITIONAL(USE_GNOME, test "x$use_gnome" = "xyes")
-if test "$use_gnome" = yes; then
-  AC_DEFINE(USE_GNOME, 1, [Build gnome settings module])
 fi
 
 AC_ARG_ENABLE(kde4,
@@ -418,7 +396,6 @@ plugins/Makefile
 images/Makefile
 gtk/Makefile
 gtk/window-decorator/Makefile
-gtk/gnome/Makefile
 kde/Makefile
 kde/window-decorator-kde4/Makefile
 po/Makefile.in
@@ -436,7 +413,6 @@ echo "and the following optional features will be compiled:"
 echo "  inotify:  $use_inotify"
 echo "  gtk:      $use_gtk"
 echo "  metacity: $use_metacity"
-echo "  gnome:    $use_gnome"
 echo "  kde4:     $use_kde4"
 echo "  fsm:      $use_fsm"
 echo ""
