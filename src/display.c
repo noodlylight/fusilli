@@ -692,9 +692,11 @@ updateModifierMappings (CompDisplay *d)
 			index = 0;
 			do
 			{
-				keysym = XKeycodeToKeysym (d->display,
-				                           d->modMap->modifiermap[i],
-				                           index++);
+				//convert keycode to keysym
+				keysym = key[(d->modMap->modifiermap[i] - minKeycode) *
+				             keysymsPerKeycode + index];
+
+				index++;
 			} while (!keysym && index < keysymsPerKeycode);
 
 			if (keysym)
