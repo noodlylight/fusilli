@@ -231,35 +231,15 @@ AC_ARG_ENABLE(metacity,
 
 if test "x$use_gtk" = "xyes"; then
   PKG_CHECK_MODULES(GTK_WINDOW_DECORATOR,
-		    xrender >= 0.8.4  \
-		    gtk+-2.0 >= 2.8.0 \
-		    libwnck-1.0	      \
+		    xrender >= 0.8.4        \
+		    gtk+-2.0 >= 2.8.0       \
+		    libwnck-1.0 >= 2.19.4   \
 		    pangocairo,
 		    [use_gtk=yes], [use_gtk=no])
   if test "x$use_gtk" = "xyes"; then
-    save_CFLAGS="$CFLAGS"
-    save_LIBS="$LIBS"
-    CFLAGS="$CFLAGS $GTK_WINDOW_DECORATOR_CFLAGS"
-    LIBS="$LIBS $GTK_WINDOW_DECORATOR_LIBS"
-    AC_CHECK_FUNCS(wnck_window_has_name)
-    CFLAGS="$save_CFLAGS"
-    LIBS="$save_LIBS -lm -ldl"
-
-    PKG_CHECK_EXISTS(libwnck-1.0 >= 2.18.1,
-		     [have_libwnck_2_18_1=yes], [have_libwnck_2_18_1=no])
-
-	PKG_CHECK_EXISTS(libwnck-1.0 >= 2.19.4,
-		     [have_libwnck_2_19_4=yes], [have_libwnck_2_19_4=no])
-
     if test "x$use_metacity" = "xyes"; then
-      PKG_CHECK_MODULES(METACITY, libmetacity-private,
+      PKG_CHECK_MODULES(METACITY, libmetacity-private >= 2.23.2,
 			[use_metacity=yes], [use_metacity=no])
-      PKG_CHECK_EXISTS(libmetacity-private >= 2.15.21,
-		       [have_metacity_2_15_21=yes], [have_metacity_2_15_21=no])
-      PKG_CHECK_EXISTS(libmetacity-private >= 2.17.0,
-		       [have_metacity_2_17_0=yes], [have_metacity_2_17_0=no])
-      PKG_CHECK_EXISTS(libmetacity-private >= 2.23.2,
-		       [have_metacity_2_23_2=yes], [have_metacity_2_23_2=no])
     fi
 
   else
@@ -269,34 +249,16 @@ else
   use_metacity="no"
 fi
 
+LIBS="$LIBS -lm -ldl"
+
 AM_CONDITIONAL(USE_GTK, test "x$use_gtk" = "xyes")
 if test "$use_gtk" = yes; then
   AC_DEFINE(USE_GTK, 1, [Build gtk window decorator])
-  if test "$have_libwnck_2_18_1" = yes; then
-    AC_DEFINE(HAVE_LIBWNCK_2_18_1, 1,
-	      [Define to 1 if libwnck version >= 2_18_1])
-  fi
-  if test "$have_libwnck_2_19_4" = yes; then
-    AC_DEFINE(HAVE_LIBWNCK_2_19_4, 1,
-	      [Define to 1 if libwnck version >= 2_19_4])
-  fi
 fi
 
 AM_CONDITIONAL(USE_METACITY, test "x$use_metacity" = "xyes")
 if test "$use_metacity" = yes; then
   AC_DEFINE(USE_METACITY, 1, [Build metacity theme support])
-  if test "$have_metacity_2_15_21" = yes; then
-    AC_DEFINE(HAVE_METACITY_2_15_21, 1,
-	      [Define to 1 if metacity version >= 2.15.21])
-  fi
-  if test "$have_metacity_2_17_0" = yes; then
-    AC_DEFINE(HAVE_METACITY_2_17_0, 1,
-	      [Define to 1 if metacity version >= 2.17.0])
-  fi
-  if test "$have_metacity_2_23_2" = yes; then
-    AC_DEFINE(HAVE_METACITY_2_23_2, 1,
-	      [Define to 1 if metacity version >= 2.23.2])
-  fi
 fi
 
 AC_ARG_ENABLE(kde4,

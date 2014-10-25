@@ -51,10 +51,6 @@
 #include <libwnck/libwnck.h>
 #include <libwnck/window-action-menu.h>
 
-#ifndef HAVE_LIBWNCK_2_19_4
-#define wnck_window_get_client_window_geometry wnck_window_get_geometry
-#endif
-
 #include <cairo.h>
 #include <cairo-xlib.h>
 
@@ -1393,19 +1389,10 @@ meta_get_corner_radius (const MetaFrameGeometry *fgeom,
                         int             *bottom_left_radius,
                         int             *bottom_right_radius)
 {
-
-#ifdef HAVE_METACITY_2_17_0
 	*top_left_radius     = fgeom->top_left_corner_rounded_radius;
 	*top_right_radius    = fgeom->top_right_corner_rounded_radius;
 	*bottom_left_radius  = fgeom->bottom_left_corner_rounded_radius;
 	*bottom_right_radius = fgeom->bottom_right_corner_rounded_radius;
-#else
-	*top_left_radius     = fgeom->top_left_corner_rounded ? 5 : 0;
-	*top_right_radius    = fgeom->top_right_corner_rounded ? 5 : 0;
-	*bottom_left_radius  = fgeom->bottom_left_corner_rounded ? 5 : 0;
-	*bottom_right_radius = fgeom->bottom_right_corner_rounded ? 5 : 0;
-#endif
-
 }
 
 static int
@@ -1615,7 +1602,6 @@ meta_function_to_type (MetaButtonFunction function)
 	case META_BUTTON_FUNCTION_CLOSE:
 		return META_BUTTON_TYPE_CLOSE;
 
-#ifdef HAVE_METACITY_2_17_0
 	case META_BUTTON_FUNCTION_SHADE:
 		return META_BUTTON_TYPE_SHADE;
 	case META_BUTTON_FUNCTION_ABOVE:
@@ -1628,7 +1614,6 @@ meta_function_to_type (MetaButtonFunction function)
 		return META_BUTTON_TYPE_UNABOVE;
 	case META_BUTTON_FUNCTION_UNSTICK:
 		return META_BUTTON_TYPE_UNSTICK;
-#endif
 
 	default:
 		break;
@@ -1673,7 +1658,6 @@ meta_button_state_for_button_type (decor_t        *d,
 	case META_BUTTON_TYPE_MENU:
 		return meta_button_state (d->button_states[BUTTON_MENU]);
 
-#ifdef HAVE_METACITY_2_17_0
 	case META_BUTTON_TYPE_SHADE:
 		return meta_button_state (d->button_states[BUTTON_SHADE]);
 	case META_BUTTON_TYPE_ABOVE:
@@ -1686,7 +1670,6 @@ meta_button_state_for_button_type (decor_t        *d,
 		return meta_button_state (d->button_states[BUTTON_UNABOVE]);
 	case META_BUTTON_TYPE_UNSTICK:
 		return meta_button_state (d->button_states[BUTTON_UNSTICK]);
-#endif
 
 	default:
 		break;
@@ -1774,10 +1757,8 @@ meta_get_decoration_geometry (decor_t           *d,
 	if (d->state & WNCK_WINDOW_STATE_SHADED)
 		*flags |= META_FRAME_SHADED;
 
-#ifdef HAVE_METACITY_2_17_0
 	if (d->state & WNCK_WINDOW_STATE_ABOVE)
 		*flags |= META_FRAME_ABOVE;
-#endif
 
 	meta_theme_get_frame_borders (theme,
 	                              META_FRAME_TYPE_NORMAL,
@@ -1874,7 +1855,6 @@ meta_draw_window_decoration (decor_t *d)
 	bg_color = style->bg[GTK_STATE_NORMAL];
 	bg_alpha = 1.0;
 
-#ifdef HAVE_METACITY_2_17_0
 	if (frame_style->window_background_color)
 	{
 		meta_color_spec_render (frame_style->window_background_color,
@@ -1883,7 +1863,6 @@ meta_draw_window_decoration (decor_t *d)
 
 		bg_alpha = frame_style->window_background_alpha / 255.0;
 	}
-#endif
 
 	cairo_destroy (cr);
 
@@ -2915,11 +2894,7 @@ meta_get_button_position (decor_t *d,
 	MetaTheme         *theme;
 	GdkRectangle      clip;
 
-#ifdef HAVE_METACITY_2_15_21
 	MetaButtonSpace   *space;
-#else
-	GdkRectangle      *space;
-#endif
 
 	if (!d->context)
 	{
@@ -2960,7 +2935,6 @@ meta_get_button_position (decor_t *d,
 		space = &fgeom.close_rect;
 		break;
 
-#if defined (HAVE_METACITY_2_17_0) && defined (HAVE_LIBWNCK_2_18_1)
 	case BUTTON_SHADE:
 		if (!meta_button_present (&button_layout, META_BUTTON_FUNCTION_SHADE))
 			return FALSE;
@@ -2997,13 +2971,11 @@ meta_get_button_position (decor_t *d,
 
 		space = &fgeom.unstick_rect;
 		break;
-#endif
 
 	default:
 		return FALSE;
 	}
 
-#ifdef HAVE_METACITY_2_15_21
 	if (!space->clickable.width && !space->clickable.height)
 		return FALSE;
 
@@ -3011,15 +2983,6 @@ meta_get_button_position (decor_t *d,
 	*y = space->clickable.y;
 	*w = space->clickable.width;
 	*h = space->clickable.height;
-#else
-	if (!space->width && !space->height)
-		return FALSE;
-
-	*x = space->x;
-	*y = space->y;
-	*w = space->width;
-	*h = space->height;
-#endif
 
 	return TRUE;
 }
@@ -3104,21 +3067,11 @@ update_event_windows (WnckWindow *win)
 			WNCK_WINDOW_ACTION_MINIMIZE,
 			0,
 			WNCK_WINDOW_ACTION_SHADE,
-
-#ifdef HAVE_LIBWNCK_2_18_1
 			WNCK_WINDOW_ACTION_ABOVE,
 			WNCK_WINDOW_ACTION_STICK,
 			WNCK_WINDOW_ACTION_UNSHADE,
 			WNCK_WINDOW_ACTION_ABOVE,
 			WNCK_WINDOW_ACTION_UNSTICK
-#else
-			0,
-			0,
-			0,
-			0,
-			0
-#endif
-
 		};
 
 		if (button_actions[i] && !(actions & button_actions[i]))
@@ -3142,15 +3095,6 @@ update_event_windows (WnckWindow *win)
 	gdk_error_trap_pop ();
 }
 
-#ifdef HAVE_WNCK_WINDOW_HAS_NAME
-static const char *
-wnck_window_get_real_name (WnckWindow *win)
-{
-	return wnck_window_has_name (win) ? wnck_window_get_name (win) : NULL;
-}
-#define wnck_window_get_name wnck_window_get_real_name
-#endif
-
 static gint
 max_window_name_width (WnckWindow *win)
 {
@@ -3167,7 +3111,7 @@ max_window_name_width (WnckWindow *win)
 		pango_layout_set_wrap (d->layout, PANGO_WRAP_CHAR);
 	}
 
-	name = wnck_window_get_name (win);
+	name = wnck_window_has_name (win) ? wnck_window_get_name (win) : NULL;
 	if (!name)
 		return 0;
 
@@ -3196,7 +3140,7 @@ update_window_decoration_name (WnckWindow *win)
 		d->name = NULL;
 	}
 
-	name = wnck_window_get_name (win);
+	name = wnck_window_has_name (win) ? wnck_window_get_name (win) : NULL;
 	if (name && (name_length = strlen (name)))
 	{
 		gint w;
@@ -3636,7 +3580,8 @@ update_switcher_window (WnckWindow *win,
 			d->name = NULL;
 		}
 
-		name = wnck_window_get_name (selected_win);
+		name = wnck_window_has_name (selected_win) ?
+		       wnck_window_get_name (selected_win) : NULL;
 		if (name && (name_length = strlen (name)))
 		{
 			if (!d->layout)
@@ -4511,11 +4456,6 @@ action_menu_map (WnckWindow *win,
 		return;
 	case WNCK_WINDOW_NORMAL:
 	case WNCK_WINDOW_DIALOG:
-
-#ifndef HAVE_LIBWNCK_2_19_4
-	case WNCK_WINDOW_MODAL_DIALOG:
-#endif
-
 	case WNCK_WINDOW_TOOLBAR:
 	case WNCK_WINDOW_MENU:
 	case WNCK_WINDOW_UTILITY:
@@ -4604,13 +4544,8 @@ above_button_event (WnckWindow *win,
 		if (xevent->xbutton.button == 1)
 		{
 			if (state == BUTTON_EVENT_ACTION_STATE)
-			{
-
-#ifdef HAVE_LIBWNCK_2_18_1
 				wnck_window_make_above (win);
-#endif
 
-			}
 		}
 		break;
 	}
@@ -4670,13 +4605,7 @@ unabove_button_event (WnckWindow *win,
 		if (xevent->xbutton.button == 1)
 		{
 			if (state == BUTTON_EVENT_ACTION_STATE)
-			{
-
-#ifdef HAVE_LIBWNCK_2_18_1
 				wnck_window_unmake_above (win);
-#endif
-
-			}
 		}
 		break;
 	}
@@ -5039,7 +4968,8 @@ show_force_quit_dialog (WnckWindow *win,
 	if (d->force_quit_dialog)
 		return;
 
-	tmp = g_markup_escape_text (wnck_window_get_name (win), -1);
+	tmp = g_markup_escape_text (wnck_window_has_name (win) ?
+	                            wnck_window_get_name (win) : "", -1);
 	str = g_strdup_printf (_("The window \"%s\" is not responding."), tmp);
 
 	g_free (tmp);
@@ -5831,7 +5761,6 @@ meta_button_function_from_string (const char *str)
 	else if (strcmp (str, "close") == 0)
 		return META_BUTTON_FUNCTION_CLOSE;
 
-#ifdef HAVE_METACITY_2_17_0
 	else if (strcmp (str, "shade") == 0)
 		return META_BUTTON_FUNCTION_SHADE;
 	else if (strcmp (str, "above") == 0)
@@ -5844,7 +5773,6 @@ meta_button_function_from_string (const char *str)
 		return META_BUTTON_FUNCTION_UNABOVE;
 	else if (strcmp (str, "unstick") == 0)
 		return META_BUTTON_FUNCTION_UNSTICK;
-#endif
 
 	else
 		return META_BUTTON_FUNCTION_LAST;
@@ -5855,7 +5783,6 @@ meta_button_opposite_function (MetaButtonFunction ofwhat)
 {
 	switch (ofwhat)
 	{
-#ifdef HAVE_METACITY_2_17_0
 	case META_BUTTON_FUNCTION_SHADE:
 		return META_BUTTON_FUNCTION_UNSHADE;
 	case META_BUTTON_FUNCTION_UNSHADE:
@@ -5870,7 +5797,6 @@ meta_button_opposite_function (MetaButtonFunction ofwhat)
 		return META_BUTTON_FUNCTION_UNSTICK;
 	case META_BUTTON_FUNCTION_UNSTICK:
 		return META_BUTTON_FUNCTION_STICK;
-#endif
 
 	default:
 		return META_BUTTON_FUNCTION_LAST;
@@ -5886,10 +5812,8 @@ meta_initialize_button_layout (MetaButtonLayout *layout)
 	{
 		layout->left_buttons[i] = META_BUTTON_FUNCTION_LAST;
 		layout->right_buttons[i] = META_BUTTON_FUNCTION_LAST;
-#ifdef HAVE_METACITY_2_23_2
 		layout->left_buttons_has_spacer[i] = FALSE;
 		layout->right_buttons_has_spacer[i] = FALSE;
-#endif
 	}
 }
 
@@ -5920,7 +5844,7 @@ meta_update_button_layout (const char *value)
 		while (buttons[b] != NULL)
 		{
 			f = meta_button_function_from_string (buttons[b]);
-#ifdef HAVE_METACITY_2_23_2
+
 			if (i > 0 && strcmp("spacer", buttons[b]) == 0)
 			{
 				new_layout.left_buttons_has_spacer[i - 1] = TRUE;
@@ -5930,7 +5854,6 @@ meta_update_button_layout (const char *value)
 					new_layout.left_buttons_has_spacer[i - 2] = TRUE;
 			}
 			else
-#endif
 			{
 				if (f != META_BUTTON_FUNCTION_LAST && !used[f])
 				{
@@ -5967,7 +5890,7 @@ meta_update_button_layout (const char *value)
 			while (buttons[b] != NULL)
 			{
 				f = meta_button_function_from_string (buttons[b]);
-#ifdef HAVE_METACITY_2_23_2
+
 				if (i > 0 && strcmp("spacer", buttons[b]) == 0)
 				{
 					new_layout.right_buttons_has_spacer[i - 1] = TRUE;
@@ -5976,7 +5899,6 @@ meta_update_button_layout (const char *value)
 						new_layout.right_buttons_has_spacer[i - 2] = TRUE;
 				}
 				else
-#endif
 				{
 					if (f != META_BUTTON_FUNCTION_LAST && !used[f])
 					{
@@ -6020,14 +5942,13 @@ meta_update_button_layout (const char *value)
 		for (j = 0; j < i; j++)
 		{
 			rtl_layout.right_buttons[j] = new_layout.left_buttons[i - j - 1];
-#ifdef HAVE_METACITY_2_23_2
+
 			if (j == 0)
 				rtl_layout.right_buttons_has_spacer[i - 1] =
 					new_layout.left_buttons_has_spacer[i - j - 1];
 			else
 				rtl_layout.right_buttons_has_spacer[j - 1] =
 					new_layout.left_buttons_has_spacer[i - j - 1];
-#endif
 		}
 
 		i = 0;
@@ -6037,14 +5958,13 @@ meta_update_button_layout (const char *value)
 		for (j = 0; j < i; j++)
 		{
 			rtl_layout.left_buttons[j] = new_layout.right_buttons[i - j - 1];
-#ifdef HAVE_METACITY_2_23_2
+
 			if (j == 0)
 				rtl_layout.left_buttons_has_spacer[i - 1] =
 					new_layout.right_buttons_has_spacer[i - j - 1];
 			else
 				rtl_layout.left_buttons_has_spacer[j - 1] =
 					new_layout.right_buttons_has_spacer[i - j - 1];
-#endif
 		}
 
 		new_layout = rtl_layout;
