@@ -25,8 +25,4 @@ AM_CPPFLAGS = \
 
 bin_PROGRAMS = $(fusilli_decorator_gtk_program)
 
-EXTRA_DIST =		\
-	gwd.schemas.in
 
-DISTCLEANFILES = \
-	$(schema_files)
