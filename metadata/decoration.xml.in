@@ -45,11 +45,216 @@
 				</option>
 			</subgroup>
 		</group>
-	</plugin>
-</fusilli>
 
-				<!-- TODO: Fix: the following options are not used in decoration.c
-				formerly integrated options
+		<group>
+			<_short>fusilli-decorator-gtk</_short>
+
+			<subgroup>
+				<option name="decoration_style" type="int">
+					<_short>Decoration Style</_short>
+					<_long>How to decorate windows</_long>
+					<default>0</default>
+					<desc>
+						<value>0</value>
+						<_name>Cairo</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Metacity Theme</_name>
+					</desc>
+				</option>
+
+				<option name="metacity_theme" type="string">
+					<_short>Metacity Theme</_short>
+					<_long>Which metacity theme to use</_long>
+					<default></default>
+				</option>
+
+				<option name="blur" type="int">
+					<_short>Blur</_short>
+					<_long>Blur Effect on Window Decoration (requires blur plugin)</_long>
+					<default>0</default>
+					<desc>
+						<value>0</value>
+						<_name>No</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Titlebar only</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Yes</_name>
+					</desc>
+				</option>
+			</subgroup>
+
+			<subgroup collapsible="true">
+				<_short>Window Titlebar Settings</_short>
+
+				<option name="action_double_click_titlebar" type="int">
+					<_short>Double Click Action</_short>
+					<_long>Action triggered when the titlebar is double clicked</_long>
+					<default>2</default>
+					<desc>
+						<value>0</value>
+						<_name>None</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Toggle Shade</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Toggle Maximize</_name>
+					</desc>
+					<desc>
+						<value>3</value>
+						<_name>Minimize</_name>
+					</desc>
+					<desc>
+						<value>4</value>
+						<_name>Raise</_name>
+					</desc>
+					<desc>
+						<value>5</value>
+						<_name>Lower</_name>
+					</desc>
+					<desc>
+						<value>6</value>
+						<_name>Menu</_name>
+					</desc>
+					<desc>
+						<value>7</value>
+						<_name>Toggle Maximize Horizontally</_name>
+					</desc>
+					<desc>
+						<value>8</value>
+						<_name>Toggle Maximize Vertically</_name>
+					</desc>
+				</option>
+
+
+				<option name="action_middle_click_titlebar" type="int">
+					<_short>Middle Click Action</_short>
+					<_long>Action triggered when the titlebar is clicked with the middle button</_long>
+					<default>5</default>
+					<desc>
+						<value>0</value>
+						<_name>None</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Toggle Shade</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Toggle Maximize</_name>
+					</desc>
+					<desc>
+						<value>3</value>
+						<_name>Minimize</_name>
+					</desc>
+					<desc>
+						<value>4</value>
+						<_name>Raise</_name>
+					</desc>
+					<desc>
+						<value>5</value>
+						<_name>Lower</_name>
+					</desc>
+					<desc>
+						<value>6</value>
+						<_name>Menu</_name>
+					</desc>
+					<desc>
+						<value>7</value>
+						<_name>Toggle Maximize Horizontally</_name>
+					</desc>
+					<desc>
+						<value>8</value>
+						<_name>Toggle Maximize Vertically</_name>
+					</desc>
+				</option>
+
+				<option name="action_right_click_titlebar" type="int">
+					<_short>Right Click Action</_short>
+					<_long>Action triggered when the titlebar is clicked with the right button</_long>
+					<default>6</default>
+					<desc>
+						<value>0</value>
+						<_name>None</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Toggle Shade</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Toggle Maximize</_name>
+					</desc>
+					<desc>
+						<value>3</value>
+						<_name>Minimize</_name>
+					</desc>
+					<desc>
+						<value>4</value>
+						<_name>Raise</_name>
+					</desc>
+					<desc>
+						<value>5</value>
+						<_name>Lower</_name>
+					</desc>
+					<desc>
+						<value>6</value>
+						<_name>Menu</_name>
+					</desc>
+					<desc>
+						<value>7</value>
+						<_name>Toggle Maximize Horizontally</_name>
+					</desc>
+					<desc>
+						<value>8</value>
+						<_name>Toggle Maximize Vertically</_name>
+					</desc>
+				</option>
+
+				<option name="wheel_action_titlebar" type="int">
+					<_short>Wheel Action</_short>
+					<_long>Action triggered when scrolling the mouse wheel on a titlebar.</_long>
+					<default>0</default>
+					<desc>
+						<value>0</value>
+						<_name>None</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Shade</_name>
+					</desc>
+				</option>
+
+				<option name="use_system_font" type="bool">
+					<_short>Use System Font</_short>
+					<_long>If true, ignore the titlebar_font option and use the system font for window titles.</_long>
+					<default>false</default>
+				</option>
+
+				<option name="titlebar_font" type="string">
+					<_short>Font</_short>
+					<_long>Font to use in window titlebars</_long>
+					<default>Sans Bold 10</default>
+				</option>
+
+				<option name="button_layout" type="string">
+					<_short>Button layout</_short>
+					<_long>Order of buttons on the titlebar</_long>
+					<default>menu:minimize,maximize,close</default>
+				</option>
+			</subgroup>
+
+			<subgroup collapsible="true">
+				<_short>Shadow Settings</_short>
+
 				<option name="shadow_radius" type="float">
 					<_short>Shadow Radius</_short>
 					<_long>Drop shadow radius</_long>
@@ -71,6 +276,7 @@
 				<option name="shadow_color" type="string">
 					<_short>Shadow Color</_short>
 					<_long>Drop shadow color</_long>
+					<default>#000000ff</default>
 					<hint>color</hint>
 				</option>
 
@@ -89,5 +295,42 @@
 					<min>-16</min>
 					<max>16</max>
 				</option>
+			</subgroup>
 
-				END OF TODO -->
+			<subgroup collapsible="true">
+				<_short>Metacity Theme Settings</_short>
+
+				<option name="metacity_theme_opacity" type="float">
+					<_short>Opacity</_short>
+					<_long>Opacity to use for Metacity theme decorations</_long>
+					<default>75.0</default>
+					<min>0.0</min>
+					<max>100.0</max>
+					<precision>1.0</precision>
+				</option>
+
+				<option name="metacity_theme_shade_opacity" type="bool">
+					<_short>Shade Opacity</_short>
+					<_long>Shade windows with Metacity theme decorations from opaque to translucent</_long>
+					<default>true</default>
+				</option>
+
+				<option name="metacity_theme_active_opacity" type="float">
+					<_short>Active Window Opacity</_short>
+					<_long>Opacity to use for active windows with Metacity theme decorations</_long>
+					<default>100.0</default>
+					<min>0.0</min>
+					<max>100.0</max>
+					<precision>1.0</precision>
+				</option>
+
+				<option name="metacity_theme_active_shade_opacity" type="bool">
+					<_short>Active Window Shade Opacity</_short>
+					<_long>Shade active windows with Metacity theme decorations from opaque to translucent</_long>
+					<default>true</default>
+				</option>
+			</subgroup>
+		</group>
+
+	</plugin>
+</fusilli>

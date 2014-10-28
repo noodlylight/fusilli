@@ -234,6 +234,7 @@ if test "x$use_gtk" = "xyes"; then
 		    xrender >= 0.8.4        \
 		    gtk+-2.0 >= 2.8.0       \
 		    libwnck-1.0 >= 2.19.4   \
+		    libxml-2.0              \
 		    pangocairo,
 		    [use_gtk=yes], [use_gtk=no])
   if test "x$use_gtk" = "xyes"; then
