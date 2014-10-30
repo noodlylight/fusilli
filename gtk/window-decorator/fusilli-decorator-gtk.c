@@ -78,8 +78,8 @@ static gint gdk_input_tag;
 #include <sys/types.h>
 #include <signal.h>
 
-#ifdef USE_METACITY
-#include <metacity-private/theme.h>
+#ifdef USE_MARCO
+#include <marco-private/theme.h>
 #endif
 
 #define STROKE_ALPHA 0.6
@@ -239,7 +239,7 @@ static gboolean meta_active_shade_opacity = META_ACTIVE_SHADE_OPACITY;
 /*******************************************************************************
 ********************************************************************************
 *******************************************************************************/
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 static gboolean         meta_button_layout_set = FALSE;
 static MetaButtonLayout meta_button_layout;
 #endif
@@ -1265,7 +1265,7 @@ draw_window_decoration (decor_t *d)
 	}
 }
 
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 static void
 decor_update_meta_window_property (decor_t        *d,
                                    MetaTheme      *theme,
@@ -2702,7 +2702,7 @@ get_button_position (decor_t *d,
 	return TRUE;
 }
 
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 
 #define TOP_RESIZE_HEIGHT 2
 #define RESIZE_EXTENDS 15
@@ -3261,7 +3261,7 @@ calc_decoration_size (decor_t *d,
 	return FALSE;
 }
 
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 
 static void
 meta_calc_button_size (decor_t *d)
@@ -5623,7 +5623,7 @@ update_window_decoration (WnckWindow *win)
 	}
 }
 
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 static MetaButtonFunction
 meta_button_function_from_string (const char *str)
 {
@@ -5858,7 +5858,7 @@ update_border_extents (gint text_height)
 	    (text_height < 17) ? 17 : text_height;
 }
 
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 static void
 meta_update_border_extents (gint text_height)
 {
@@ -5938,7 +5938,7 @@ update_titlebar_font (void)
 static void
 update_theme (void)
 {
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 	if (decoration_style == DECORATION_STYLE_METACITY)
 	{
 		if (meta_theme)
@@ -5983,7 +5983,7 @@ static gboolean
 update_button_layout (void)
 {
 
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 	if (button_layout)
 	{
 		meta_update_button_layout (button_layout);
@@ -6034,7 +6034,7 @@ update_decorations (WnckScreen *screen)
 		if (d->decorated)
 		{
 
-#ifdef USE_METACITY
+#ifdef USE_MARCO
 			if (d->draw == draw_window_decoration ||
 			    d->draw == meta_draw_window_decoration)
 			    d->draw = theme_draw_window_decoration;

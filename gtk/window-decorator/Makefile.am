@@ -1,7 +1,7 @@
 if USE_GTK
 
-if USE_METACITY
-metacitylibs = @METACITY_LIBS@
+if USE_MARCO
+marcolibs = @MARCO_LIBS@
 endif
 
 fusilli_decorator_gtk_DEPENDENCIES = \
@@ -9,7 +9,7 @@ fusilli_decorator_gtk_DEPENDENCIES = \
 fusilli_decorator_gtk_LDADD	  =		       \
 	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
 	@GTK_WINDOW_DECORATOR_LIBS@		       \
-	$(metacitylibs)
+	$(marcolibs)
 
 fusilli_decorator_gtk_SOURCES	  = \
 	fusilli-decorator-gtk.c
@@ -19,7 +19,7 @@ endif
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include            \
 	@GTK_WINDOW_DECORATOR_CFLAGS@      \
-	@METACITY_CFLAGS@                  \
+	@MARCO_CFLAGS@                     \
 	-DALL_LINGUAS="\"@ALL_LINGUAS@\""  \
 	-DLOCALEDIR="\"@datadir@/locale"\"
 
