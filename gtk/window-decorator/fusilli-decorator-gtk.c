@@ -25,6 +25,16 @@
 
 #include "decoration.h"
 
+#ifdef USE_INOTIFY
+#include <sys/ioctl.h>
+#include <gdk/gdk.h>
+#include <sys/inotify.h>
+
+static int inotify_fd;
+static int inotify_wd;
+static gint gdk_input_tag;
+#endif
+
 #include <sys/stat.h>
 #include <libxml/parser.h>
 
@@ -6354,6 +6364,49 @@ init_settings (WnckScreen *screen)
 	return TRUE;
 }
 
+#ifdef USE_INOTIFY
+static void
+confFileChanged(gpointer si,
+                gint fd,
+                GdkInputCondition c)
+{
+	int len;
+	unsigned int avail;
+	char *buffer;
+
+	if (ioctl (fd, FIONREAD, &avail) != 0)
+		return;
+
+	buffer = malloc (avail);
+	len = read (fd, buffer, avail);
+	if (len < 0)
+	{
+		perror ("read");
+	}
+	else
+	{
+		struct inotify_event *event;
+		int i = 0;
+
+		while (i < len)
+		{
+			event = (struct inotify_event *) &buffer[i];
+
+			if (strcmp (event->name,
+			            strrchr (configurationFile, '/') + 1) == 0)
+			{
+				loadOptionsFromBananaFile ();
+
+				update_decorations (wnck_screen_get_default ());
+			}
+			i += sizeof (*event) + event->len;
+		}
+	}
+
+	free (buffer);
+}
+#endif
+
 int
 main (int argc, char *argv[])
 {
@@ -6510,6 +6563,40 @@ main (int argc, char *argv[])
 
 	loadOptionsFromBananaFile ();
 
+#ifdef USE_INOTIFY
+	int size = strlen(configurationFile) -
+	           strlen(strrchr(configurationFile, '/'));
+
+	char* configurationDir = malloc (sizeof (char) * size + 1);
+	strncpy (configurationDir, configurationFile, size);
+	configurationDir[size] = '\0';
+
+	inotify_fd = inotify_init ();
+
+	if (inotify_fd >= 0)
+	{
+		inotify_wd = inotify_add_watch (inotify_fd, configurationDir,
+		                                    IN_MOVE   |
+		                                    IN_DELETE |
+		                                    IN_MODIFY |
+		                                    IN_CREATE);
+
+		if (inotify_wd >= 0)
+		{
+			gdk_input_tag =
+			  gdk_input_add (inotify_fd, GDK_INPUT_READ, confFileChanged, NULL);
+		}
+		else
+		{
+			perror ("inotify_add_watch");
+		}
+	}
+	else
+	{
+		perror ("inotify_init");
+	}
+#endif
+
 	if (!init_settings (screen))
 	{
 		fprintf (stderr, "%s: Failed to get necessary gtk settings\n", argv[0]);
@@ -6522,5 +6609,18 @@ main (int argc, char *argv[])
 
 	gtk_main ();
 
+#ifdef USE_INOTIFY
+	gdk_input_remove (gdk_input_tag);
+
+	if (inotify_fd >= 0)
+	{
+		if (inotify_wd >= 0)
+			inotify_rm_watch (inotify_fd, inotify_wd);
+
+		close (inotify_fd);
+	}
+
+	free (configurationDir);
+#endif
 	return 0;
 }

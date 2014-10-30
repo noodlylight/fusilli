@@ -188,6 +188,7 @@ AC_ARG_ENABLE(inotify,
 
 if test "x$use_inotify" = "xyes"; then
   AC_CHECK_HEADERS([sys/inotify.h], [use_inotify=yes], [use_inotify=no])
+  AC_CHECK_HEADERS([sys/ioctl.h], [use_inotify=yes], [use_inotify=no])
 fi
 
 AM_CONDITIONAL(USE_INOTIFY, test "x$use_inotify" = "xyes")
