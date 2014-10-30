@@ -240,10 +240,14 @@ if test "x$use_gtk" = "xyes"; then
 		    [use_gtk=yes], [use_gtk=no])
   if test "x$use_gtk" = "xyes"; then
     if test "x$use_marco" = "xyes"; then
-      PKG_CHECK_MODULES(MARCO, libmarco-private,
+      PKG_CHECK_MODULES(MARCO, 
+          libmarco-private >= 1.6.0 \
+          gio-2.0,
 			[use_marco=yes], [use_marco=no])
     fi
-
+    if test "x$use_marco" = "xyes"; then
+      AC_DEFINE(USE_GSETTINGS, 1, [Enable GSettings])
+    fi
   else
     use_marco="no"
   fi

@@ -80,6 +80,13 @@ static gint gdk_input_tag;
 
 #ifdef USE_MARCO
 #include <marco-private/theme.h>
+
+	#ifdef USE_GSETTINGS
+	#include <gio/gio.h>
+
+	static GSettings *gsettings;
+	#endif
+
 #endif
 
 #define STROKE_ALPHA 0.6
@@ -5943,9 +5950,28 @@ update_theme (void)
 	{
 		if (meta_theme)
 		{
+#ifdef USE_GSETTINGS
+			if (strcmp (meta_theme, "FOLLOW_MARCO_GSETTINGS") == 0)
+			{
+				gchar *gtheme = g_settings_get_string (gsettings, "theme");
+
+				meta_theme_set_current (gtheme, TRUE);
+				if (!meta_theme_get_current ())
+					decoration_style = DECORATION_STYLE_CAIRO;
+
+				g_free (gtheme);
+			}
+			else
+			{
+				meta_theme_set_current (meta_theme, TRUE);
+				if (!meta_theme_get_current ())
+					decoration_style = DECORATION_STYLE_CAIRO;
+			}
+#else
 			meta_theme_set_current (meta_theme, TRUE);
 			if (!meta_theme_get_current ())
 				decoration_style = DECORATION_STYLE_CAIRO;
+#endif
 		}
 		else
 		{
@@ -6254,6 +6280,17 @@ change_option (const char *name,
 	}
 }
 
+#if defined(USE_MARCO) && defined(USE_GSETTINGS)
+static void
+key_changed (GSettings   *settings,
+             const gchar *key)
+{
+	if (strcmp (key, "theme") == 0)
+		if (meta_theme && strcmp (meta_theme, "FOLLOW_MARCO_GSETTINGS") == 0)
+			update_decorations (wnck_screen_get_default ());
+}
+#endif
+
 static void
 loadOptionsFromBananaFile (void)
 {
@@ -6561,6 +6598,12 @@ main (int argc, char *argv[])
 		}
 	}
 
+#if defined(USE_MARCO) && defined(USE_GSETTINGS)
+	gsettings = g_settings_new ("org.mate.Marco.general");
+
+	g_signal_connect (gsettings, "changed", G_CALLBACK (key_changed), NULL);
+#endif
+
 	loadOptionsFromBananaFile ();
 
 #ifdef USE_INOTIFY
@@ -6608,6 +6651,10 @@ main (int argc, char *argv[])
 	update_decorations (screen);
 
 	gtk_main ();
+
+#if defined(USE_MARCO) && defined(USE_GSETTINGS)
+	g_object_unref (gsettings);
+#endif
 
 #ifdef USE_INOTIFY
 	gdk_input_remove (gdk_input_tag);
