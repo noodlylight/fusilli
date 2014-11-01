@@ -22,6 +22,7 @@ import pygtk
 pygtk.require("2.0")
 import gtk
 import gtk.gdk
+import pango
 import gobject
 
 import xml.etree.cElementTree as etree
@@ -146,8 +147,7 @@ class ListWidget():
         #Label
         self.GTKLabel = gtk.Label(self.ShortDesc)
         if self.IsPerScreen:
-            self.GTKLabel.set_markup("<span foreground='blue'>%s</span>" % 
-                                                         (self.ShortDesc))
+            self.GTKLabel.set_markup("<i>%s</i>" % (self.ShortDesc))
         self.GTKLabel.set_tooltip_markup("%s\n<small><i>%s</i></small>" % 
                                                (self.LongDesc, self.Name))
         self.GTKLabel.props.xalign = 0
@@ -518,8 +518,7 @@ class BananaOption():
         #Label
         self.GTKLabel = gtk.Label(self.ShortDesc)
         if self.IsPerScreen:
-            self.GTKLabel.set_markup("<span foreground='blue'>%s</span>" % 
-                                                         (self.ShortDesc))
+            self.GTKLabel.set_markup("<i>%s</i>" % (self.ShortDesc))
         self.GTKLabel.set_tooltip_markup("%s\n<small><i>%s</i></small>" % 
                                                (self.LongDesc, self.Name))
         self.GTKLabel.props.xalign = 0
@@ -705,11 +704,9 @@ class BananaPlugin():
             if (self.Name in 
                 banana.Plugins["core"].Options["active_plugins"].Value or 
                 self.Name == "core"):
-                group.GTKEventBox.modify_bg(gtk.STATE_NORMAL, 
-                                            gtk.gdk.color_parse("white"))
+                group.GTKEventBox.set_sensitive(True)
             else:
-                group.GTKEventBox.modify_bg(gtk.STATE_NORMAL, 
-                                            gtk.gdk.color_parse("grey"))
+                group.GTKEventBox.set_sensitive(False)
             group.GTKGroupBox = gtk.VBox()
 
             for subgroup in group.SubGroups:
@@ -1442,15 +1439,15 @@ class MainWindow(gtk.Window):
         self.MenuBar.append(self.FSMMenuItem)
 
         #Left Pane
-        self.Model = gtk.ListStore(str, str)
-        self.Model.append(["core","#FFFFFF"])
+        self.Model = gtk.ListStore(str, int)
+        self.Model.append(["core", pango.WEIGHT_BOLD])
         for plugin in sorted(banana.Plugins):
             if plugin != "core":
                 if (plugin in 
                     banana.Plugins["core"].Options["active_plugins"].Value):
-                    self.Model.append([plugin, "#FFFFFF"])
+                    self.Model.append([plugin, pango.WEIGHT_BOLD])
                 else:
-                    self.Model.append([plugin, "#808080"])
+                    self.Model.append([plugin, pango.WEIGHT_NORMAL])
 
         self.TreeView = gtk.TreeView(model=self.Model)
         self.TreeView.set_headers_visible(False)
@@ -1458,10 +1455,10 @@ class MainWindow(gtk.Window):
         self.TreeView.get_selection().connect("changed", self.handlePluginClick)
 
         self.Renderer = gtk.CellRendererText()
-        self.Renderer.set_property("background-set", True)
+        self.Renderer.set_property("weight", True)
         self.TreeViewColumn = gtk.TreeViewColumn("", self.Renderer, text=0)
         self.TreeViewColumn.connect("clicked", self.handlePluginClick)
-        self.TreeViewColumn.set_attributes(self.Renderer, text=0, background=1)
+        self.TreeViewColumn.set_attributes(self.Renderer, text=0, weight=1)
         self.TreeView.append_column(self.TreeViewColumn)
 
         self.ScrolledWindow = gtk.ScrolledWindow()
@@ -1530,14 +1527,14 @@ class MainWindow(gtk.Window):
     def RefreshPluginList(self):
         cursor, column = self.TreeView.get_cursor()
         self.Model.clear()
-        self.Model.append(["core","#FFFFFF"])
+        self.Model.append(["core",pango.WEIGHT_BOLD])
         for plugin in sorted(banana.Plugins):
             if plugin != "core":
                 if (plugin in 
                     banana.Plugins["core"].Options["active_plugins"].Value):
-                    self.Model.append([plugin, "#FFFFFF"])
+                    self.Model.append([plugin, pango.WEIGHT_BOLD])
                 else:
-                    self.Model.append([plugin, "#808080"])
+                    self.Model.append([plugin, pango.WEIGHT_NORMAL])
         self.TreeView.set_cursor(cursor)
 
         for plugin in banana.Plugins.values():
@@ -1545,11 +1542,9 @@ class MainWindow(gtk.Window):
                 if (plugin.Name in 
                     banana.Plugins["core"].Options["active_plugins"].Value or
                     plugin.Name == "core"):
-                    group.GTKEventBox.modify_bg(gtk.STATE_NORMAL,
-                                                gtk.gdk.color_parse("white"))
+                    group.GTKEventBox.set_sensitive(True)
                 else:
-                    group.GTKEventBox.modify_bg(gtk.STATE_NORMAL,
-                                                gtk.gdk.color_parse("grey"))
+                    group.GTKEventBox.set_sensitive(False)
 
     def handlePluginClick(self, tree_selection):
         (model, pathlist) = tree_selection.get_selected_rows()
