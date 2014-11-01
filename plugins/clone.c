@@ -83,8 +83,6 @@ typedef struct _CloneScreen {
 #define CLONE_SCREEN(s) \
         CloneScreen *cs = GET_CLONE_SCREEN (s, GET_CLONE_DISPLAY (s->display))
 
-#define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
-
 static void
 cloneRemove (CompScreen *s,
              int        i)
