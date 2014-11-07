@@ -100,8 +100,6 @@ typedef struct _MoveScreen {
 #define MOVE_SCREEN(s) \
         MoveScreen *ms = GET_MOVE_SCREEN (s, GET_MOVE_DISPLAY (s->display))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 static Bool
 moveInitiate (BananaArgument     *arg,
               int                nArg)

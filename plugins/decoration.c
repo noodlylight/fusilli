@@ -162,8 +162,6 @@ typedef struct _DecorWindow {
                           GET_DECOR_SCREEN  (w->screen, \
                           GET_DECOR_DISPLAY (w->screen->display)))
 
-#define NUM_OPTIONS(d) (sizeof ((d)->opt) / sizeof (CompOption))
-
 static Bool
 decorDrawWindow (CompWindow           *w,
                  const CompTransform  *transform,

@@ -124,8 +124,6 @@ typedef struct _WaterScreen {
 #define WATER_SCREEN(s) \
         WaterScreen *ws = GET_WATER_SCREEN (s, GET_WATER_DISPLAY (s->display))
 
-#define NUM_OPTIONS(s) (sizeof ((s)->opt) / sizeof (CompOption))
-
 static Bool
 waterRainTimeout (void *closure);
 
