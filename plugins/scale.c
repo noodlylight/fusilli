@@ -116,7 +116,7 @@ scaleActivateEvent (CompScreen *s,
 	arg[1].name = "active";
 	arg[1].value.b = activating;
 
-	(*s->display->handleFusilliEvent) (s->display, "scale", "activate", arg, 2);
+	(*display.handleFusilliEvent) ("scale", "activate", arg, 2);
 }
 
 static void
@@ -256,7 +256,7 @@ setScaledPaintAttributes (CompWindow        *w,
 
 	if (sw->adjust || sw->slot)
 	{
-		SCALE_DISPLAY (w->screen->display);
+		SCALE_DISPLAY (&display);
 
 		if (w->id       != sd->selectedWindow &&
 		    ss->opacity != OPAQUE             &&
@@ -960,7 +960,7 @@ scaleTerminate (BananaArgument  *arg,
 	CompScreen *s;
 	Window     xid;
 
-	SCALE_DISPLAY (core.displays);
+	SCALE_DISPLAY (&display);
 
 	BananaValue *root = getArgNamed ("root", arg, nArg);
 
@@ -969,7 +969,7 @@ scaleTerminate (BananaArgument  *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		SCALE_SCREEN (s);
 
@@ -1005,7 +1005,7 @@ scaleTerminate (BananaArgument  *arg,
 			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
 			if (cancel != NULL && cancel->b)
 			{
-				if (core.displays->activeWindow != sd->previousActiveWindow)
+				if (display.activeWindow != sd->previousActiveWindow)
 				{
 					w = findWindowAtScreen (s, sd->previousActiveWindow);
 					if (w)
@@ -1036,7 +1036,7 @@ scaleInitiateCommon (CompScreen       *s,
                      int              nArg)
 {
 	//TODO: support match through action (dbus etc.)
-	SCALE_DISPLAY (s->display);
+	SCALE_DISPLAY (&display);
 	SCALE_SCREEN (s);
 
 	if (otherScreenGrabExist (s, "scale", NULL))
@@ -1057,9 +1057,9 @@ scaleInitiateCommon (CompScreen       *s,
 		if (!sd->lastActiveNum)
 			sd->lastActiveNum = s->activeNum - 1;
 
-		sd->previousActiveWindow = s->display->activeWindow;
-		sd->lastActiveWindow     = s->display->activeWindow;
-		sd->selectedWindow       = s->display->activeWindow;
+		sd->previousActiveWindow = display.activeWindow;
+		sd->lastActiveWindow     = display.activeWindow;
+		sd->selectedWindow       = display.activeWindow;
 		sd->hoveredWindow        = None;
 
 		ss->state = SCALE_STATE_OUT;
@@ -1086,7 +1086,7 @@ scaleInitiate (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		SCALE_SCREEN (s);
@@ -1115,7 +1115,7 @@ scaleInitiateAll (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		SCALE_SCREEN (s);
@@ -1133,7 +1133,7 @@ scaleInitiateAll (BananaArgument   *arg,
 static void
 scaleSelectWindow (CompWindow *w)
 {
-	SCALE_DISPLAY (w->screen->display);
+	SCALE_DISPLAY (&display);
 
 	if (sd->selectedWindow != w->id)
 	{
@@ -1160,7 +1160,7 @@ scaleSelectWindowAt (CompScreen *s,
 {
 	CompWindow *w;
 
-	SCALE_DISPLAY (s->display);
+	SCALE_DISPLAY (&display);
 
 	w = scaleCheckForWindowAt (s, x, y);
 	if (w && isScaleWin (w))
@@ -1195,7 +1195,7 @@ scaleMoveFocusWindow (CompScreen *s,
 	CompWindow *active;
 	CompWindow *focus = NULL;
 
-	active = findWindowAtScreen (s, s->display->activeWindow);
+	active = findWindowAtScreen (s, display.activeWindow);
 	if (active)
 	{
 		SCALE_WINDOW (active);
@@ -1256,7 +1256,7 @@ scaleMoveFocusWindow (CompScreen *s,
 
 	if (focus)
 	{
-		SCALE_DISPLAY (s->display);
+		SCALE_DISPLAY (&display);
 		SCALE_SCREEN (s);
 
 		(*ss->selectWindow) (focus);
@@ -1349,14 +1349,13 @@ scaleWindowRemove (CompDisplay *d,
 }
 
 static void
-scaleHandleEvent (CompDisplay *d,
-                  XEvent      *event)
+scaleHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 	Bool       consumeEvent = FALSE;
 	CompWindow *w = NULL;
 
-	SCALE_DISPLAY (d);
+	SCALE_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
@@ -1380,7 +1379,7 @@ scaleHandleEvent (CompDisplay *d,
 
 			scaleInitiateAll (&arg, 1);
 		}
-		if (event->xkey.keycode == d->escapeKeyCode)
+		if (event->xkey.keycode == display.escapeKeyCode)
 		{
 			BananaArgument arg[2];
 
@@ -1394,7 +1393,7 @@ scaleHandleEvent (CompDisplay *d,
 
 			scaleTerminate (arg, 2);
 		}
-		s = findScreenAtDisplay (d, event->xkey.root);
+		s = findScreenAtDisplay (event->xkey.root);
 		if (s)
 		{
 			SCALE_SCREEN (s);
@@ -1447,7 +1446,7 @@ scaleHandleEvent (CompDisplay *d,
 		}
 		if (event->xbutton.button == Button1)
 		{
-			s = findScreenAtDisplay (d, event->xbutton.root);
+			s = findScreenAtDisplay (event->xbutton.root);
 			if (s)
 			{
 				SCALE_SCREEN (s);
@@ -1491,7 +1490,7 @@ scaleHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 		{
 			SCALE_SCREEN (s);
@@ -1516,13 +1515,13 @@ scaleHandleEvent (CompDisplay *d,
 		break;
 	case DestroyNotify:
 		/* We need to get the CompWindow * for event->xdestroywindow.window
-		   here because in the (*d->handleEvent) call below, that CompWindow's
+		   here because in the (*display.handleEvent) call below, that CompWindow's
 		   id will become 1, so findWindowAtDisplay won't be able to find the
 		   CompWindow after that. */
-		w = findWindowAtDisplay (d, event->xdestroywindow.window);
+		w = findWindowAtDisplay (event->xdestroywindow.window);
 		break;
 	default:
-		if (event->type == d->xkbEvent)
+		if (event->type == display.xkbEvent)
 		{
 			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
 
@@ -1545,18 +1544,18 @@ scaleHandleEvent (CompDisplay *d,
 
 	if (!consumeEvent)
 	{
-		UNWRAP (sd, d, handleEvent);
-		(*d->handleEvent) (d, event);
-		WRAP (sd, d, handleEvent, scaleHandleEvent);
+		UNWRAP (sd, &display, handleEvent);
+		(*display.handleEvent) (event);
+		WRAP (sd, &display, handleEvent, scaleHandleEvent);
 	}
 
 	switch (event->type) {
 	case UnmapNotify:
-		w = findWindowAtDisplay (d, event->xunmap.window);
-		scaleWindowRemove (d, w);
+		w = findWindowAtDisplay (event->xunmap.window);
+		scaleWindowRemove (&display, w);
 		break;
 	case DestroyNotify:
-		scaleWindowRemove (d, w);
+		scaleWindowRemove (&display, w);
 		break;
 	}
 
@@ -1616,7 +1615,7 @@ scaleInitDisplay (CompPlugin  *p,
 	if (!sd)
 		return FALSE;
 
-	sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	sd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (sd->screenPrivateIndex < 0)
 	{
 		free (sd);
@@ -1645,7 +1644,7 @@ scaleFiniDisplay (CompPlugin  *p,
 {
 	SCALE_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+	freeScreenPrivateIndex (sd->screenPrivateIndex);
 
 	UNWRAP (sd, d, handleEvent);
 
@@ -1658,7 +1657,7 @@ scaleInitScreen (CompPlugin *p,
 {
 	ScaleScreen *ss;
 
-	SCALE_DISPLAY (s->display);
+	SCALE_DISPLAY (&display);
 
 	ss = malloc (sizeof (ScaleScreen));
 	if (!ss)
@@ -1696,7 +1695,7 @@ scaleInitScreen (CompPlugin *p,
 
 	matchInit (&ss->window_match);
 	matchAddFromString (&ss->window_match, option_window_match->s);
-	matchUpdate (core.displays, &ss->window_match);
+	matchUpdate (&ss->window_match);
 
 	ss->layoutSlotsAndAssignWindows = layoutSlotsAndAssignWindows;
 	ss->setScaledPaintAttributes    = setScaledPaintAttributes;
@@ -1709,7 +1708,7 @@ scaleInitScreen (CompPlugin *p,
 	WRAP (ss, s, paintWindow, scalePaintWindow);
 	WRAP (ss, s, damageWindowRect, scaleDamageWindowRect);
 
-	ss->cursor = XCreateFontCursor (s->display->display, XC_left_ptr);
+	ss->cursor = XCreateFontCursor (display.display, XC_left_ptr);
 
 	s->base.privates[sd->screenPrivateIndex].ptr = ss;
 
@@ -1731,7 +1730,7 @@ scaleFiniScreen (CompPlugin *p,
 	matchFini (&ss->window_match);
 
 	if (ss->cursor)
-		XFreeCursor (s->display->display, ss->cursor);
+		XFreeCursor (display.display, ss->cursor);
 
 	if (ss->hoverHandle)
 		compRemoveTimeout (ss->hoverHandle);
@@ -1842,7 +1841,7 @@ scaleChangeNotify (const char        *optionName,
 		matchFini (&ss->window_match);
 		matchInit (&ss->window_match);
 		matchAddFromString (&ss->window_match, optionValue->s);
-		matchUpdate (core.displays, &ss->window_match);
+		matchUpdate (&ss->window_match);
 	}
 	else if (strcasecmp (optionName, "initiate_key") == 0)
 	{

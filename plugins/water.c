@@ -122,7 +122,7 @@ typedef struct _WaterScreen {
         ((WaterScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
 
 #define WATER_SCREEN(s) \
-        WaterScreen *ws = GET_WATER_SCREEN (s, GET_WATER_DISPLAY (s->display))
+        WaterScreen *ws = GET_WATER_SCREEN (s, GET_WATER_DISPLAY (&display))
 
 static Bool
 waterRainTimeout (void *closure);
@@ -1031,7 +1031,7 @@ waterDrawWindowTexture (CompWindow           *w,
 		int            param, function, unit;
 		GLfloat        plane[4];
 
-		WATER_DISPLAY (w->screen->display);
+		WATER_DISPLAY (&display);
 
 		param = allocFragmentParameters (&fa, 1);
 		unit  = allocFragmentTextureUnits (&fa, 1);
@@ -1214,7 +1214,7 @@ waterHandleMotionEvent (CompDisplay *d,
 {
 	CompScreen *s;
 
-	s = findScreenAtDisplay (d, root);
+	s = findScreenAtDisplay (root);
 	if (s)
 	{
 		WATER_SCREEN (s);
@@ -1245,7 +1245,7 @@ waterInitiate (BananaArgument     *arg,
 	Window       root, child;
 	int          xRoot, yRoot, i;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		WATER_SCREEN (s);
 
@@ -1255,7 +1255,7 @@ waterInitiate (BananaArgument     *arg,
 		if (!ws->grabIndex)
 			ws->grabIndex = pushScreenGrab (s, None, "water");
 
-		if (XQueryPointer (core.displays->display, s->root, &root, &child, 
+		if (XQueryPointer (display.display, s->root, &root, &child, 
 		           &xRoot, &yRoot, &i, &i, &ui))
 		{
 			XPoint p;
@@ -1278,7 +1278,7 @@ waterTerminate (BananaArgument     *arg,
 {
 	CompScreen *s;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		WATER_SCREEN (s);
 
@@ -1306,7 +1306,7 @@ waterToggleRain (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		WATER_SCREEN (s);
@@ -1348,7 +1348,7 @@ waterToggleWiper (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		WATER_SCREEN (s);
@@ -1379,9 +1379,9 @@ waterTitleWave (BananaArgument     *arg,
 	if (window != NULL)
 		xid = window->i;
 	else
-		xid = core.displays->activeWindow;
+		xid = display.activeWindow;
 
-	w = findWindowAtDisplay (core.displays, xid);
+	w = findWindowAtDisplay (xid);
 	if (w)
 	{
 		XPoint p[2];
@@ -1463,12 +1463,11 @@ waterLine (BananaArgument     *arg,
 */
 
 static void
-waterHandleEvent (CompDisplay *d,
-                  XEvent      *event)
+waterHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	WATER_DISPLAY (d);
+	WATER_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
@@ -1490,7 +1489,7 @@ waterHandleEvent (CompDisplay *d,
 		}
 		break;
 	case ButtonPress:
-		s = findScreenAtDisplay (d, event->xbutton.root);
+		s = findScreenAtDisplay (event->xbutton.root);
 		if (s)
 		{
 			WATER_SCREEN (s);
@@ -1509,12 +1508,12 @@ waterHandleEvent (CompDisplay *d,
 		break;
 	case EnterNotify:
 	case LeaveNotify:
-		waterHandleMotionEvent (d, event->xcrossing.root);
+		waterHandleMotionEvent (&display, event->xcrossing.root);
 		break;
 	case MotionNotify:
-		waterHandleMotionEvent (d, event->xmotion.root);
+		waterHandleMotionEvent (&display, event->xmotion.root);
 	default:
-		if (event->type == d->xkbEvent)
+		if (event->type == display.xkbEvent)
 		{
 			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
 
@@ -1524,9 +1523,9 @@ waterHandleEvent (CompDisplay *d,
 
 				if (stateEvent->event_type == KeyPress)
 				{
-					unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
+					unsigned int    modMask = REAL_MOD_MASK & ~display.ignoredModMask;
 
-					unsigned int bindMods = virtualToRealModMask (core.displays, 
+					unsigned int bindMods = virtualToRealModMask ( 
 					                           initiate_key_modifiers);
 
 					if ((stateEvent->mods & modMask & bindMods) == bindMods)
@@ -1536,9 +1535,9 @@ waterHandleEvent (CompDisplay *d,
 				}
 				else
 				{
-					unsigned int    modMask = REAL_MOD_MASK & ~d->ignoredModMask;
+					unsigned int    modMask = REAL_MOD_MASK & ~display.ignoredModMask;
 
-					unsigned int bindMods = virtualToRealModMask (core.displays, 
+					unsigned int bindMods = virtualToRealModMask ( 
 					                           initiate_key_modifiers);
 
 					if ((stateEvent->mods & modMask & bindMods) != bindMods)
@@ -1558,7 +1557,7 @@ waterHandleEvent (CompDisplay *d,
 
 					arg.name = "window";
 					arg.type = BananaInt;
-					arg.value.i = d->activeWindow;
+					arg.value.i = display.activeWindow;
 
 					waterTitleWave (&arg, 1);
 				}
@@ -1566,9 +1565,9 @@ waterHandleEvent (CompDisplay *d,
 		}
 	}
 
-	UNWRAP (wd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (wd, d, handleEvent, waterHandleEvent);
+	UNWRAP (wd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (wd, &display, handleEvent, waterHandleEvent);
 }
 
 
@@ -1583,7 +1582,7 @@ waterInitDisplay (CompPlugin  *p,
 	if (!wd)
 		return FALSE;
 
-	wd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	wd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (wd->screenPrivateIndex < 0)
 	{
 		free (wd);
@@ -1610,7 +1609,7 @@ waterFiniDisplay (CompPlugin  *p,
 {
 	WATER_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, wd->screenPrivateIndex);
+	freeScreenPrivateIndex (wd->screenPrivateIndex);
 
 	UNWRAP (wd, d, handleEvent);
 
@@ -1623,7 +1622,7 @@ waterInitScreen (CompPlugin *p,
 {
 	WaterScreen *ws;
 
-	WATER_DISPLAY (s->display);
+	WATER_DISPLAY (&display);
 
 	ws = calloc (1, sizeof (WaterScreen));
 	if (!ws)
@@ -1722,8 +1721,7 @@ waterChangeNotify (const char        *optionName,
                    int               screenNum)
 {
 	if (strcasecmp (optionName, "initiate_key") == 0)
-		initiate_key_modifiers = stringToModifiers 
-	                         (core.displays, optionValue->s);
+		initiate_key_modifiers = stringToModifiers (optionValue->s);
 
 	else if (strcasecmp (optionName, "toggle_rain_key") == 0)
 		updateKey (optionValue->s, &toggle_rain_key);
@@ -1733,7 +1731,7 @@ waterChangeNotify (const char        *optionName,
 
 	else if (strcasecmp (optionName, "offset_scale") == 0)
 	{
-		WATER_DISPLAY (core.displays);
+		WATER_DISPLAY (&display);
 
 		if (strcasecmp (optionName, "offset_scale") == 0)
 			wd->offsetScale = optionValue->f * 50.0f;
@@ -1743,7 +1741,7 @@ waterChangeNotify (const char        *optionName,
 	{
 		CompScreen *s;
 
-		for (s = core.displays->screens; s; s = s->next)
+		for (s = display.screens; s; s = s->next)
 		{
 			WATER_SCREEN (s);
 
@@ -1803,8 +1801,7 @@ waterInit (CompPlugin *p)
 	                                       "initiate_key",
 	                                       -1);
 
-	initiate_key_modifiers = stringToModifiers (core.displays,
-	                                   option_initiate_key->s);
+	initiate_key_modifiers = stringToModifiers (option_initiate_key->s);
 
 	return TRUE;
 }

@@ -273,8 +273,7 @@ pngExtension (const char *name)
 }
 
 Bool
-pngImageToFile (CompDisplay *d,
-                const char  *path,
+pngImageToFile (const char  *path,
                 const char  *name,
                 int         width,
                 int         height,
@@ -311,8 +310,7 @@ pngImageToFile (CompDisplay *d,
 }
 
 Bool
-pngFileToImage (CompDisplay *d,
-                const char  *path,
+pngFileToImage (const char  *path,
                 const char  *name,
                 int         *width,
                 int         *height,

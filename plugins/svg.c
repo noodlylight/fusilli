@@ -99,7 +99,7 @@ typedef struct _SvgWindow {
         ((SvgScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
 
 #define SVG_SCREEN(s) \
-        SvgScreen *ss = GET_SVG_SCREEN (s, GET_SVG_DISPLAY (s->display))
+        SvgScreen *ss = GET_SVG_SCREEN (s, GET_SVG_DISPLAY (&display))
 
 #define GET_SVG_WINDOW(w, ss) \
         ((SvgWindow *) (w)->base.privates[(ss)->windowPrivateIndex].ptr)
@@ -107,7 +107,7 @@ typedef struct _SvgWindow {
 #define SVG_WINDOW(w) \
         SvgWindow *sw = GET_SVG_WINDOW  (w, \
                         GET_SVG_SCREEN  (w->screen, \
-                        GET_SVG_DISPLAY (w->screen->display)))
+                        GET_SVG_DISPLAY (&display)))
 
 static void
 renderSvg (CompScreen *s,
@@ -168,10 +168,10 @@ initSvgTexture (CompWindow *w,
 	if (width && height)
 	{
 		XWindowAttributes attr;
-		XGetWindowAttributes (s->display->display, w->id, &attr);
+		XGetWindowAttributes (display.display, w->id, &attr);
 
 		depth = attr.depth;
-		texture->pixmap = XCreatePixmap (s->display->display, s->root,
+		texture->pixmap = XCreatePixmap (display.display, s->root,
 		                         width, height, depth);
 
 		if (!bindPixmapToTexture (s,
@@ -182,13 +182,13 @@ initSvgTexture (CompWindow *w,
 			fprintf (stderr, "%s: Couldn't bind pixmap 0x%x to "
 			         "texture\n", programName, (int) texture->pixmap);
 
-			XFreePixmap (s->display->display, texture->pixmap);
+			XFreePixmap (display.display, texture->pixmap);
 
 			return FALSE;
 		}
 
 		visual = attr.visual;
-		surface = cairo_xlib_surface_create (s->display->display,
+		surface = cairo_xlib_surface_create (display.display,
 		                             texture->pixmap, visual,
 		                             width, height);
 		texture->cr = cairo_create (surface);
@@ -206,7 +206,7 @@ finiSvgTexture (CompScreen *s,
 		cairo_destroy (texture->cr);
 
 	if (texture->pixmap)
-		XFreePixmap (s->display->display, texture->pixmap);
+		XFreePixmap (display.display, texture->pixmap);
 
 	finiTexture (s, &texture->texture);
 }
@@ -478,7 +478,7 @@ svgSet (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	w = findWindowAtDisplay (core.displays, xid);
+	w = findWindowAtDisplay (xid);
 
 	if (w)
 	{
@@ -626,17 +626,16 @@ svgWindowResizeNotify (CompWindow *w,
 }
 
 static void
-svgHandleFusilliEvent (CompDisplay    *d,
-                       const char     *pluginName,
+svgHandleFusilliEvent (const char     *pluginName,
                        const char     *eventName,
                        BananaArgument *arg,
                        int            nArg)
 {
-	SVG_DISPLAY (d);
+	SVG_DISPLAY (&display);
 
-	UNWRAP (sd, d, handleFusilliEvent);
-	(*d->handleFusilliEvent) (d, pluginName, eventName, arg, nArg);
-	WRAP (sd, d, handleFusilliEvent, svgHandleFusilliEvent);
+	UNWRAP (sd, &display, handleFusilliEvent);
+	(*display.handleFusilliEvent) (pluginName, eventName, arg, nArg);
+	WRAP (sd, &display, handleFusilliEvent, svgHandleFusilliEvent);
 
 	if (strcmp (pluginName, "zoom") == 0)
 	{
@@ -657,7 +656,7 @@ svgHandleFusilliEvent (CompDisplay    *d,
 		else
 			root = 0;
 
-		s = findScreenAtDisplay (d, root);
+		s = findScreenAtDisplay (root);
 
 		if (s && output == 0)
 		{
@@ -771,8 +770,7 @@ svgExtension (const char *name)
 }
 
 static Bool
-svgFileToImage (CompDisplay *d,
-                const char  *path,
+svgFileToImage (const char  *path,
                 const char  *name,
                 int         *width,
                 int         *height,
@@ -784,7 +782,7 @@ svgFileToImage (CompDisplay *d,
 	char *file;
 	int  len;
 
-	SVG_DISPLAY (d);
+	SVG_DISPLAY (&display);
 
 	len = (path ? strlen (path) : 0) + strlen (name) + strlen (extension) + 2;
 
@@ -807,9 +805,9 @@ svgFileToImage (CompDisplay *d,
 		}
 	}
 
-	UNWRAP (sd, d, fileToImage);
-	status = (*d->fileToImage) (d, path, name, width, height, stride, data);
-	WRAP (sd, d, fileToImage, svgFileToImage);
+	UNWRAP (sd, &display, fileToImage);
+	status = (*display.fileToImage) (path, name, width, height, stride, data);
+	WRAP (sd, &display, fileToImage, svgFileToImage);
 
 	return status;
 }
@@ -825,7 +823,7 @@ svgInitDisplay (CompPlugin  *p,
 	if (!sd)
 		return FALSE;
 
-	sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	sd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (sd->screenPrivateIndex < 0)
 	{
 		free (sd);
@@ -857,7 +855,7 @@ svgFiniDisplay (CompPlugin  *p,
 	for (s = d->screens; s; s = s->next)
 		updateDefaultIcon (s);
 
-	freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+	freeScreenPrivateIndex (sd->screenPrivateIndex);
 
 	free (sd);
 }
@@ -868,7 +866,7 @@ svgInitScreen (CompPlugin *p,
 {
 	SvgScreen *ss;
 
-	SVG_DISPLAY (s->display);
+	SVG_DISPLAY (&display);
 
 	ss = malloc (sizeof (SvgScreen));
 	if (!ss)

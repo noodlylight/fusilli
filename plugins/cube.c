@@ -1192,7 +1192,7 @@ cubeClearTargetOutput (CompScreen *s,
 	}
 	else
 	{
-		clearTargetOutput (s->display, GL_COLOR_BUFFER_BIT);
+		clearTargetOutput (GL_COLOR_BUFFER_BIT);
 	}
 }
 
@@ -1404,7 +1404,7 @@ cubePaintTransformedOutput (CompScreen              *s,
 	float             xRotate, vRotate, progress;
 	int               hsize;
 	float             size;
-	GLenum            filter = s->display->textureFilter;
+	GLenum            filter = display.textureFilter;
 	PaintOrder        paintOrder;
 	Bool              wasCulled = FALSE;
 	Bool              paintCaps;
@@ -1514,7 +1514,7 @@ cubePaintTransformedOutput (CompScreen              *s,
 	option_mipmap = bananaGetOption (bananaIndex, "mipmap", s->screenNum);
 
 	if (cs->grabIndex && option_mipmap->b)
-		s->display->textureFilter = GL_LINEAR_MIPMAP_LINEAR;
+		display.textureFilter = GL_LINEAR_MIPMAP_LINEAR;
 
 	if (cs->invert == 1)
 	{
@@ -1619,7 +1619,7 @@ cubePaintTransformedOutput (CompScreen              *s,
 
 	glCullFace (cullNorm);
 
-	s->display->textureFilter = filter;
+	display.textureFilter = filter;
 
 	WRAP (cs, s, paintTransformedOutput, cubePaintTransformedOutput);
 }
@@ -1712,7 +1712,7 @@ cubeUnfold (BananaArgument  *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		CUBE_SCREEN (s);
@@ -1750,7 +1750,7 @@ cubeFold (BananaArgument  *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		CUBE_SCREEN (s);
 
@@ -1768,10 +1768,9 @@ cubeFold (BananaArgument  *arg,
 }
 
 static void
-cubeHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+cubeHandleEvent (XEvent      *event)
 {
-	CUBE_DISPLAY (d);
+	CUBE_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
@@ -1787,7 +1786,7 @@ cubeHandleEvent (CompDisplay *d,
 		}
 		break;
 	default:
-		if (event->type == d->xkbEvent)
+		if (event->type == display.xkbEvent)
 		{
 			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
 
@@ -1804,9 +1803,9 @@ cubeHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (cd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (cd, d, handleEvent, cubeHandleEvent);
+	UNWRAP (cd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (cd, &display, handleEvent, cubeHandleEvent);
 }
 
 static void
@@ -1899,7 +1898,7 @@ cubeInitDisplay (CompPlugin  *p,
 	if (!cd)
 		return FALSE;
 
-	cd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	cd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (cd->screenPrivateIndex < 0)
 	{
 		free (cd);
@@ -1919,7 +1918,7 @@ cubeFiniDisplay (CompPlugin  *p,
 {
 	CUBE_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, cd->screenPrivateIndex);
+	freeScreenPrivateIndex (cd->screenPrivateIndex);
 
 	UNWRAP (cd, d, handleEvent);
 
@@ -1932,7 +1931,7 @@ cubeInitScreen (CompPlugin *p,
 {
 	CubeScreen *cs;
 
-	CUBE_DISPLAY (s->display);
+	CUBE_DISPLAY (&display);
 
 	cs = malloc (sizeof (CubeScreen));
 	if (!cs)

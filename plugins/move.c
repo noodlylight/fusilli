@@ -98,7 +98,7 @@ typedef struct _MoveScreen {
         ((MoveScreen *) (s)->base.privates[(md)->screenPrivateIndex].ptr)
 
 #define MOVE_SCREEN(s) \
-        MoveScreen *ms = GET_MOVE_SCREEN (s, GET_MOVE_DISPLAY (s->display))
+        MoveScreen *ms = GET_MOVE_SCREEN (s, GET_MOVE_DISPLAY (&display))
 
 static Bool
 moveInitiate (BananaArgument     *arg,
@@ -107,7 +107,7 @@ moveInitiate (BananaArgument     *arg,
 	CompWindow *w;
 	Window     xid;
 
-	MOVE_DISPLAY (core.displays);
+	MOVE_DISPLAY (&display);
 
 	BananaValue *window = getArgNamed ("window", arg, nArg);
 
@@ -116,7 +116,7 @@ moveInitiate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	w = findWindowAtDisplay (core.displays, xid);
+	w = findWindowAtDisplay (xid);
 	if (w && (w->actions & CompWindowActionMoveMask))
 	{
 		XRectangle   workArea;
@@ -251,7 +251,7 @@ static Bool
 moveTerminate (BananaArgument     *arg,
               int                 nArg)
 {
-	MOVE_DISPLAY (core.displays);
+	MOVE_DISPLAY (&display);
 
 	if (md->w)
 	{
@@ -395,7 +395,7 @@ moveHandleMotionEvent (CompScreen *s,
 		int        wX, wY;
 		int        wWidth, wHeight;
 
-		MOVE_DISPLAY (s->display);
+		MOVE_DISPLAY (&display);
 
 		w = md->w;
 
@@ -595,12 +595,11 @@ moveHandleMotionEvent (CompScreen *s,
 }
 
 static void
-moveHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+moveHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	MOVE_DISPLAY (d);
+	MOVE_DISPLAY (&display);
 
 	switch (event->type) {
 	case ButtonPress:
@@ -632,7 +631,7 @@ moveHandleEvent (CompDisplay *d,
 		}
 		break;
 	case ButtonRelease:
-		s = findScreenAtDisplay (d, event->xbutton.root);
+		s = findScreenAtDisplay (event->xbutton.root);
 		if (s)
 		{
 			MOVE_SCREEN (s);
@@ -660,7 +659,7 @@ moveHandleEvent (CompDisplay *d,
 
 			arg[0].name = "window";
 			arg[0].type = BananaInt;
-			arg[0].value.i = d->activeWindow;
+			arg[0].value.i = display.activeWindow;
 
 			arg[1].name = "modifiers";
 			arg[1].type = BananaInt;
@@ -680,7 +679,7 @@ moveHandleEvent (CompDisplay *d,
 
 			moveInitiate (&arg[0], 5);
 		}
-		s = findScreenAtDisplay (d, event->xkey.root);
+		s = findScreenAtDisplay (event->xkey.root);
 		if (s)
 		{
 			MOVE_SCREEN (s);
@@ -693,13 +692,13 @@ moveHandleEvent (CompDisplay *d,
 				{
 					if (event->xkey.keycode == md->key[i])
 					{
-						XWarpPointer (d->display, None, None, 0, 0, 0, 0,
+						XWarpPointer (display.display, None, None, 0, 0, 0, 0,
 						          mKeys[i].dx * KEY_MOVE_INC,
 						          mKeys[i].dy * KEY_MOVE_INC);
 						break;
 					}
 				}
-				if (event->xkey.keycode == d->escapeKeyCode)
+				if (event->xkey.keycode == display.escapeKeyCode)
 				{
 					BananaArgument arg;
 
@@ -713,25 +712,25 @@ moveHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 			moveHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case EnterNotify:
 	case LeaveNotify:
-		s = findScreenAtDisplay (d, event->xcrossing.root);
+		s = findScreenAtDisplay (event->xcrossing.root);
 		if (s)
 			moveHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case ClientMessage:
-		if (event->xclient.message_type == d->wmMoveResizeAtom)
+		if (event->xclient.message_type == display.wmMoveResizeAtom)
 		{
 			CompWindow *w;
 
 			if (event->xclient.data.l[2] == WmMoveResizeMove ||
 			    event->xclient.data.l[2] == WmMoveResizeMoveKeyboard)
 			{
-				w = findWindowAtDisplay (d, event->xclient.window);
+				w = findWindowAtDisplay (event->xclient.window);
 				if (w)
 				{
 					if (event->xclient.data.l[2] == WmMoveResizeMoveKeyboard)
@@ -755,7 +754,7 @@ moveHandleEvent (CompDisplay *d,
 						int          i;
 						int        xRoot, yRoot;
 
-						XQueryPointer (d->display, w->screen->root,
+						XQueryPointer (display.display, w->screen->root,
 						           &root, &child, &xRoot, &yRoot,
 						           &i, &i, &mods);
 
@@ -824,9 +823,9 @@ moveHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (md, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (md, d, handleEvent, moveHandleEvent);
+	UNWRAP (md, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (md, &display, handleEvent, moveHandleEvent);
 }
 
 static Bool
@@ -844,7 +843,7 @@ movePaintWindow (CompWindow              *w,
 
 	if (ms->grabIndex)
 	{
-		MOVE_DISPLAY (s->display);
+		MOVE_DISPLAY (&display);
 
 		if (md->w == w && md->moveOpacity != OPAQUE)
 		{
@@ -869,7 +868,7 @@ moveChangeNotify (const char        *optionName,
                   const BananaValue *optionValue,
                   int               screenNum)
 {
-	MOVE_DISPLAY (core.displays);
+	MOVE_DISPLAY (&display);
 
 	if (strcasecmp (optionName, "opacity") == 0)
 		md->moveOpacity = (optionValue->i * OPAQUE) / 100;
@@ -890,7 +889,7 @@ moveInitDisplay (CompPlugin  *p,
 	if (!md)
 		return FALSE;
 
-	md->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	md->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (md->screenPrivateIndex < 0)
 	{
 		free (md);
@@ -925,7 +924,7 @@ moveFiniDisplay (CompPlugin  *p,
 {
 	MOVE_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, md->screenPrivateIndex);
+	freeScreenPrivateIndex (md->screenPrivateIndex);
 
 	UNWRAP (md, d, handleEvent);
 
@@ -941,7 +940,7 @@ moveInitScreen (CompPlugin *p,
 {
 	MoveScreen *ms;
 
-	MOVE_DISPLAY (s->display);
+	MOVE_DISPLAY (&display);
 
 	ms = malloc (sizeof (MoveScreen));
 	if (!ms)
@@ -949,7 +948,7 @@ moveInitScreen (CompPlugin *p,
 
 	ms->grabIndex = 0;
 
-	ms->moveCursor = XCreateFontCursor (s->display->display, XC_fleur);
+	ms->moveCursor = XCreateFontCursor (display.display, XC_fleur);
 
 	WRAP (ms, s, paintWindow, movePaintWindow);
 
@@ -967,7 +966,7 @@ moveFiniScreen (CompPlugin *p,
 	UNWRAP (ms, s, paintWindow);
 
 	if (ms->moveCursor)
-		XFreeCursor (s->display->display, ms->moveCursor);
+		XFreeCursor (display.display, ms->moveCursor);
 
 	free (ms);
 }

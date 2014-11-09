@@ -97,8 +97,7 @@ stringAppend (char       *s,
 }
 
 static char *
-modifiersToString (CompDisplay  *d,
-                   unsigned int modMask)
+modifiersToString (unsigned int modMask)
 {
 	char *binding = NULL;
 	int  i;
@@ -113,8 +112,7 @@ modifiersToString (CompDisplay  *d,
 }
 
 static char *
-edgeMaskToBindingString (CompDisplay  *d,
-                         unsigned int edgeMask)
+edgeMaskToBindingString (unsigned int edgeMask)
 {
 	char *binding = NULL;
 	int  i;
@@ -127,12 +125,11 @@ edgeMaskToBindingString (CompDisplay  *d,
 }
 
 char *
-keyBindingToString (CompDisplay    *d,
-                    CompKeyBinding *key)
+keyBindingToString (CompKeyBinding *key)
 {
 	char *binding;
 
-	binding = modifiersToString (d, key->modifiers);
+	binding = modifiersToString (key->modifiers);
 
 	if (key->keycode != 0)
 	{
@@ -141,7 +138,7 @@ keyBindingToString (CompDisplay    *d,
 		int keysymsPerKeycode = 0;
 
 		//convert keycode to keysym
-		keysym  = XGetKeyboardMapping (d->display,
+		keysym  = XGetKeyboardMapping (display.display,
 		                               key->keycode, 1,
 		                               &keysymsPerKeycode);
 
@@ -166,13 +163,12 @@ keyBindingToString (CompDisplay    *d,
 }
 
 char *
-buttonBindingToString (CompDisplay       *d,
-                       CompButtonBinding *button)
+buttonBindingToString (CompButtonBinding *button)
 {
 	char *binding;
 	char buttonStr[256];
 
-	binding = modifiersToString (d, button->modifiers);
+	binding = modifiersToString (button->modifiers);
 
 	snprintf (buttonStr, 256, "Button%d", button->button);
 	binding = stringAppend (binding, buttonStr);
@@ -181,8 +177,7 @@ buttonBindingToString (CompDisplay       *d,
 }
 
 unsigned int
-stringToModifiers (CompDisplay *d,
-                   const char  *binding)
+stringToModifiers (const char  *binding)
 {
 	unsigned int mods = 0;
 	int          i;
@@ -197,8 +192,7 @@ stringToModifiers (CompDisplay *d,
 }
 
 static unsigned int
-bindingStringToEdgeMask (CompDisplay *d,
-                         const char  *binding)
+bindingStringToEdgeMask (const char  *binding)
 {
 	unsigned int edgeMask = 0;
 	int          i;
@@ -211,15 +205,14 @@ bindingStringToEdgeMask (CompDisplay *d,
 }
 
 Bool
-stringToKeyBinding (CompDisplay    *d,
-                    const char     *binding,
+stringToKeyBinding (const char     *binding,
                     CompKeyBinding *key)
 {
 	char          *ptr;
 	unsigned int  mods;
 	KeySym        keysym;
 
-	mods = stringToModifiers (d, binding);
+	mods = stringToModifiers (binding);
 
 	ptr = strrchr (binding, '>');
 	if (ptr)
@@ -246,7 +239,7 @@ stringToKeyBinding (CompDisplay    *d,
 	{
 		KeyCode keycode;
 
-		keycode = XKeysymToKeycode (d->display, keysym);
+		keycode = XKeysymToKeycode (display.display, keysym);
 		if (keycode)
 		{
 			key->keycode   = keycode;
@@ -268,14 +261,13 @@ stringToKeyBinding (CompDisplay    *d,
 }
 
 Bool
-stringToButtonBinding (CompDisplay       *d,
-                       const char        *binding,
+stringToButtonBinding (const char        *binding,
                        CompButtonBinding *button)
 {
 	char        *ptr;
 	unsigned int mods;
 
-	mods = stringToModifiers (d, binding);
+	mods = stringToModifiers (binding);
 
 	ptr = strrchr (binding, '>');
 	if (ptr)

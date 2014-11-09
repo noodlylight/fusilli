@@ -303,7 +303,7 @@ updateNormalHints (CompWindow *w)
 	Status status;
 	long   supplied;
 
-	status = XGetWMNormalHints (w->screen->display->display, w->id,
+	status = XGetWMNormalHints (display.display, w->id,
 	                            &w->sizeHints, &supplied);
 
 	if (!status)
@@ -324,7 +324,7 @@ updateWmHints (CompWindow *w)
 
 	w->inputHint = TRUE;
 
-	hints = XGetWMHints (w->screen->display->display, w->id);
+	hints = XGetWMHints (display.display, w->id);
 	if (hints)
 	{
 		dFlags ^= hints->flags;
@@ -376,7 +376,7 @@ updateWindowClassHints (CompWindow *w)
 		w->resClass = NULL;
 	}
 
-	status = XGetClassHint (w->screen->display->display, w->id, &classHint);
+	status = XGetClassHint (display.display, w->id, &classHint);
 	if (status)
 	{
 		if (classHint.res_name)
@@ -401,7 +401,7 @@ updateTransientHint (CompWindow *w)
 
 	w->transientFor = None;
 
-	status = XGetTransientForHint (w->screen->display->display,
+	status = XGetTransientForHint (display.display,
 	                               w->id, &transientFor);
 
 	if (status)
@@ -428,8 +428,8 @@ updateIconGeometry (CompWindow *w)
 	unsigned long n, left;
 	unsigned char *data;
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
-	                             w->screen->display->wmIconGeometryAtom,
+	result = XGetWindowProperty (display.display, w->id,
+	                             display.wmIconGeometryAtom,
 	                             0L, 1024L, False, XA_CARDINAL,
 	                             &actual, &format, &n, &left, &data);
 
@@ -479,8 +479,8 @@ getClientLeader (CompWindow *w)
 	unsigned long n, left;
 	unsigned char *data;
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
-	                             w->screen->display->wmClientLeaderAtom,
+	result = XGetWindowProperty (display.display, w->id,
+	                             display.wmClientLeaderAtom,
 	                             0L, 1L, False, XA_WINDOW, &actual, &format,
 	                             &n, &left, &data);
 
@@ -507,10 +507,10 @@ getStartupId (CompWindow *w)
 	unsigned long n, left;
 	unsigned char *data;
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
-	                             w->screen->display->startupIdAtom,
+	result = XGetWindowProperty (display.display, w->id,
+	                             display.startupIdAtom,
 	                             0L, 1024L, False,
-	                             w->screen->display->utf8StringAtom,
+	                             display.utf8StringAtom,
 	                             &actual, &format,
 	                             &n, &left, &data);
 
@@ -529,8 +529,7 @@ getStartupId (CompWindow *w)
 }
 
 int
-getWmState (CompDisplay *display,
-            Window      id)
+getWmState (Window      id)
 {
 	Atom      actual;
 	int       result, format;
@@ -538,9 +537,9 @@ getWmState (CompDisplay *display,
 	unsigned char *data;
 	unsigned long state = NormalState;
 
-	result = XGetWindowProperty (display->display, id,
-	                         display->wmStateAtom, 0L, 2L, FALSE,
-	                         display->wmStateAtom, &actual, &format,
+	result = XGetWindowProperty (display.display, id,
+	                         display.wmStateAtom, 0L, 2L, FALSE,
+	                         display.wmStateAtom, &actual, &format,
 	                         &n, &left, &data);
 
 	if (result == Success && data)
@@ -554,8 +553,7 @@ getWmState (CompDisplay *display,
 }
 
 void
-setWmState (CompDisplay *display,
-            int         state,
+setWmState (int         state,
             Window      id)
 {
 	unsigned long data[2];
@@ -563,40 +561,39 @@ setWmState (CompDisplay *display,
 	data[0] = state;
 	data[1] = None;
 
-	XChangeProperty (display->display, id,
-	                 display->wmStateAtom, display->wmStateAtom,
+	XChangeProperty (display.display, id,
+	                 display.wmStateAtom, display.wmStateAtom,
 	                 32, PropModeReplace, (unsigned char *) data, 2);
 }
 
 unsigned int
-windowStateMask (CompDisplay *display,
-                 Atom        state)
+windowStateMask (Atom        state)
 {
-	if (state == display->winStateModalAtom)
+	if (state == display.winStateModalAtom)
 		return CompWindowStateModalMask;
-	else if (state == display->winStateStickyAtom)
+	else if (state == display.winStateStickyAtom)
 		return CompWindowStateStickyMask;
-	else if (state == display->winStateMaximizedVertAtom)
+	else if (state == display.winStateMaximizedVertAtom)
 		return CompWindowStateMaximizedVertMask;
-	else if (state == display->winStateMaximizedHorzAtom)
+	else if (state == display.winStateMaximizedHorzAtom)
 		return CompWindowStateMaximizedHorzMask;
-	else if (state == display->winStateShadedAtom)
+	else if (state == display.winStateShadedAtom)
 		return CompWindowStateShadedMask;
-	else if (state == display->winStateSkipTaskbarAtom)
+	else if (state == display.winStateSkipTaskbarAtom)
 		return CompWindowStateSkipTaskbarMask;
-	else if (state == display->winStateSkipPagerAtom)
+	else if (state == display.winStateSkipPagerAtom)
 		return CompWindowStateSkipPagerMask;
-	else if (state == display->winStateHiddenAtom)
+	else if (state == display.winStateHiddenAtom)
 		return CompWindowStateHiddenMask;
-	else if (state == display->winStateFullscreenAtom)
+	else if (state == display.winStateFullscreenAtom)
 		return CompWindowStateFullscreenMask;
-	else if (state == display->winStateAboveAtom)
+	else if (state == display.winStateAboveAtom)
 		return CompWindowStateAboveMask;
-	else if (state == display->winStateBelowAtom)
+	else if (state == display.winStateBelowAtom)
 		return CompWindowStateBelowMask;
-	else if (state == display->winStateDemandsAttentionAtom)
+	else if (state == display.winStateDemandsAttentionAtom)
 		return CompWindowStateDemandsAttentionMask;
-	else if (state == display->winStateDisplayModalAtom)
+	else if (state == display.winStateDisplayModalAtom)
 		return CompWindowStateDisplayModalMask;
 
 	return 0;
@@ -634,8 +631,7 @@ windowStateFromString (const char *str)
 }
 
 unsigned int
-getWindowState (CompDisplay *display,
-                Window      id)
+getWindowState (Window      id)
 {
 	Atom      actual;
 	int       result, format;
@@ -643,7 +639,7 @@ getWindowState (CompDisplay *display,
 	unsigned char *data;
 	unsigned int  state = 0;
 
-	result = XGetWindowProperty (display->display, id, display->winStateAtom,
+	result = XGetWindowProperty (display.display, id, display.winStateAtom,
 	                             0L, 1024L, FALSE, XA_ATOM, &actual, &format,
 	                             &n, &left, &data);
 
@@ -652,7 +648,7 @@ getWindowState (CompDisplay *display,
 		Atom *a = (Atom *) data;
 
 		while (n--)
-			state |= windowStateMask (display, *a++);
+			state |= windowStateMask (*a++);
 
 		XFree ((void *) data);
 	}
@@ -661,41 +657,40 @@ getWindowState (CompDisplay *display,
 }
 
 void
-setWindowState (CompDisplay  *display,
-                unsigned int state,
+setWindowState (unsigned int state,
                 Window       id)
 {
 	Atom data[32];
 	int	 i = 0;
 
 	if (state & CompWindowStateModalMask)
-		data[i++] = display->winStateModalAtom;
+		data[i++] = display.winStateModalAtom;
 	if (state & CompWindowStateStickyMask)
-		data[i++] = display->winStateStickyAtom;
+		data[i++] = display.winStateStickyAtom;
 	if (state & CompWindowStateMaximizedVertMask)
-		data[i++] = display->winStateMaximizedVertAtom;
+		data[i++] = display.winStateMaximizedVertAtom;
 	if (state & CompWindowStateMaximizedHorzMask)
-		data[i++] = display->winStateMaximizedHorzAtom;
+		data[i++] = display.winStateMaximizedHorzAtom;
 	if (state & CompWindowStateShadedMask)
-		data[i++] = display->winStateShadedAtom;
+		data[i++] = display.winStateShadedAtom;
 	if (state & CompWindowStateSkipTaskbarMask)
-		data[i++] = display->winStateSkipTaskbarAtom;
+		data[i++] = display.winStateSkipTaskbarAtom;
 	if (state & CompWindowStateSkipPagerMask)
-		data[i++] = display->winStateSkipPagerAtom;
+		data[i++] = display.winStateSkipPagerAtom;
 	if (state & CompWindowStateHiddenMask)
-		data[i++] = display->winStateHiddenAtom;
+		data[i++] = display.winStateHiddenAtom;
 	if (state & CompWindowStateFullscreenMask)
-		data[i++] = display->winStateFullscreenAtom;
+		data[i++] = display.winStateFullscreenAtom;
 	if (state & CompWindowStateAboveMask)
-		data[i++] = display->winStateAboveAtom;
+		data[i++] = display.winStateAboveAtom;
 	if (state & CompWindowStateBelowMask)
-		data[i++] = display->winStateBelowAtom;
+		data[i++] = display.winStateBelowAtom;
 	if (state & CompWindowStateDemandsAttentionMask)
-		data[i++] = display->winStateDemandsAttentionAtom;
+		data[i++] = display.winStateDemandsAttentionAtom;
 	if (state & CompWindowStateDisplayModalMask)
-		data[i++] = display->winStateDisplayModalAtom;
+		data[i++] = display.winStateDisplayModalAtom;
 
-	XChangeProperty (display->display, id, display->winStateAtom,
+	XChangeProperty (display.display, id, display.winStateAtom,
 	                 XA_ATOM, 32, PropModeReplace,
 	                 (unsigned char *) data, i);
 }
@@ -704,7 +699,6 @@ void
 changeWindowState (CompWindow   *w,
                    unsigned int newState)
 {
-	CompDisplay  *d = w->screen->display;
 	unsigned int oldState;
 
 	if (w->state == newState)
@@ -717,46 +711,45 @@ changeWindowState (CompWindow   *w,
 	recalcWindowActions (w);
 
 	if (w->managed)
-		setWindowState (d, w->state, w->id);
+		setWindowState (w->state, w->id);
 
 	(*w->screen->windowStateChangeNotify) (w, oldState);
-	(*d->matchPropertyChanged) (d, w);
+	(*display.matchPropertyChanged) (w);
 }
 
 static void
-setWindowActions (CompDisplay  *display,
-                  unsigned int actions,
+setWindowActions (unsigned int actions,
                   Window       id)
 {
 	Atom data[32];
 	int  i = 0;
 
 	if (actions & CompWindowActionMoveMask)
-		data[i++] = display->winActionMoveAtom;
+		data[i++] = display.winActionMoveAtom;
 	if (actions & CompWindowActionResizeMask)
-		data[i++] = display->winActionResizeAtom;
+		data[i++] = display.winActionResizeAtom;
 	if (actions & CompWindowActionStickMask)
-		data[i++] = display->winActionStickAtom;
+		data[i++] = display.winActionStickAtom;
 	if (actions & CompWindowActionMinimizeMask)
-		data[i++] = display->winActionMinimizeAtom;
+		data[i++] = display.winActionMinimizeAtom;
 	if (actions & CompWindowActionMaximizeHorzMask)
-		data[i++] = display->winActionMaximizeHorzAtom;
+		data[i++] = display.winActionMaximizeHorzAtom;
 	if (actions & CompWindowActionMaximizeVertMask)
-		data[i++] = display->winActionMaximizeVertAtom;
+		data[i++] = display.winActionMaximizeVertAtom;
 	if (actions & CompWindowActionFullscreenMask)
-		data[i++] = display->winActionFullscreenAtom;
+		data[i++] = display.winActionFullscreenAtom;
 	if (actions & CompWindowActionCloseMask)
-		data[i++] = display->winActionCloseAtom;
+		data[i++] = display.winActionCloseAtom;
 	if (actions & CompWindowActionShadeMask)
-		data[i++] = display->winActionShadeAtom;
+		data[i++] = display.winActionShadeAtom;
 	if (actions & CompWindowActionChangeDesktopMask)
-		data[i++] = display->winActionChangeDesktopAtom;
+		data[i++] = display.winActionChangeDesktopAtom;
 	if (actions & CompWindowActionAboveMask)
-		data[i++] = display->winActionAboveAtom;
+		data[i++] = display.winActionAboveAtom;
 	if (actions & CompWindowActionBelowMask)
-		data[i++] = display->winActionBelowAtom;
+		data[i++] = display.winActionBelowAtom;
 
-	XChangeProperty (display->display, id, display->wmAllowedActionsAtom,
+	XChangeProperty (display.display, id, display.wmAllowedActionsAtom,
 	                 XA_ATOM, 32, PropModeReplace,
 	                 (unsigned char *) data, i);
 }
@@ -865,7 +858,7 @@ recalcWindowActions (CompWindow *w)
 	if (actions != w->actions)
 	{
 		w->actions = actions;
-		setWindowActions (w->screen->display, actions, w->id);
+		setWindowActions (actions, w->id);
 	}
 }
 
@@ -941,15 +934,14 @@ windowTypeFromString (const char *str)
 }
 
 unsigned int
-getWindowType (CompDisplay *display,
-               Window      id)
+getWindowType (Window      id)
 {
 	Atom      actual, a = None;
 	int       result, format;
 	unsigned long n, left;
 	unsigned char *data;
 
-	result = XGetWindowProperty (display->display, id, display->winTypeAtom,
+	result = XGetWindowProperty (display.display, id, display.winTypeAtom,
 	                             0L, 1L, FALSE, XA_ATOM, &actual, &format,
 	                             &n, &left, &data);
 
@@ -963,33 +955,33 @@ getWindowType (CompDisplay *display,
 
 	if (a)
 	{
-		if (a == display->winTypeNormalAtom)
+		if (a == display.winTypeNormalAtom)
 			return CompWindowTypeNormalMask;
-		else if (a == display->winTypeMenuAtom)
+		else if (a == display.winTypeMenuAtom)
 			return CompWindowTypeMenuMask;
-		else if (a == display->winTypeDesktopAtom)
+		else if (a == display.winTypeDesktopAtom)
 			return CompWindowTypeDesktopMask;
-		else if (a == display->winTypeDockAtom)
+		else if (a == display.winTypeDockAtom)
 			return CompWindowTypeDockMask;
-		else if (a == display->winTypeToolbarAtom)
+		else if (a == display.winTypeToolbarAtom)
 			return CompWindowTypeToolbarMask;
-		else if (a == display->winTypeUtilAtom)
+		else if (a == display.winTypeUtilAtom)
 			return CompWindowTypeUtilMask;
-		else if (a == display->winTypeSplashAtom)
+		else if (a == display.winTypeSplashAtom)
 			return CompWindowTypeSplashMask;
-		else if (a == display->winTypeDialogAtom)
+		else if (a == display.winTypeDialogAtom)
 			return CompWindowTypeDialogMask;
-		else if (a == display->winTypeDropdownMenuAtom)
+		else if (a == display.winTypeDropdownMenuAtom)
 			return CompWindowTypeDropdownMenuMask;
-		else if (a == display->winTypePopupMenuAtom)
+		else if (a == display.winTypePopupMenuAtom)
 			return CompWindowTypePopupMenuMask;
-		else if (a == display->winTypeTooltipAtom)
+		else if (a == display.winTypeTooltipAtom)
 			return CompWindowTypeTooltipMask;
-		else if (a == display->winTypeNotificationAtom)
+		else if (a == display.winTypeNotificationAtom)
 			return CompWindowTypeNotificationMask;
-		else if (a == display->winTypeComboAtom)
+		else if (a == display.winTypeComboAtom)
 			return CompWindowTypeComboMask;
-		else if (a == display->winTypeDndAtom)
+		else if (a == display.winTypeDndAtom)
 			return CompWindowTypeDndMask;
 	}
 
@@ -1026,8 +1018,7 @@ recalcWindowType (CompWindow *w)
 }
 
 void
-getMwmHints (CompDisplay  *display,
-             Window       id,
+getMwmHints (Window       id,
              unsigned int *func,
              unsigned int *decor)
 {
@@ -1039,8 +1030,8 @@ getMwmHints (CompDisplay  *display,
 	*func  = MwmFuncAll;
 	*decor = MwmDecorAll;
 
-	result = XGetWindowProperty (display->display, id, display->mwmHintsAtom,
-	                             0L, 20L, FALSE, display->mwmHintsAtom,
+	result = XGetWindowProperty (display.display, id, display.mwmHintsAtom,
+	                             0L, 20L, FALSE, display.mwmHintsAtom,
 	                             &actual, &format, &n, &left, &data);
 
 	if (result == Success && data)
@@ -1061,26 +1052,25 @@ getMwmHints (CompDisplay  *display,
 }
 
 unsigned int
-getProtocols (CompDisplay *display,
-              Window      id)
+getProtocols (Window      id)
 {
 	Atom         *protocol;
 	int          count;
 	unsigned int protocols = 0;
 
-	if (XGetWMProtocols (display->display, id, &protocol, &count))
+	if (XGetWMProtocols (display.display, id, &protocol, &count))
 	{
 		int  i;
 
 		for (i = 0; i < count; i++)
 		{
-			if (protocol[i] == display->wmDeleteWindowAtom)
+			if (protocol[i] == display.wmDeleteWindowAtom)
 				protocols |= CompWindowProtocolDeleteMask;
-			else if (protocol[i] == display->wmTakeFocusAtom)
+			else if (protocol[i] == display.wmTakeFocusAtom)
 				protocols |= CompWindowProtocolTakeFocusMask;
-			else if (protocol[i] == display->wmPingAtom)
+			else if (protocol[i] == display.wmPingAtom)
 				protocols |= CompWindowProtocolPingMask;
-			else if (protocol[i] == display->wmSyncRequestAtom)
+			else if (protocol[i] == display.wmSyncRequestAtom)
 				protocols |= CompWindowProtocolSyncRequestMask;
 		}
 
@@ -1091,8 +1081,7 @@ getProtocols (CompDisplay *display,
 }
 
 unsigned int
-getWindowProp (CompDisplay  *display,
-               Window       id,
+getWindowProp (Window       id,
                Atom         property,
               unsigned int defaultValue)
 {
@@ -1102,7 +1091,7 @@ getWindowProp (CompDisplay  *display,
 	unsigned char *data;
 	unsigned int  retval = defaultValue;
 
-	result = XGetWindowProperty (display->display, id, property,
+	result = XGetWindowProperty (display.display, id, property,
 	                             0L, 1L, FALSE, XA_CARDINAL, &actual, &format,
 	                             &n, &left, &data);
 
@@ -1123,21 +1112,19 @@ getWindowProp (CompDisplay  *display,
 }
 
 void
-setWindowProp (CompDisplay  *display,
-               Window       id,
+setWindowProp (Window       id,
                Atom         property,
                unsigned int value)
 {
 	unsigned long data = value;
 
-	XChangeProperty (display->display, id, property,
+	XChangeProperty (display.display, id, property,
 	                 XA_CARDINAL, 32, PropModeReplace,
 	                 (unsigned char *) &data, 1);
 }
 
 Bool
-readWindowProp32 (CompDisplay    *display,
-                  Window         id,
+readWindowProp32 (Window         id,
                   Atom           property,
                   unsigned short *returnValue)
 {
@@ -1147,7 +1134,7 @@ readWindowProp32 (CompDisplay    *display,
 	unsigned char *data;
 	Bool          retval = FALSE;
 
-	result = XGetWindowProperty (display->display, id, property,
+	result = XGetWindowProperty (display.display, id, property,
 	                             0L, 1L, FALSE, XA_CARDINAL, &actual, &format,
 	                             &n, &left, &data);
 
@@ -1169,22 +1156,20 @@ readWindowProp32 (CompDisplay    *display,
 }
 
 unsigned short
-getWindowProp32 (CompDisplay    *display,
-                 Window         id,
+getWindowProp32 (Window         id,
                  Atom           property,
                  unsigned short defaultValue)
 {
 	unsigned short result;
 
-	if (readWindowProp32 (display, id, property, &result))
+	if (readWindowProp32 (id, property, &result))
 		return result;
 
 	return defaultValue;
 }
 
 void
-setWindowProp32 (CompDisplay    *display,
-                 Window         id,
+setWindowProp32 (Window         id,
                  Atom           property,
                  unsigned short value)
 {
@@ -1192,7 +1177,7 @@ setWindowProp32 (CompDisplay    *display,
 
 	value32 = value << 16 | value;
 
-	XChangeProperty (display->display, id, property,
+	XChangeProperty (display.display, id, property,
 	                 XA_CARDINAL, 32, PropModeReplace,
 	                 (unsigned char *) &value32, 1);
 }
@@ -1200,8 +1185,6 @@ setWindowProp32 (CompDisplay    *display,
 static void
 updateFrameWindow (CompWindow *w)
 {
-	CompDisplay *d = w->screen->display;
-
 	if (w->input.left || w->input.right || w->input.top || w->input.bottom)
 	{
 		XRectangle rects[4];
@@ -1225,32 +1208,32 @@ updateFrameWindow (CompWindow *w)
 			attr.event_mask        = 0;
 			attr.override_redirect = TRUE;
 
-			w->frame = XCreateWindow (d->display, w->screen->root,
+			w->frame = XCreateWindow (display.display, w->screen->root,
 			                          x, y, width, height, 0,
 			                          CopyFromParent,
 			                          InputOnly,
 			                          CopyFromParent,
 			                          CWOverrideRedirect | CWEventMask, &attr);
 
-			XGrabButton (d->display, AnyButton, AnyModifier, w->frame, TRUE,
+			XGrabButton (display.display, AnyButton, AnyModifier, w->frame, TRUE,
 			             ButtonPressMask | ButtonReleaseMask | ButtonMotionMask,
 			             GrabModeSync, GrabModeSync, None, None);
 
 			xwc.stack_mode = Below;
 			xwc.sibling    = w->id;
 
-			XConfigureWindow (d->display, w->frame,
+			XConfigureWindow (display.display, w->frame,
 			                  CWSibling | CWStackMode, &xwc);
 
 			if (w->mapNum || w->shaded)
-				XMapWindow (d->display, w->frame);
+				XMapWindow (display.display, w->frame);
 
-			XChangeProperty (d->display, w->id, d->frameWindowAtom,
+			XChangeProperty (display.display, w->id, display.frameWindowAtom,
 			                 XA_WINDOW, 32, PropModeReplace,
 			                 (unsigned char *) &w->frame, 1);
 		}
 
-		XMoveResizeWindow (d->display, w->frame, x, y, width, height);
+		XMoveResizeWindow (display.display, w->frame, x, y, width, height);
 
 		rects[i].x      = 0;
 		rects[i].y      = 0;
@@ -1284,7 +1267,7 @@ updateFrameWindow (CompWindow *w)
 		if (rects[i].width && rects[i].height)
 			i++;
 
-		XShapeCombineRectangles (d->display,
+		XShapeCombineRectangles (display.display,
 		                         w->frame,
 		                         ShapeInput,
 		                         0,
@@ -1298,8 +1281,8 @@ updateFrameWindow (CompWindow *w)
 	{
 		if (w->frame)
 		{
-			XDeleteProperty (d->display, w->id, d->frameWindowAtom);
-			XDestroyWindow (d->display, w->frame);
+			XDeleteProperty (display.display, w->id, display.frameWindowAtom);
+			XDestroyWindow (display.display, w->frame);
 			w->frame = None;
 		}
 	}
@@ -1329,8 +1312,8 @@ setWindowFrameExtents (CompWindow        *w,
 		updateFrameWindow (w);
 		recalcWindowActions (w);
 
-		XChangeProperty (w->screen->display->display, w->id,
-		                 w->screen->display->frameExtentsAtom,
+		XChangeProperty (display.display, w->id,
+		                 display.frameExtentsAtom,
 		                 XA_CARDINAL, 32, PropModeReplace,
 		                 (unsigned char *) data, 4);
 	}
@@ -1359,7 +1342,7 @@ setWindowFullscreenMonitors (CompWindow               *w,
                              CompFullscreenMonitorSet *monitors)
 {
 	CompScreen  *s = w->screen;
-	CompDisplay *d = s->display;
+
 	Bool        hadFsMonitors = w->fullscreenMonitorsSet;
 
 	w->fullscreenMonitorsSet = FALSE;
@@ -1397,13 +1380,14 @@ setWindowFullscreenMonitors (CompWindow               *w,
 		data[2] = monitors->left;
 		data[3] = monitors->right;
 
-		XChangeProperty (d->display, w->id, d->wmFullscreenMonitorsAtom,
+		XChangeProperty (display.display, w->id,
+		                 display.wmFullscreenMonitorsAtom,
 		                 XA_CARDINAL, 32, PropModeReplace,
 		                 (unsigned char *) data, 4);
 	}
 	else if (hadFsMonitors)
 	{
-		XDeleteProperty (d->display, w->id, d->wmFullscreenMonitorsAtom);
+		XDeleteProperty (display.display, w->id, display.wmFullscreenMonitorsAtom);
 	}
 
 	if (w->state & CompWindowStateFullscreenMask)
@@ -1427,7 +1411,7 @@ bindWindow (CompWindow *w)
 	if (!w->pixmap)
 	{
 		XWindowAttributes attr;
-		Display           *dpy = w->screen->display->display;
+		Display           *dpy = display.display;
 
 		/* don't try to bind window again if it failed previously */
 		if (w->bindFailed)
@@ -1482,7 +1466,7 @@ releaseWindow (CompWindow *w)
 			w->texture = texture;
 		}
 
-		XFreePixmap (w->screen->display->display, w->pixmap);
+		XFreePixmap (display.display, w->pixmap);
 
 		w->pixmap = None;
 	}
@@ -1494,7 +1478,7 @@ freeWindow (CompWindow *w)
 	releaseWindow (w);
 
 	if (w->syncAlarm)
-		XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
+		XSyncDestroyAlarm (display.display, w->syncAlarm);
 
 	if (w->syncWaitHandle)
 		compRemoveTimeout (w->syncWaitHandle);
@@ -1502,7 +1486,7 @@ freeWindow (CompWindow *w)
 	destroyTexture (w->screen, w->texture);
 
 	if (w->frame)
-		XDestroyWindow (w->screen->display->display, w->frame);
+		XDestroyWindow (display.display, w->frame);
 
 	if (w->clip)
 		XDestroyRegion (w->clip);
@@ -1698,11 +1682,11 @@ updateWindowRegion (CompWindow *w)
 
 	EMPTY_REGION (w->region);
 
-	if (w->screen->display->shapeExtension)
+	if (display.shapeExtension)
 	{
 		int order;
 
-		shapeRects = XShapeGetRectangles (w->screen->display->display, w->id,
+		shapeRects = XShapeGetRectangles (display.display, w->id,
 		                                  ShapeBounding, &n, &order);
 	}
 
@@ -1804,8 +1788,8 @@ updateWindowStruts (CompWindow *w)
 	new.bottom.width  = w->screen->width;
 	new.bottom.height = 0;
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
-	                             w->screen->display->wmStrutPartialAtom,
+	result = XGetWindowProperty (display.display, w->id,
+	                             display.wmStrutPartialAtom,
 	                             0L, 12L, FALSE, XA_CARDINAL, &actual, &format,
 	                             &n, &left, &data);
 
@@ -1841,8 +1825,8 @@ updateWindowStruts (CompWindow *w)
 
 	if (!hasNew)
 	{
-		result = XGetWindowProperty (w->screen->display->display, w->id,
-		                             w->screen->display->wmStrutAtom,
+		result = XGetWindowProperty (display.display, w->id,
+		                             display.wmStrutAtom,
 		                             0L, 4L, FALSE, XA_CARDINAL,
 		                             &actual, &format, &n, &left, &data);
 
@@ -1878,12 +1862,12 @@ updateWindowStruts (CompWindow *w)
 		int i;
 
 		/* applications expect us to clip struts to xinerama edges */
-		for (i = 0; i < w->screen->display->nScreenInfo; i++)
+		for (i = 0; i < display.nScreenInfo; i++)
 		{
-			x1 = w->screen->display->screenInfo[i].x_org;
-			y1 = w->screen->display->screenInfo[i].y_org;
-			x2 = x1 + w->screen->display->screenInfo[i].width;
-			y2 = y1 + w->screen->display->screenInfo[i].height;
+			x1 = display.screenInfo[i].x_org;
+			y1 = display.screenInfo[i].y_org;
+			x2 = x1 + display.screenInfo[i].width;
+			y2 = y1 + display.screenInfo[i].height;
 
 			strutX1 = new.left.x;
 			strutX2 = strutX1 + new.left.width;
@@ -1996,7 +1980,6 @@ addWindow (CompScreen *screen,
 {
 	CompWindow  *w;
 	CompPrivate	*privates;
-	CompDisplay *d = screen->display;
 
 	w = (CompWindow *) malloc (sizeof (CompWindow));
 	if (!w)
@@ -2143,7 +2126,7 @@ addWindow (CompScreen *screen,
 	   window to the window list as we might get configure requests which
 	   require us to stack other windows relative to it. Setting some default
 	   values if this is the case. */
-	if (!XGetWindowAttributes (d->display, id, &w->attrib))
+	if (!XGetWindowAttributes (display.display, id, &w->attrib))
 	    setDefaultWindowAttributes (&w->attrib);
 
 	w->serverWidth   = w->attrib.width;
@@ -2172,14 +2155,14 @@ addWindow (CompScreen *screen,
 
 	w->saveMask = 0;
 
-	XSelectInput (d->display, id,
+	XSelectInput (display.display, id,
 	              PropertyChangeMask |
 	              EnterWindowMask    |
 	              FocusChangeMask);
 
 	w->id = id;
 
-	XGrabButton (d->display, AnyButton, AnyModifier, w->id, TRUE,
+	XGrabButton (display.display, AnyButton, AnyModifier, w->id, TRUE,
 	             ButtonPressMask | ButtonReleaseMask | ButtonMotionMask,
 	             GrabModeSync, GrabModeSync, None, None);
 
@@ -2190,10 +2173,10 @@ addWindow (CompScreen *screen,
 	w->actions   = 0;
 	w->protocols = 0;
 	w->type      = CompWindowTypeUnknownMask;
-	w->lastPong  = d->lastPing;
+	w->lastPong  = display.lastPing;
 
-	if (d->shapeExtension)
-		XShapeSelectInput (d->display, id, ShapeNotifyMask);
+	if (display.shapeExtension)
+		XShapeSelectInput (display.display, id, ShapeNotifyMask);
 
 	insertWindowIntoScreen (screen, w, aboveId);
 
@@ -2213,11 +2196,11 @@ addWindow (CompScreen *screen,
 
 		XUnionRegion (&rect, w->region, w->region);
 
-		w->damage = XDamageCreate (d->display, id,
+		w->damage = XDamageCreate (display.display, id,
 		                XDamageReportRawRectangles);
 
 		/* need to check for DisplayModal state on all windows */
-		w->state = getWindowState (d, w->id);
+		w->state = getWindowState (w->id);
 
 		updateWindowClassHints (w);
 	}
@@ -2229,8 +2212,8 @@ addWindow (CompScreen *screen,
 
 	w->invisible = TRUE;
 
-	w->wmType    = getWindowType (d, w->id);
-	w->protocols = getProtocols (d, w->id);
+	w->wmType    = getWindowType (w->id);
+	w->protocols = getProtocols (w->id);
 
 	if (!w->attrib.override_redirect)
 	{
@@ -2245,11 +2228,11 @@ addWindow (CompScreen *screen,
 
 		recalcWindowType (w);
 
-		getMwmHints (d, w->id, &w->mwmFunc, &w->mwmDecor);
+		getMwmHints (w->id, &w->mwmFunc, &w->mwmDecor);
 
 		if (!(w->type & (CompWindowTypeDesktopMask | CompWindowTypeDockMask)))
 		{
-			w->desktop = getWindowProp (d, w->id, d->winDesktopAtom,
+			w->desktop = getWindowProp (w->id, display.winDesktopAtom,
 			                       w->desktop);
 			if (w->desktop != 0xffffffff)
 			{
@@ -2266,17 +2249,17 @@ addWindow (CompScreen *screen,
 	if (w->type & CompWindowTypeDesktopMask)
 		w->paint.opacity = OPAQUE;
 	else
-		w->paint.opacity = getWindowProp32 (d, w->id,
-		                           d->winOpacityAtom, OPAQUE);
+		w->paint.opacity = getWindowProp32 (w->id,
+		                           display.winOpacityAtom, OPAQUE);
 
-	w->paint.brightness = getWindowProp32 (d, w->id,
-	                        d->winBrightnessAtom, BRIGHT);
+	w->paint.brightness = getWindowProp32 (w->id,
+	                        display.winBrightnessAtom, BRIGHT);
 
 	if (!screen->canDoSaturated)
 		w->paint.saturation = COLOR;
 	else
-		w->paint.saturation = getWindowProp32 (d, w->id,
-		                           d->winSaturationAtom, COLOR);
+		w->paint.saturation = getWindowProp32 (w->id,
+		                           display.winSaturationAtom, COLOR);
 
 	w->lastPaint = w->paint;
 
@@ -2288,7 +2271,7 @@ addWindow (CompScreen *screen,
 		{
 			w->managed = TRUE;
 
-			if (getWmState (d, w->id) == IconicState)
+			if (getWmState (w->id) == IconicState)
 			{
 				if (w->state & CompWindowStateShadedMask)
 					w->shaded = TRUE;
@@ -2307,7 +2290,7 @@ addWindow (CompScreen *screen,
 					if (w->desktop != 0xffffffff)
 						w->desktop = screen->currentDesktop;
 
-					setWindowProp (d, w->id, d->winDesktopAtom, w->desktop);
+					setWindowProp (w->id, display.winDesktopAtom, w->desktop);
 				}
 			}
 		}
@@ -2325,14 +2308,14 @@ addWindow (CompScreen *screen,
 
 			w->pendingUnmaps++;
 
-			XUnmapWindow (d->display, w->id);
+			XUnmapWindow (display.display, w->id);
 
-			setWindowState (d, w->state, w->id);
+			setWindowState (w->state, w->id);
 		}
 	}
 	else if (!w->attrib.override_redirect)
 	{
-		if (getWmState (d, w->id) == IconicState)
+		if (getWmState (w->id) == IconicState)
 		{
 			w->managed = TRUE;
 			w->placed  = TRUE;
@@ -2362,7 +2345,7 @@ addWindow (CompScreen *screen,
 		              w->attrib.border_width);
 
 	w->title = getWindowTitle (w);
-	w->role  = getWindowStringProperty (w, d->roleAtom, XA_STRING);
+	w->role  = getWindowStringProperty (w, display.roleAtom, XA_STRING);
 }
 
 void
@@ -2372,30 +2355,29 @@ removeWindow (CompWindow *w)
 
 	if (!w->destroyed)
 	{
-		CompDisplay *d = w->screen->display;
-
 		/* restore saved geometry and map if hidden */
 		if (!w->attrib.override_redirect)
 		{
 			if (w->saveMask)
-				XConfigureWindow (d->display, w->id, w->saveMask, &w->saveWc);
+				XConfigureWindow (display.display, w->id, w->saveMask,
+				                                          &w->saveWc);
 
 			if (!w->hidden)
 			{
 				if (w->state & CompWindowStateHiddenMask)
-					XMapWindow (d->display, w->id);
+					XMapWindow (display.display, w->id);
 			}
 		}
 
 		if (w->damage)
-			XDamageDestroy (d->display, w->damage);
+			XDamageDestroy (display.display, w->damage);
 
-		if (d->shapeExtension)
-			XShapeSelectInput (d->display, w->id, NoEventMask);
+		if (display.shapeExtension)
+			XShapeSelectInput (display.display, w->id, NoEventMask);
 
-		XSelectInput (d->display, w->id, NoEventMask);
+		XSelectInput (display.display, w->id, NoEventMask);
 
-		XUngrabButton (d->display, AnyButton, AnyModifier, w->id);
+		XUngrabButton (display.display, AnyButton, AnyModifier, w->id);
 	}
 
 	if (w->attrib.map_state == IsViewable && w->damaged)
@@ -2460,9 +2442,9 @@ sendConfigureNotify (CompWindow *w)
 	{
 		XWindowAttributes attrib;
 
-		XGrabServer (w->screen->display->display);
+		XGrabServer (display.display);
 
-		if (XGetWindowAttributes (w->screen->display->display, w->id, &attrib))
+		if (XGetWindowAttributes (display.display, w->id, &attrib))
 		{
 			xev.x            = attrib.x;
 			xev.y            = attrib.y;
@@ -2473,11 +2455,11 @@ sendConfigureNotify (CompWindow *w)
 			xev.above             = (w->prev) ? w->prev->id : None;
 			xev.override_redirect = TRUE;
 
-			XSendEvent (w->screen->display->display, w->id, FALSE,
+			XSendEvent (display.display, w->id, FALSE,
 			            StructureNotifyMask, (XEvent *) &xev);
 		}
 
-		XUngrabServer (w->screen->display->display);
+		XUngrabServer (display.display);
 	}
 	else
 	{
@@ -2490,7 +2472,7 @@ sendConfigureNotify (CompWindow *w)
 		xev.above             = (w->prev) ? w->prev->id : None;
 		xev.override_redirect = w->attrib.override_redirect;
 
-		XSendEvent (w->screen->display->display, w->id, FALSE,
+		XSendEvent (display.display, w->id, FALSE,
 		            StructureNotifyMask, (XEvent *) &xev);
 	}
 }
@@ -2517,20 +2499,20 @@ mapWindow (CompWindow *w)
 	w->attrib.map_state = IsViewable;
 
 	if (!w->attrib.override_redirect)
-		setWmState (w->screen->display, NormalState, w->id);
+		setWmState (NormalState, w->id);
 
 	w->invisible  = TRUE;
 	w->damaged    = FALSE;
 	w->alive      = TRUE;
 	w->bindFailed = FALSE;
 
-	w->lastPong = w->screen->display->lastPing;
+	w->lastPong = display.lastPing;
 
 	updateWindowRegion (w);
 	updateWindowSize (w);
 
 	if (w->frame)
-		XMapWindow (w->screen->display->display, w->frame);
+		XMapWindow (display.display, w->frame);
 
 	updateClientListForScreen (w->screen);
 
@@ -2560,7 +2542,7 @@ unmapWindow (CompWindow *w)
 	if (w->mapNum)
 	{
 		if (w->frame && !w->shaded)
-			XUnmapWindow (w->screen->display->display, w->frame);
+			XUnmapWindow (display.display, w->frame);
 
 		w->mapNum = 0;
 	}
@@ -2664,15 +2646,15 @@ resizeWindow (CompWindow *w,
 
 		if (w->mapNum && w->redirected)
 		{
-			pixmap = XCompositeNameWindowPixmap (w->screen->display->display,
+			pixmap = XCompositeNameWindowPixmap (display.display,
 			                    w->id);
-			result = XGetGeometry (w->screen->display->display, pixmap, &root,
+			result = XGetGeometry (display.display, pixmap, &root,
 			                   &i, &i, &actualWidth, &actualHeight,
 			                   &ui, &ui);
 
 			if (!result || actualWidth != pw || actualHeight != ph)
 			{
-				XFreePixmap (w->screen->display->display, pixmap);
+				XFreePixmap (display.display, pixmap);
 
 				return FALSE;
 			}
@@ -2734,7 +2716,7 @@ resizeWindow (CompWindow *w,
 		moveWindow (w, dx, dy, TRUE, TRUE);
 
 		if (w->frame)
-			XMoveWindow (w->screen->display->display, w->frame,
+			XMoveWindow (display.display, w->frame,
 			             w->attrib.x - w->input.left,
 			             w->attrib.y - w->input.top);
 	}
@@ -2767,8 +2749,8 @@ initializeSyncCounter (CompWindow *w)
 	if (!(w->protocols & CompWindowProtocolSyncRequestMask))
 		return FALSE;
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
-	                         w->screen->display->wmSyncRequestCounterAtom,
+	result = XGetWindowProperty (display.display, w->id,
+	                         display.wmSyncRequestCounterAtom,
 	                         0L, 1L, FALSE, XA_CARDINAL, &actual, &format,
 	                         &n, &left, &data);
 
@@ -2781,7 +2763,7 @@ initializeSyncCounter (CompWindow *w)
 		XFree (data);
 
 		XSyncIntsToValue (&w->syncValue, (unsigned int) rand (), 0);
-		XSyncSetCounter (w->screen->display->display,
+		XSyncSetCounter (display.display,
 		                 w->syncCounter,
 		                 w->syncValue);
 
@@ -2799,13 +2781,13 @@ initializeSyncCounter (CompWindow *w)
 
 		values.events = TRUE;
 
-		compCheckForError (w->screen->display->display);
+		compCheckForError (display.display);
 
 		/* Note that by default, the alarm increments the trigger value
 		 * when it fires until the condition (counter.value < trigger.value)
 		 * is FALSE again.
 		 */
-		w->syncAlarm = XSyncCreateAlarm (w->screen->display->display,
+		w->syncAlarm = XSyncCreateAlarm (display.display,
 		                         XSyncCACounter   |
 		                         XSyncCAValue     |
 		                         XSyncCAValueType |
@@ -2814,10 +2796,10 @@ initializeSyncCounter (CompWindow *w)
 		                         XSyncCAEvents,
 		                         &values);
 
-		if (!compCheckForError (w->screen->display->display))
+		if (!compCheckForError (display.display))
 			return TRUE;
 
-		XSyncDestroyAlarm (w->screen->display->display, w->syncAlarm);
+		XSyncDestroyAlarm (display.display, w->syncAlarm);
 		w->syncAlarm = None;
 	}
 	else if (result == Success && data)
@@ -2852,9 +2834,9 @@ sendSyncRequest (CompWindow *w)
 
 	xev.type         = ClientMessage;
 	xev.window       = w->id;
-	xev.message_type = w->screen->display->wmProtocolsAtom;
+	xev.message_type = display.wmProtocolsAtom;
 	xev.format       = 32;
-	xev.data.l[0]    = w->screen->display->wmSyncRequestAtom;
+	xev.data.l[0]    = display.wmSyncRequestAtom;
 	xev.data.l[1]    = CurrentTime;
 	xev.data.l[2]    = XSyncValueLow32 (w->syncValue);
 	xev.data.l[3]    = XSyncValueHigh32 (w->syncValue);
@@ -2862,7 +2844,7 @@ sendSyncRequest (CompWindow *w)
 
 	syncValueIncrement (&w->syncValue);
 
-	XSendEvent (w->screen->display->display, w->id, FALSE, 0, (XEvent *) &xev);
+	XSendEvent (display.display, w->id, FALSE, 0, (XEvent *) &xev);
 
 	w->syncWait        = TRUE;
 	w->syncX           = w->serverX;
@@ -2957,10 +2939,10 @@ syncWindowPosition (CompWindow *w)
 	w->serverX = w->attrib.x;
 	w->serverY = w->attrib.y;
 
-	XMoveWindow (w->screen->display->display, w->id, w->attrib.x, w->attrib.y);
+	XMoveWindow (display.display, w->id, w->attrib.x, w->attrib.y);
 
 	if (w->frame)
-		XMoveWindow (w->screen->display->display, w->frame,
+		XMoveWindow (display.display, w->frame,
 		             w->serverX - w->input.left,
 		             w->serverY - w->input.top);
 }
@@ -3208,7 +3190,6 @@ void
 moveInputFocusToWindow (CompWindow *w)
 {
 	CompScreen  *s = w->screen;
-	CompDisplay *d = s->display;
 	CompWindow  *modalTransient;
 
 	modalTransient = getModalTransient (w);
@@ -3217,8 +3198,9 @@ moveInputFocusToWindow (CompWindow *w)
 
 	if (w->state & CompWindowStateHiddenMask)
 	{
-		XSetInputFocus (d->display, w->frame, RevertToPointerRoot, CurrentTime);
-		XChangeProperty (d->display, s->root, d->winActiveAtom,
+		XSetInputFocus (display.display, w->frame,
+		                RevertToPointerRoot, CurrentTime);
+		XChangeProperty (display.display, s->root, display.winActiveAtom,
 		                 XA_WINDOW, 32, PropModeReplace,
 		                 (unsigned char *) &w->id, 1);
 	}
@@ -3228,7 +3210,7 @@ moveInputFocusToWindow (CompWindow *w)
 
 		if (w->inputHint)
 		{
-			XSetInputFocus (d->display, w->id, RevertToPointerRoot,
+			XSetInputFocus (display.display, w->id, RevertToPointerRoot,
 			                CurrentTime);
 			setFocus = TRUE;
 		}
@@ -3239,22 +3221,21 @@ moveInputFocusToWindow (CompWindow *w)
 
 			ev.type                 = ClientMessage;
 			ev.xclient.window       = w->id;
-			ev.xclient.message_type = d->wmProtocolsAtom;
+			ev.xclient.message_type = display.wmProtocolsAtom;
 			ev.xclient.format       = 32;
-			ev.xclient.data.l[0]    = d->wmTakeFocusAtom;
-			ev.xclient.data.l[1]    =
-			    getCurrentTimeFromDisplay (d);
+			ev.xclient.data.l[0]    = display.wmTakeFocusAtom;
+			ev.xclient.data.l[1]    = getCurrentTimeFromDisplay ();
 			ev.xclient.data.l[2]    = 0;
 			ev.xclient.data.l[3]    = 0;
 			ev.xclient.data.l[4]    = 0;
 
-			XSendEvent (d->display, w->id, FALSE, NoEventMask, &ev);
+			XSendEvent (display.display, w->id, FALSE, NoEventMask, &ev);
 
 			setFocus = TRUE;
 		}
 
 		if (setFocus)
-			d->nextActiveWindow = w->id;
+			display.nextActiveWindow = w->id;
 
 		if (!setFocus && !modalTransient)
 		{
@@ -3604,10 +3585,10 @@ reconfigureXWindow (CompWindow     *w,
 	if (valueMask & CWBorderWidth)
 		w->serverBorderWidth = xwc->border_width;
 
-	XConfigureWindow (w->screen->display->display, w->id, valueMask, xwc);
+	XConfigureWindow (display.display, w->id, valueMask, xwc);
 
 	if (w->frame && (valueMask & (CWSibling | CWStackMode)))
-		XConfigureWindow (w->screen->display->display, w->frame,
+		XConfigureWindow (display.display, w->frame,
 		                  valueMask & (CWSibling | CWStackMode), xwc);
 }
 
@@ -4197,9 +4178,9 @@ addWindowStackChanges (CompWindow     *w,
 		{
 			if (!sibling)
 			{
-				XLowerWindow (w->screen->display->display, w->id);
+				XLowerWindow (display.display, w->id);
 				if (w->frame)
-					XLowerWindow (w->screen->display->display, w->frame);
+					XLowerWindow (display.display, w->frame);
 			}
 			else if (sibling->id != prev->id)
 			{
@@ -4254,7 +4235,7 @@ raiseWindow (CompWindow *w)
 	/* an active fullscreen window should be raised over all other
 	   windows in its layer */
 	if (w->type & CompWindowTypeFullscreenMask)
-		if (w->id == w->screen->display->activeWindow)
+		if (w->id == display.activeWindow)
 			aboveFs = TRUE;
 
 	mask = addWindowStackChanges (w, &xwc, findSiblingBelow (w, aboveFs));
@@ -4265,7 +4246,6 @@ raiseWindow (CompWindow *w)
 static CompWindow *
 focusTopmostWindow (CompScreen *s)
 {
-	CompDisplay *d = s->display;
 	CompWindow  *w;
 	CompWindow  *focus = NULL;
 
@@ -4283,11 +4263,11 @@ focusTopmostWindow (CompScreen *s)
 
 	if (focus)
 	{
-		if (focus->id != d->activeWindow)
+		if (focus->id != display.activeWindow)
 			moveInputFocusToWindow (focus);
 	}
 	else
-		XSetInputFocus (d->display, s->root, RevertToPointerRoot,
+		XSetInputFocus (display.display, s->root, RevertToPointerRoot,
 		                CurrentTime);
 
 	return focus;
@@ -4440,7 +4420,7 @@ updateWindowAttributes (CompWindow             *w,
 		{
 			/* put active or soon-to-be-active fullscreen windows over
 			   all others in their layer */
-			if (w->id == w->screen->display->activeWindow)
+			if (w->id == display.activeWindow)
 			{
 				aboveFs = TRUE;
 			}
@@ -4458,7 +4438,7 @@ updateWindowAttributes (CompWindow             *w,
 			CompWindow *p;
 
 			for (p = sibling; p; p = p->prev)
-				if (p->id == w->screen->display->activeWindow)
+				if (p->id == display.activeWindow)
 					break;
 
 			/* window is above active window so we should lower it, assuming that
@@ -4601,10 +4581,8 @@ void
 closeWindow (CompWindow *w,
              Time       serverTime)
 {
-	CompDisplay *display = w->screen->display;
-
 	if (serverTime == 0)
-		serverTime = getCurrentTimeFromDisplay (display);
+		serverTime = getCurrentTimeFromDisplay ();
 
 	if (w->alive)
 	{
@@ -4614,19 +4592,19 @@ closeWindow (CompWindow *w,
 
 			ev.type                 = ClientMessage;
 			ev.xclient.window       = w->id;
-			ev.xclient.message_type = display->wmProtocolsAtom;
+			ev.xclient.message_type = display.wmProtocolsAtom;
 			ev.xclient.format       = 32;
-			ev.xclient.data.l[0]    = display->wmDeleteWindowAtom;
+			ev.xclient.data.l[0]    = display.wmDeleteWindowAtom;
 			ev.xclient.data.l[1]    = serverTime;
 			ev.xclient.data.l[2]    = 0;
 			ev.xclient.data.l[3]    = 0;
 			ev.xclient.data.l[4]    = 0;
 
-			XSendEvent (display->display, w->id, FALSE, NoEventMask, &ev);
+			XSendEvent (display.display, w->id, FALSE, NoEventMask, &ev);
 		}
 		else
 		{
-			XKillClient (display->display, w->id);
+			XKillClient (display.display, w->id);
 		}
 
 		w->closeRequests++;
@@ -4634,7 +4612,7 @@ closeWindow (CompWindow *w,
 	else
 	{
 		toolkitAction (w->screen,
-		               w->screen->display->toolkitActionForceQuitDialogAtom,
+		               display.toolkitActionForceQuitDialogAtom,
 		               serverTime,
 		               w->id,
 		               TRUE,
@@ -4830,7 +4808,7 @@ hideWindow (CompWindow *w)
 		w->shaded = FALSE;
 
 		if ((w->state & CompWindowStateShadedMask) && w->frame)
-			XUnmapWindow (w->screen->display->display, w->frame);
+			XUnmapWindow (display.display, w->frame);
 	}
 
 	if (!w->pendingMaps && w->attrib.map_state != IsViewable)
@@ -4838,12 +4816,12 @@ hideWindow (CompWindow *w)
 
 	w->pendingUnmaps++;
 
-	XUnmapWindow (w->screen->display->display, w->id);
+	XUnmapWindow (display.display, w->id);
 
 	if (w->minimized || w->inShowDesktopMode || w->hidden || w->shaded)
 		changeWindowState (w, w->state | CompWindowStateHiddenMask);
 
-	if (w->shaded && w->id == w->screen->display->activeWindow)
+	if (w->shaded && w->id == display.activeWindow)
 		moveInputFocusToWindow (w);
 }
 
@@ -4870,7 +4848,7 @@ showWindow (CompWindow *w)
 		w->shaded = TRUE;
 
 		if (w->frame)
-			XMapWindow (w->screen->display->display, w->frame);
+			XMapWindow (display.display, w->frame);
 
 		if (w->height)
 			resizeWindow (w,
@@ -4889,10 +4867,10 @@ showWindow (CompWindow *w)
 
 	w->pendingMaps++;
 
-	XMapWindow (w->screen->display->display, w->id);
+	XMapWindow (display.display, w->id);
 
 	changeWindowState (w, w->state & ~CompWindowStateHiddenMask);
-	setWindowState (w->screen->display, w->state, w->id);
+	setWindowState (w->state, w->id);
 }
 
 static void
@@ -4978,8 +4956,8 @@ getWindowUserTime (CompWindow *w,
 	unsigned char *data;
 	Bool          retval = FALSE;
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
-	                             w->screen->display->wmUserTimeAtom,
+	result = XGetWindowProperty (display.display, w->id,
+	                             display.wmUserTimeAtom,
 	                             0L, 1L, False, XA_CARDINAL, &actual, &format,
 	                             &n, &left, &data);
 
@@ -5006,8 +4984,8 @@ setWindowUserTime (CompWindow *w,
 {
 	CARD32 value = (CARD32) time;
 
-	XChangeProperty (w->screen->display->display, w->id,
-	                 w->screen->display->wmUserTimeAtom,
+	XChangeProperty (display.display, w->id,
+	                 display.wmUserTimeAtom,
 	                 XA_CARDINAL, 32, PropModeReplace,
 	                 (unsigned char *) &value, 1);
 }
@@ -5083,7 +5061,6 @@ isWindowFocusAllowed (CompWindow   *w,
                       unsigned int viewportY,
                       Time         timestamp)
 {
-	CompDisplay  *d = w->screen->display;
 	CompScreen   *s = w->screen;
 	CompWindow   *active;
 	Time         aUserTime;
@@ -5105,7 +5082,7 @@ isWindowFocusAllowed (CompWindow   *w,
 	if (level == FOCUS_PREVENTION_LEVEL_VERYHIGH)
 		return FALSE;
 
-	active = findWindowAtDisplay (d, d->activeWindow);
+	active = findWindowAtDisplay (display.activeWindow);
 
 	/* no active window */
 	if (!active || (active->type & CompWindowTypeDesktopMask))
@@ -5155,7 +5132,7 @@ allowWindowFocus (CompWindow   *w,
 {
 	Bool status;
 
-	if (w->id == w->screen->display->activeWindow)
+	if (w->id == display.activeWindow)
 		return CompFocusAllowed;
 
 	/* do not focus windows of these types */
@@ -5199,7 +5176,7 @@ unredirectWindow (CompWindow *w)
 	if (w->screen->overlayWindowCount > 0)
 		updateOutputWindow (w->screen);
 
-	XCompositeUnredirectWindow (w->screen->display->display, w->id,
+	XCompositeUnredirectWindow (display.display, w->id,
 	                            CompositeRedirectManual);
 }
 
@@ -5209,7 +5186,7 @@ redirectWindow (CompWindow *w)
 	if (w->redirected)
 		return;
 
-	XCompositeRedirectWindow (w->screen->display->display, w->id,
+	XCompositeRedirectWindow (display.display, w->id,
 	                          CompositeRedirectManual);
 
 	w->redirected = TRUE;
@@ -5289,7 +5266,7 @@ static void
 readWindowIconHint (CompWindow *w)
 {
 	XImage       *image, *maskImage = NULL;
-	Display      *dpy = w->screen->display->display;
+	Display      *dpy = display.display;
 	unsigned int width, height, dummy;
 	int          i, j, k, iDummy;
 	Window       wDummy;
@@ -5376,8 +5353,8 @@ getWindowIcon (CompWindow *w,
 		unsigned long n, left;
 		unsigned char *data;
 
-		result = XGetWindowProperty (w->screen->display->display, w->id,
-		                             w->screen->display->wmIconAtom,
+		result = XGetWindowProperty (display.display, w->id,
+		                             display.wmIconAtom,
 		                             0L, 65536L,
 		                             FALSE, XA_CARDINAL,
 		                             &actual, &format, &n,
@@ -5530,8 +5507,8 @@ setDesktopForWindow (CompWindow   *w,
 	else
 		hideWindow (w);
 
-	setWindowProp (w->screen->display, w->id,
-	               w->screen->display->winDesktopAtom,
+	setWindowProp (w->id,
+	               display.winDesktopAtom,
 	               w->desktop);
 }
 
@@ -5643,7 +5620,7 @@ getWindowStringProperty (CompWindow *w,
 	int           format, result;
 	char          *retval;
 
-	result = XGetWindowProperty (w->screen->display->display,
+	result = XGetWindowProperty (display.display,
 	                         w->id, propAtom, 0, LONG_MAX,
 	                         FALSE, formatAtom, &type, &format, &nItems,
 	                         &bytesAfter, (unsigned char **) &str);
@@ -5667,15 +5644,15 @@ getWindowStringProperty (CompWindow *w,
 char *
 getWindowTitle (CompWindow *w)
 {
-	CompDisplay *d = w->screen->display;
 	char        *title;
 
-	title = getWindowStringProperty (w, d->visibleNameAtom,
-	                                    d->utf8StringAtom);
+	title = getWindowStringProperty (w, display.visibleNameAtom,
+	                                    display.utf8StringAtom);
 	if (title)
 		return title;
 
-	title = getWindowStringProperty (w, d->wmNameAtom, d->utf8StringAtom);
+	title = getWindowStringProperty (w, display.wmNameAtom,
+	                                    display.utf8StringAtom);
 
 	if (title)
 		return title;

@@ -81,7 +81,7 @@ typedef struct _CloneScreen {
         ((CloneScreen *) (s)->base.privates[(cd)->screenPrivateIndex].ptr)
 
 #define CLONE_SCREEN(s) \
-        CloneScreen *cs = GET_CLONE_SCREEN (s, GET_CLONE_DISPLAY (s->display))
+        CloneScreen *cs = GET_CLONE_SCREEN (s, GET_CLONE_DISPLAY (&display))
 
 static void
 cloneRemove (CompScreen *s,
@@ -102,7 +102,7 @@ cloneRemove (CompScreen *s,
 				        sizeof (CloneClone));
 
 		XDestroyRegion (cs->clone[i].region);
-		XDestroyWindow (s->display->display, cs->clone[i].input);
+		XDestroyWindow (display.display, cs->clone[i].input);
 
 		free (cs->clone);
 
@@ -161,13 +161,13 @@ cloneFinish (CompScreen *s)
 					y = s->outputDev[cs->dst].region.extents.y1;
 
 					clone->input =
-					    XCreateWindow (s->display->display,
+					    XCreateWindow (display.display,
 					               s->root, x, y,
 					               s->outputDev[cs->dst].width,
 					               s->outputDev[cs->dst].height,
 					               0, 0, InputOnly, CopyFromParent,
 					               CWOverrideRedirect, &attr);
-					XMapRaised (s->display->display, clone->input);
+					XMapRaised (display.display, clone->input);
 				}
 				else
 				{
@@ -390,10 +390,10 @@ clonePaintOutput (CompScreen              *s,
 		glPushMatrix ();
 		glLoadMatrixf (sTransform.m);
 
-		filter = s->display->textureFilter;
+		filter = display.textureFilter;
 
 		if (cs->offset == 0.0f)
-			s->display->textureFilter = GL_LINEAR_MIPMAP_LINEAR;
+			display.textureFilter = GL_LINEAR_MIPMAP_LINEAR;
 
 		for (w = s->windows; w; w = w->next)
 		{
@@ -411,7 +411,7 @@ clonePaintOutput (CompScreen              *s,
 			                   PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK);
 		}
 
-		s->display->textureFilter = filter;
+		display.textureFilter = filter;
 
 		glPopMatrix ();
 	}
@@ -454,7 +454,7 @@ cloneInitiate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		int i;
@@ -517,7 +517,7 @@ cloneTerminate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		CLONE_SCREEN (s);
 
@@ -631,22 +631,21 @@ cloneHandleMotionEvent (CompScreen *s,
 }
 
 static void
-cloneHandleEvent (CompDisplay *d,
-                  XEvent      *event)
+cloneHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	CLONE_DISPLAY (d);
+	CLONE_DISPLAY (&display);
 
 	switch (event->type) {
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 			cloneHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case EnterNotify:
 	case LeaveNotify:
-		s = findScreenAtDisplay (d, event->xcrossing.root);
+		s = findScreenAtDisplay (event->xcrossing.root);
 		if (s)
 			cloneHandleMotionEvent (s, pointerX, pointerY);
 	case ButtonPress:
@@ -691,13 +690,13 @@ cloneHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (cd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (cd, d, handleEvent, cloneHandleEvent);
+	UNWRAP (cd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (cd, &display, handleEvent, cloneHandleEvent);
 
 	switch (event->type) {
 	case CreateNotify:
-		s = findScreenAtDisplay (d, event->xcreatewindow.parent);
+		s = findScreenAtDisplay (event->xcreatewindow.parent);
 		if (s)
 		{
 			int	i;
@@ -747,7 +746,7 @@ cloneInitDisplay (CompPlugin  *p,
 	if (!cd)
 		return FALSE;
 
-	cd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	cd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (cd->screenPrivateIndex < 0)
 	{
 		free (cd);
@@ -767,7 +766,7 @@ cloneFiniDisplay (CompPlugin  *p,
 {
 	CLONE_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, cd->screenPrivateIndex);
+	freeScreenPrivateIndex (cd->screenPrivateIndex);
 
 	UNWRAP (cd, d, handleEvent);
 
@@ -780,7 +779,7 @@ cloneInitScreen (CompPlugin *p,
 {
 	CloneScreen *cs;
 
-	CLONE_DISPLAY (s->display);
+	CLONE_DISPLAY (&display);
 
 	cs = malloc (sizeof (CloneScreen));
 	if (!cs)

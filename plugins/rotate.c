@@ -112,7 +112,7 @@ typedef struct _RotateScreen {
         ((RotateScreen *) (s)->base.privates[(rd)->screenPrivateIndex].ptr)
 
 #define ROTATE_SCREEN(s) \
-        RotateScreen *rs = GET_ROTATE_SCREEN (s, GET_ROTATE_DISPLAY (s->display))
+        RotateScreen *rs = GET_ROTATE_SCREEN (s, GET_ROTATE_DISPLAY (&display))
 
 static void
 rotateChangeNotify (const char        *optionName,
@@ -608,7 +608,7 @@ rotateInitiate (BananaArgument    *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		ROTATE_SCREEN (s);
@@ -704,7 +704,7 @@ rotateTerminate (BananaArgument  *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		ROTATE_SCREEN (s);
 
@@ -741,7 +741,7 @@ rotate (BananaArgument  *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		int direction;
@@ -800,7 +800,7 @@ rotateWithWindow (BananaArgument  *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		const BananaValue *
@@ -918,18 +918,17 @@ rotateRotationTo (CompScreen *s,
 }
 
 static void
-rotateHandleEvent (CompDisplay *d,
-                   XEvent      *event)
+rotateHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
 	int i;
 
-	ROTATE_DISPLAY (d);
+	ROTATE_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
-		s = findScreenAtDisplay (d, event->xkey.root);
+		s = findScreenAtDisplay (event->xkey.root);
 		for (i = 1; i <= NUM_VIEWPORTS; i++)
 		{
 			if (isKeyPressEvent (event, &rotate_to_key[i]))
@@ -976,7 +975,7 @@ rotateHandleEvent (CompDisplay *d,
 
 				arg[4].name = "window";
 				arg[4].type = BananaInt;
-				arg[4].value.i = d->activeWindow;
+				arg[4].value.i = display.activeWindow;
 
 				rotateWithWindow (arg, 5);
 			}
@@ -1047,7 +1046,7 @@ rotateHandleEvent (CompDisplay *d,
 
 			arg[4].name = "window";
 			arg[4].type = BananaInt;
-			arg[4].value.i = d->activeWindow;
+			arg[4].value.i = display.activeWindow;
 
 			rotateWithWindow (arg, 5);
 		}
@@ -1073,7 +1072,7 @@ rotateHandleEvent (CompDisplay *d,
 
 			arg[4].name = "window";
 			arg[4].type = BananaInt;
-			arg[4].value.i = d->activeWindow;
+			arg[4].value.i = display.activeWindow;
 
 			rotateWithWindow (arg, 5);
 		}
@@ -1163,7 +1162,7 @@ rotateHandleEvent (CompDisplay *d,
 
 			arg[4].name = "window";
 			arg[4].type = BananaInt;
-			arg[4].value.i = d->activeWindow;
+			arg[4].value.i = display.activeWindow;
 
 			rotateWithWindow (arg, 5);
 		}
@@ -1189,7 +1188,7 @@ rotateHandleEvent (CompDisplay *d,
 
 			arg[4].name = "window";
 			arg[4].type = BananaInt;
-			arg[4].value.i = d->activeWindow;
+			arg[4].value.i = display.activeWindow;
 
 			rotateWithWindow (arg, 5);
 		}
@@ -1207,7 +1206,7 @@ rotateHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 		{
 			ROTATE_SCREEN (s);
@@ -1263,9 +1262,9 @@ rotateHandleEvent (CompDisplay *d,
 		}
 		break;
 	case ClientMessage:
-		if (event->xclient.message_type == d->desktopViewportAtom)
+		if (event->xclient.message_type == display.desktopViewportAtom)
 		{
-			s = findScreenAtDisplay (d, event->xclient.window);
+			s = findScreenAtDisplay (event->xclient.window);
 			if (s)
 			{
 				int dx;
@@ -1285,7 +1284,7 @@ rotateHandleEvent (CompDisplay *d,
 					int          i, x, y;
 					unsigned int ui;
 
-					XQueryPointer (d->display, s->root,
+					XQueryPointer (display.display, s->root,
 					            &win, &win, &x, &y, &i, &i, &ui);
 
 					if (dx * 2 > s->hsize)
@@ -1319,9 +1318,9 @@ rotateHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (rd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (rd, d, handleEvent, rotateHandleEvent);
+	UNWRAP (rd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (rd, &display, handleEvent, rotateHandleEvent);
 }
 
 static void
@@ -1347,7 +1346,7 @@ rotateActivateWindow (CompWindow *w)
 			int          i, x, y;
 			unsigned int ui;
 
-			XQueryPointer (s->display->display, s->root,
+			XQueryPointer (display.display, s->root,
 			               &win, &win, &x, &y, &i, &i, &ui);
 
 			if (dx * 2 > s->hsize)
@@ -1432,7 +1431,7 @@ rotateInitDisplay (CompPlugin  *p,
 	if (!rd)
 		return FALSE;
 
-	rd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	rd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (rd->screenPrivateIndex < 0)
 	{
 		free (rd);
@@ -1452,7 +1451,7 @@ rotateFiniDisplay (CompPlugin  *p,
 {
 	ROTATE_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, rd->screenPrivateIndex);
+	freeScreenPrivateIndex (rd->screenPrivateIndex);
 
 	UNWRAP (rd, d, handleEvent);
 
@@ -1465,7 +1464,7 @@ rotateInitScreen (CompPlugin *p,
 {
 	RotateScreen *rs;
 
-	ROTATE_DISPLAY (s->display);
+	ROTATE_DISPLAY (&display);
 	CUBE_SCREEN (s);
 
 	rs = malloc (sizeof (RotateScreen));

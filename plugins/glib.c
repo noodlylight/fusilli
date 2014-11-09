@@ -173,20 +173,19 @@ glibPrepare (CompDisplay  *display,
 }
 
 static void
-glibHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+glibHandleEvent (XEvent      *event)
 {
-	GLIB_DISPLAY (d);
+	GLIB_DISPLAY (&display);
 
 	if (event->type == ClientMessage)
 	{
 		if (event->xclient.message_type == gd->notifyAtom)
-			glibWakeup (d);
+			glibWakeup (&display);
 	}
 
-	UNWRAP (gd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (gd, d, handleEvent, glibHandleEvent);
+	UNWRAP (gd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (gd, &display, handleEvent, glibHandleEvent);
 }
 
 static Bool

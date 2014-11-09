@@ -53,7 +53,7 @@ addCursor (CompScreen *s)
 
 		updateCursor (c, 0, 0, 0);
 
-		/* XFixesHideCursor (s->display->display, s->root); */
+		/* XFixesHideCursor (display.display, s->root); */
 	}
 }
 
@@ -120,7 +120,7 @@ updateCursor (CompCursor    *c,
 		cursorImage = findCursorImageAtScreen (c->screen, serial);
 		if (!cursorImage)
 		{
-			Display	          *dpy = c->screen->display->display;
+			Display	          *dpy = display.display;
 			XFixesCursorImage *image;
 
 			image = XFixesGetCursorImage (dpy);

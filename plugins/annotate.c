@@ -72,7 +72,7 @@ typedef struct _AnnoScreen {
         ((AnnoScreen *) (s)->base.privates[(ad)->screenPrivateIndex].ptr)
 
 #define ANNO_SCREEN(s) \
-        AnnoScreen *as = GET_ANNO_SCREEN (s, GET_ANNO_DISPLAY (s->display))
+        AnnoScreen *as = GET_ANNO_SCREEN (s, GET_ANNO_DISPLAY (&display))
 
 static void
 annoCairoClear (CompScreen *s,
@@ -99,15 +99,15 @@ annoCairoContext (CompScreen *s)
 		Screen            *screen;
 		int               w, h;
 
-		screen = ScreenOfDisplay (s->display->display, s->screenNum);
+		screen = ScreenOfDisplay (display.display, s->screenNum);
 
 		w = s->width;
 		h = s->height;
 
-		format = XRenderFindStandardFormat (s->display->display,
+		format = XRenderFindStandardFormat (display.display,
 		                                    PictStandardARGB32);
 
-		as->pixmap = XCreatePixmap (s->display->display, s->root, w, h, 32);
+		as->pixmap = XCreatePixmap (display.display, s->root, w, h, 32);
 
 		if (!bindPixmapToTexture (s, &as->texture, as->pixmap, w, h, 32))
 		{
@@ -115,13 +115,13 @@ annoCairoContext (CompScreen *s)
 			                "Couldn't bind pixmap 0x%x to texture",
 			                (int) as->pixmap);
 
-			XFreePixmap (s->display->display, as->pixmap);
+			XFreePixmap (display.display, as->pixmap);
 
 			return NULL;
 		}
 
 		as->surface =
-		    cairo_xlib_surface_create_with_xrender_format (s->display->display,
+		    cairo_xlib_surface_create_with_xrender_format (display.display,
 		                                                   as->pixmap, screen,
 		                                                   format, w, h);
 
@@ -449,7 +449,7 @@ annoInitiate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		ANNO_SCREEN (s);
@@ -483,7 +483,7 @@ annoTerminate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		ANNO_SCREEN (s);
 
@@ -514,7 +514,7 @@ annoEraseInitiate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		ANNO_SCREEN (s);
@@ -548,7 +548,7 @@ annoClear (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		ANNO_SCREEN (s);
@@ -683,22 +683,21 @@ annoHandleMotionEvent (CompScreen *s,
 }
 
 static void
-annoHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+annoHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	ANNO_DISPLAY (d);
+	ANNO_DISPLAY (&display);
 
 	switch (event->type) {
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 			annoHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case EnterNotify:
 	case LeaveNotify:
-		s = findScreenAtDisplay (d, event->xcrossing.root);
+		s = findScreenAtDisplay (event->xcrossing.root);
 		if (s)
 			annoHandleMotionEvent (s, pointerX, pointerY);
 	case KeyPress:
@@ -748,9 +747,9 @@ annoHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (ad, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (ad, d, handleEvent, annoHandleEvent);
+	UNWRAP (ad, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (ad, &display, handleEvent, annoHandleEvent);
 }
 
 static Bool
@@ -763,7 +762,7 @@ annoInitDisplay (CompPlugin  *p,
 	if (!ad)
 		return FALSE;
 
-	ad->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	ad->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (ad->screenPrivateIndex < 0)
 	{
 		free (ad);
@@ -783,7 +782,7 @@ annoFiniDisplay (CompPlugin  *p,
 {
 	ANNO_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, ad->screenPrivateIndex);
+	freeScreenPrivateIndex (ad->screenPrivateIndex);
 
 	UNWRAP (ad, d, handleEvent);
 
@@ -796,7 +795,7 @@ annoInitScreen (CompPlugin *p,
 {
 	AnnoScreen *as;
 
-	ANNO_DISPLAY (s->display);
+	ANNO_DISPLAY (&display);
 
 	as = malloc (sizeof (AnnoScreen));
 	if (!as)
@@ -832,7 +831,7 @@ annoFiniScreen (CompPlugin *p,
 	finiTexture (s, &as->texture);
 
 	if (as->pixmap)
-		XFreePixmap (s->display->display, as->pixmap);
+		XFreePixmap (display.display, as->pixmap);
 
 	UNWRAP (as, s, paintOutput);
 

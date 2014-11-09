@@ -122,16 +122,15 @@ static void
 moveInputFocusToOtherWindow (CompWindow *w)
 {
 	CompScreen  *s = w->screen;
-	CompDisplay *d = s->display;
 	Bool        focussedAny = FALSE;
 
-	if (w->id != d->activeWindow && w->id != d->nextActiveWindow)
-		if (d->activeWindow != None)
+	if (w->id != display.activeWindow && w->id != display.nextActiveWindow)
+		if (display.activeWindow != None)
 			return;
 
 	if (w->transientFor && w->transientFor != s->root)
 	{
-		CompWindow *ancestor = findWindowAtDisplay (d, w->transientFor);
+		CompWindow *ancestor = findWindowAtDisplay (w->transientFor);
 		if (ancestor && !(ancestor->type & (CompWindowTypeDesktopMask |
 		                                    CompWindowTypeDockMask)))
 		{
@@ -182,13 +181,12 @@ moveInputFocusToOtherWindow (CompWindow *w)
 static Bool
 autoRaiseTimeout (void *closure)
 {
-	CompDisplay *display = closure;
-	CompWindow  *w = findWindowAtDisplay (display, display->activeWindow);
+	CompWindow  *w = findWindowAtDisplay (display.activeWindow);
 
-	if (display->autoRaiseWindow == display->activeWindow ||
-		(w && (display->autoRaiseWindow == w->transientFor)))
+	if (display.autoRaiseWindow == display.activeWindow ||
+		(w && (display.autoRaiseWindow == w->transientFor)))
 	{
-		w = findWindowAtDisplay (display, display->autoRaiseWindow);
+		w = findWindowAtDisplay (display.autoRaiseWindow);
 		if (w)
 			updateWindowAttributes (w, CompStackingUpdateModeNormal);
 	}
@@ -218,7 +216,7 @@ closeWin (BananaArgument   *arg,
 	else
 		time = CurrentTime;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w && (w->actions & CompWindowActionCloseMask))
 		closeWindow (w, time);
 
@@ -239,7 +237,7 @@ unmaximize (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		maximizeWindow (w, 0);
 
@@ -260,7 +258,7 @@ minimize (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w && (w->actions & CompWindowActionMinimizeMask))
 		minimizeWindow (w);
 
@@ -281,7 +279,7 @@ maximize (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		maximizeWindow (w, MAXIMIZE_STATE);
 
@@ -302,7 +300,7 @@ maximizeHorizontally (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		maximizeWindow (w, w->state | CompWindowStateMaximizedHorzMask);
 
@@ -323,7 +321,7 @@ maximizeVertically (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		maximizeWindow (w, w->state | CompWindowStateMaximizedVertMask);
 
@@ -344,7 +342,7 @@ showDesktop (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		if (s->showingDesktopMask == 0)
@@ -370,7 +368,7 @@ toggleSlowAnimations (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 		s->slowAnimations = !s->slowAnimations;
 
@@ -391,7 +389,7 @@ raiseInitiate (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		raiseWindow (w);
 
@@ -412,7 +410,7 @@ lowerInitiate (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		lowerWindow (w);
 
@@ -433,7 +431,7 @@ windowMenu (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w && !w->screen->maxGrab)
 	{
 		int  x, y, button;
@@ -468,7 +466,7 @@ windowMenu (BananaArgument   *arg,
 			y = w->attrib.y;
 
 		toolkitAction (w->screen,
-		               w->screen->display->toolkitActionWindowMenuAtom,
+		               display.toolkitActionWindowMenuAtom,
 		               time,
 		               w->id,
 		               button,
@@ -493,7 +491,7 @@ toggleMaximized (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 	{
 		if ((w->state & MAXIMIZE_STATE) == MAXIMIZE_STATE)
@@ -519,7 +517,7 @@ toggleMaximizedHorizontally (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		maximizeWindow (w, w->state ^ CompWindowStateMaximizedHorzMask);
 
@@ -540,7 +538,7 @@ toggleMaximizedVertically (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w)
 		maximizeWindow (w, w->state ^ CompWindowStateMaximizedVertMask);
 
@@ -561,7 +559,7 @@ shade (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findTopLevelWindowAtDisplay (core.displays, xid);
+	w = findTopLevelWindowAtDisplay (xid);
 	if (w && (w->actions & CompWindowActionShadeMask))
 	{
 		w->state ^= CompWindowStateShadedMask;
@@ -572,38 +570,36 @@ shade (BananaArgument   *arg,
 }
 
 void
-handleFusilliEvent (CompDisplay    *d,
-                   const char      *pluginName,
-                   const char      *eventName,
-                   BananaArgument  *arg,
-                   int             nArg)
+handleFusilliEvent (const char      *pluginName,
+                    const char      *eventName,
+                    BananaArgument  *arg,
+                    int             nArg)
 {
 }
 
 void
-handleEvent (CompDisplay *d,
-             XEvent      *event)
+handleEvent (XEvent      *event)
 {
 	CompScreen *s;
 	CompWindow *w;
 
 	switch (event->type) {
 	case ButtonPress:
-		s = findScreenAtDisplay (d, event->xbutton.root);
+		s = findScreenAtDisplay (event->xbutton.root);
 		if (s)
 			setCurrentOutput (s, outputDeviceForPoint (s,
 			                  event->xbutton.x_root,
 			                  event->xbutton.y_root));
 		break;
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 			setCurrentOutput (s, outputDeviceForPoint (s,
 			                  event->xmotion.x_root,
 			                  event->xmotion.y_root));
 		break;
 	case KeyPress:
-		w = findWindowAtDisplay (d, d->activeWindow);
+		w = findWindowAtDisplay (display.activeWindow);
 		if (w)
 			setCurrentOutput (w->screen, outputDeviceForWindow (w));
 	default:
@@ -613,13 +609,13 @@ handleEvent (CompDisplay *d,
 	/* handle Core bindings */
 	switch (event->type) {
 	case KeyPress:
-		if (isKeyPressEvent (event, &d->close_window_key))
+		if (isKeyPressEvent (event, &display.close_window_key))
 		{
 			BananaArgument arg[2];
 
 			arg[0].name = "window";
 			arg[0].type = BananaInt;
-			arg[0].value.i = d->activeWindow;
+			arg[0].value.i = display.activeWindow;
 
 			arg[1].name = "time";
 			arg[1].type = BananaInt;
@@ -627,93 +623,93 @@ handleEvent (CompDisplay *d,
 
 			closeWin (arg, 2);
 		}
-		else if (isKeyPressEvent (event, &d->raise_window_key))
+		else if (isKeyPressEvent (event, &display.raise_window_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			raiseInitiate (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->lower_window_key))
+		else if (isKeyPressEvent (event, &display.lower_window_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			lowerInitiate (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->unmaximize_window_key))
+		else if (isKeyPressEvent (event, &display.unmaximize_window_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			unmaximize (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->minimize_window_key))
+		else if (isKeyPressEvent (event, &display.minimize_window_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			minimize (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->maximize_window_key))
+		else if (isKeyPressEvent (event, &display.maximize_window_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			maximize (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->maximize_window_horizontally_key))
+		else if (isKeyPressEvent (event, &display.maximize_window_horizontally_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			maximizeHorizontally (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->maximize_window_horizontally_key))
+		else if (isKeyPressEvent (event, &display.maximize_window_horizontally_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			maximizeHorizontally (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->maximize_window_vertically_key))
+		else if (isKeyPressEvent (event, &display.maximize_window_vertically_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			maximizeVertically (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->window_menu_key))
+		else if (isKeyPressEvent (event, &display.window_menu_key))
 		{
 			BananaArgument arg[4];
 
 			arg[0].name = "window";
 			arg[0].type = BananaInt;
-			arg[0].value.i = d->activeWindow;
+			arg[0].value.i = display.activeWindow;
 
 			arg[1].name = "time";
 			arg[1].type = BananaInt;
@@ -729,7 +725,7 @@ handleEvent (CompDisplay *d,
 
 			windowMenu (arg, 4);
 		}
-		else if (isKeyPressEvent (event, &d->show_desktop_key))
+		else if (isKeyPressEvent (event, &display.show_desktop_key))
 		{
 			BananaArgument arg;
 
@@ -739,50 +735,50 @@ handleEvent (CompDisplay *d,
 
 			showDesktop (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->toggle_window_maximized_key))
+		else if (isKeyPressEvent (event, &display.toggle_window_maximized_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			toggleMaximized (&arg, 1);
 		}
 		else if (isKeyPressEvent (event,
-		         &d->toggle_window_maximized_horizontally_key))
+		         &display.toggle_window_maximized_horizontally_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			toggleMaximizedHorizontally (&arg, 1);
 		}
 		else if (isKeyPressEvent (event,
-		         &d->toggle_window_maximized_vertically_key))
+		         &display.toggle_window_maximized_vertically_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			toggleMaximizedVertically (&arg, 1);
 		}
 		else if (isKeyPressEvent (event,
-		         &d->toggle_window_shaded_key))
+		         &display.toggle_window_shaded_key))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			shade (&arg, 1);
 		}
-		else if (isKeyPressEvent (event, &d->slow_animations_key))
+		else if (isKeyPressEvent (event, &display.slow_animations_key))
 		{
 			BananaArgument arg;
 
@@ -795,13 +791,13 @@ handleEvent (CompDisplay *d,
 
 		break;
 	case ButtonPress:
-		if (isButtonPressEvent (event, &d->close_window_button))
+		if (isButtonPressEvent (event, &display.close_window_button))
 		{
 			BananaArgument arg[2];
 
 			arg[0].name = "window";
 			arg[0].type = BananaInt;
-			arg[0].value.i = d->activeWindow;
+			arg[0].value.i = display.activeWindow;
 
 			arg[1].name = "time";
 			arg[1].type = BananaInt;
@@ -809,43 +805,43 @@ handleEvent (CompDisplay *d,
 
 			closeWin (arg, 2);
 		}
-		else if (isButtonPressEvent (event, &d->raise_window_button))
+		else if (isButtonPressEvent (event, &display.raise_window_button))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			raiseInitiate (&arg, 1);
 		}
-		else if (isButtonPressEvent (event, &d->lower_window_button))
+		else if (isButtonPressEvent (event, &display.lower_window_button))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			lowerInitiate (&arg, 1);
 		}
-		else if (isButtonPressEvent (event, &d->minimize_window_button))
+		else if (isButtonPressEvent (event, &display.minimize_window_button))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			minimize (&arg, 1);
 		}
-		else if (isButtonPressEvent (event, &d->window_menu_button))
+		else if (isButtonPressEvent (event, &display.window_menu_button))
 		{
 			BananaArgument arg[5];
 
 			arg[0].name = "window";
 			arg[0].type = BananaInt;
-			arg[0].value.i = d->activeWindow;
+			arg[0].value.i = display.activeWindow;
 
 			arg[1].name = "time";
 			arg[1].type = BananaInt;
@@ -865,13 +861,13 @@ handleEvent (CompDisplay *d,
 
 			windowMenu (arg, 5);
 		}
-		else if (isButtonPressEvent (event, &d->toggle_window_maximized_button))
+		else if (isButtonPressEvent (event, &display.toggle_window_maximized_button))
 		{
 			BananaArgument arg;
 
 			arg.name = "window";
 			arg.type = BananaInt;
-			arg.value.i = d->activeWindow;
+			arg.value.i = display.activeWindow;
 
 			toggleMaximized (&arg, 1);
 		}
@@ -882,7 +878,7 @@ handleEvent (CompDisplay *d,
 
 	switch (event->type) {
 	case Expose:
-		for (s = d->screens; s; s = s->next)
+		for (s = display.screens; s; s = s->next)
 			if (s->output == event->xexpose.window)
 				break;
 
@@ -927,26 +923,26 @@ handleEvent (CompDisplay *d,
 		}
 		break;
 	case SelectionRequest:
-		handleSelectionRequest (d, event);
+		handleSelectionRequest (event);
 		break;
 	case SelectionClear:
-		handleSelectionClear (d, event);
+		handleSelectionClear (event);
 		break;
 	case ConfigureNotify:
-		w = findWindowAtDisplay (d, event->xconfigure.window);
+		w = findWindowAtDisplay (event->xconfigure.window);
 		if (w)
 		{
 			configureWindow (w, &event->xconfigure);
 		}
 		else
 		{
-			s = findScreenAtDisplay (d, event->xconfigure.window);
+			s = findScreenAtDisplay (event->xconfigure.window);
 			if (s)
 				configureScreen (s, &event->xconfigure);
 		}
 		break;
 	case CreateNotify:
-		s = findScreenAtDisplay (d, event->xcreatewindow.parent);
+		s = findScreenAtDisplay (event->xcreatewindow.parent);
 		if (s)
 		{
 			/* The first time some client asks for the composite
@@ -958,7 +954,7 @@ handleEvent (CompDisplay *d,
 		}
 		break;
 	case DestroyNotify:
-		w = findWindowAtDisplay (d, event->xdestroywindow.window);
+		w = findWindowAtDisplay (event->xdestroywindow.window);
 		if (w)
 		{
 			moveInputFocusToOtherWindow (w);
@@ -966,7 +962,7 @@ handleEvent (CompDisplay *d,
 		}
 		break;
 	case MapNotify:
-		w = findWindowAtDisplay (d, event->xmap.window);
+		w = findWindowAtDisplay (event->xmap.window);
 		if (w)
 		{
 			if (w->pendingMaps)
@@ -975,7 +971,7 @@ handleEvent (CompDisplay *d,
 			/* been shaded */
 			if (w->height == 0)
 			{
-				if (w->id == d->activeWindow)
+				if (w->id == display.activeWindow)
 					moveInputFocusToWindow (w);
 			}
 
@@ -983,13 +979,13 @@ handleEvent (CompDisplay *d,
 		}
 		break;
 	case UnmapNotify:
-		w = findWindowAtDisplay (d, event->xunmap.window);
+		w = findWindowAtDisplay (event->xunmap.window);
 		if (w)
 		{
 			/* Normal -> Iconic */
 			if (w->pendingUnmaps)
 			{
-				setWmState (d, IconicState, w->id);
+				setWmState (IconicState, w->id);
 				w->pendingUnmaps--;
 			}
 			else /* X -> Withdrawn */
@@ -1006,7 +1002,7 @@ handleEvent (CompDisplay *d,
 				}
 
 				if (!w->attrib.override_redirect)
-					setWmState (d, WithdrawnState, w->id);
+					setWmState (WithdrawnState, w->id);
 
 				w->placed     = FALSE;
 				w->unmanaging = w->managed;
@@ -1020,8 +1016,8 @@ handleEvent (CompDisplay *d,
 		}
 		break;
 	case ReparentNotify:
-		w = findWindowAtDisplay (d, event->xreparent.window);
-		s = findScreenAtDisplay (d, event->xreparent.parent);
+		w = findWindowAtDisplay (event->xreparent.window);
+		s = findScreenAtDisplay (event->xreparent.parent);
 		if (s && !w)
 		{
 			addWindow (s, event->xreparent.window, getTopWindow (s));
@@ -1031,9 +1027,9 @@ handleEvent (CompDisplay *d,
 			/* This is the only case where a window is removed but not
 			   destroyed. We must remove our event mask and all passive
 			   grabs. */
-			XSelectInput (d->display, w->id, NoEventMask);
-			XShapeSelectInput (d->display, w->id, NoEventMask);
-			XUngrabButton (d->display, AnyButton, AnyModifier, w->id);
+			XSelectInput (display.display, w->id, NoEventMask);
+			XShapeSelectInput (display.display, w->id, NoEventMask);
+			XUngrabButton (display.display, AnyButton, AnyModifier, w->id);
 
 			moveInputFocusToOtherWindow (w);
 
@@ -1041,12 +1037,12 @@ handleEvent (CompDisplay *d,
 		}
 		break;
 	case CirculateNotify:
-		w = findWindowAtDisplay (d, event->xcirculate.window);
+		w = findWindowAtDisplay (event->xcirculate.window);
 		if (w)
 			circulateWindow (w, &event->xcirculate);
 		break;
 	case ButtonPress:
-		s = findScreenAtDisplay (d, event->xbutton.root);
+		s = findScreenAtDisplay (event->xbutton.root);
 		if (s)
 		{
 			if (event->xbutton.button == Button1 ||
@@ -1064,7 +1060,7 @@ handleEvent (CompDisplay *d,
 						updateWindowAttributes (w,
 						          CompStackingUpdateModeAboveFullscreen);
 
-					if (w->id != d->activeWindow)
+					if (w->id != display.activeWindow)
 						if (!(w->type & CompWindowTypeDockMask))
 							if ((*s->focusWindow) (w))
 								moveInputFocusToWindow (w);
@@ -1072,18 +1068,18 @@ handleEvent (CompDisplay *d,
 			}
 
 			if (!s->maxGrab)
-				XAllowEvents (d->display, ReplayPointer, event->xbutton.time);
+				XAllowEvents (display.display, ReplayPointer, event->xbutton.time);
 		}
 		break;
 	case PropertyNotify:
-		if (event->xproperty.atom == d->winTypeAtom)
+		if (event->xproperty.atom == display.winTypeAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				unsigned int type;
 
-				type = getWindowType (d, w->id);
+				type = getWindowType (w->id);
 
 				if (type != w->wmType)
 				{
@@ -1109,18 +1105,18 @@ handleEvent (CompDisplay *d,
 
 					updateClientListForScreen (w->screen);
 
-					(*d->matchPropertyChanged) (d, w);
+					(*display.matchPropertyChanged) (w);
 				}
 			}
 		}
-		else if (event->xproperty.atom == d->winStateAtom)
+		else if (event->xproperty.atom == display.winStateAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w && !w->managed)
 			{
 				unsigned int state;
 
-				state = getWindowState (d, w->id);
+				state = getWindowState (w->id);
 				state = constrainWindowState (state, w->actions);
 
 				/* EWMH suggests that we ignore changes
@@ -1141,7 +1137,7 @@ handleEvent (CompDisplay *d,
 		}
 		else if (event->xproperty.atom == XA_WM_NORMAL_HINTS)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				updateNormalHints (w);
@@ -1150,39 +1146,39 @@ handleEvent (CompDisplay *d,
 		}
 		else if (event->xproperty.atom == XA_WM_HINTS)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 				updateWmHints (w);
 		}
 		else if (event->xproperty.atom == XA_WM_TRANSIENT_FOR)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				updateTransientHint (w);
 				recalcWindowActions (w);
 			}
 		}
-		else if (event->xproperty.atom == d->wmClientLeaderAtom)
+		else if (event->xproperty.atom == display.wmClientLeaderAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 				w->clientLeader = getClientLeader (w);
 		}
-		else if (event->xproperty.atom == d->wmIconGeometryAtom)
+		else if (event->xproperty.atom == display.wmIconGeometryAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 				updateIconGeometry (w);
 		}
-		else if (event->xproperty.atom == d->winOpacityAtom)
+		else if (event->xproperty.atom == display.winOpacityAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w && !(w->type & CompWindowTypeDesktopMask))
 			{
 				int opacity;
 
-				opacity = getWindowProp32 (d, w->id, d->winOpacityAtom, OPAQUE);
+				opacity = getWindowProp32 (w->id, display.winOpacityAtom, OPAQUE);
 				if (opacity != w->paint.opacity)
 				{
 					w->paint.opacity = opacity;
@@ -1190,15 +1186,15 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (event->xproperty.atom == d->winBrightnessAtom)
+		else if (event->xproperty.atom == display.winBrightnessAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				int brightness;
 
-				brightness = getWindowProp32 (d, w->id,
-			 	                              d->winBrightnessAtom, BRIGHT);
+				brightness = getWindowProp32 (w->id,
+			 	                              display.winBrightnessAtom, BRIGHT);
 				if (brightness != w->paint.brightness)
 				{
 					w->paint.brightness = brightness;
@@ -1206,15 +1202,15 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (event->xproperty.atom == d->winSaturationAtom)
+		else if (event->xproperty.atom == display.winSaturationAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w && w->screen->canDoSaturated)
 			{
 				int saturation;
 
-				saturation = getWindowProp32 (d, w->id,
-				                              d->winSaturationAtom, COLOR);
+				saturation = getWindowProp32 (w->id,
+				                              display.winSaturationAtom, COLOR);
 				if (saturation != w->paint.saturation)
 				{
 					w->paint.saturation = saturation;
@@ -1222,10 +1218,10 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (event->xproperty.atom == d->xBackgroundAtom[0] ||
-		         event->xproperty.atom == d->xBackgroundAtom[1])
+		else if (event->xproperty.atom == display.xBackgroundAtom[0] ||
+		         event->xproperty.atom == display.xBackgroundAtom[1])
 		{
-			s = findScreenAtDisplay (d, event->xproperty.window);
+			s = findScreenAtDisplay (event->xproperty.window);
 			if (s)
 			{
 				finiTexture (s, &s->backgroundTexture);
@@ -1238,41 +1234,41 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (event->xproperty.atom == d->wmStrutAtom ||
-		         event->xproperty.atom == d->wmStrutPartialAtom)
+		else if (event->xproperty.atom == display.wmStrutAtom ||
+		         event->xproperty.atom == display.wmStrutPartialAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				if (updateWindowStruts (w))
 					updateWorkareaForScreen (w->screen);
 			}
 		}
-		else if (event->xproperty.atom == d->mwmHintsAtom)
+		else if (event->xproperty.atom == display.mwmHintsAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
-				getMwmHints (d, w->id, &w->mwmFunc, &w->mwmDecor);
+				getMwmHints (w->id, &w->mwmFunc, &w->mwmDecor);
 
 				recalcWindowActions (w);
 			}
 		}
-		else if (event->xproperty.atom == d->wmProtocolsAtom)
+		else if (event->xproperty.atom == display.wmProtocolsAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
-				w->protocols = getProtocols (d, w->id);
+				w->protocols = getProtocols (w->id);
 		}
-		else if (event->xproperty.atom == d->wmIconAtom)
+		else if (event->xproperty.atom == display.wmIconAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 				freeWindowIcons (w);
 		}
-		else if (event->xproperty.atom == d->startupIdAtom)
+		else if (event->xproperty.atom == display.startupIdAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				s = w->screen;
@@ -1315,14 +1311,14 @@ handleEvent (CompDisplay *d,
 		}
 		else if (event->xproperty.atom == XA_WM_CLASS)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 				updateWindowClassHints (w);
-				(*d->matchPropertyChanged) (d, w);
+				(*display.matchPropertyChanged) (w);
 		}
 		else if (event->xproperty.atom == XA_WM_NAME)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				if (w->title)
@@ -1330,29 +1326,29 @@ handleEvent (CompDisplay *d,
 
 				w->title = getWindowTitle (w);
 
-				(*d->matchPropertyChanged) (d, w);
+				(*display.matchPropertyChanged) (w);
 			}
 		}
-		else if (event->xproperty.atom == d->roleAtom)
+		else if (event->xproperty.atom == display.roleAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				if (w->role)
 					free (w->role);
 
-				w->role = getWindowStringProperty (w, d->roleAtom, XA_STRING);
+				w->role = getWindowStringProperty (w, display.roleAtom, XA_STRING);
 
-				(*d->matchPropertyChanged) (d, w);
+				(*display.matchPropertyChanged) (w);
 			}
 		}
 		break;
 	case MotionNotify:
 		break;
 	case ClientMessage:
-		if (event->xclient.message_type == d->winActiveAtom)
+		if (event->xclient.message_type == display.winActiveAtom)
 		{
-			w = findTopLevelWindowAtDisplay (d, event->xclient.window);
+			w = findTopLevelWindowAtDisplay (event->xclient.window);
 			if (w)
 			{
 				CompFocusResult focus = CompFocusAllowed;
@@ -1369,39 +1365,39 @@ handleEvent (CompDisplay *d,
 					(*w->screen->activateWindow) (w);
 			}
 		}
-		else if (event->xclient.message_type == d->winOpacityAtom)
+		else if (event->xclient.message_type == display.winOpacityAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w && !(w->type & CompWindowTypeDesktopMask))
 			{
 				GLushort opacity = event->xclient.data.l[0] >> 16;
 
-				setWindowProp32 (d, w->id, d->winOpacityAtom, opacity);
+				setWindowProp32 (w->id, display.winOpacityAtom, opacity);
 			}
 		}
-		else if (event->xclient.message_type == d->winBrightnessAtom)
+		else if (event->xclient.message_type == display.winBrightnessAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 			{
 				GLushort brightness = event->xclient.data.l[0] >> 16;
 
-				setWindowProp32 (d, w->id, d->winBrightnessAtom, brightness);
+				setWindowProp32 (w->id, display.winBrightnessAtom, brightness);
 			}
 		}
-		else if (event->xclient.message_type == d->winSaturationAtom)
+		else if (event->xclient.message_type == display.winSaturationAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w && w->screen->canDoSaturated)
 			{
 				GLushort saturation = event->xclient.data.l[0] >> 16;
 
-				setWindowProp32 (d, w->id, d->winSaturationAtom, saturation);
+				setWindowProp32 (w->id, display.winSaturationAtom, saturation);
 			}
 		}
-		else if (event->xclient.message_type == d->winStateAtom)
+		else if (event->xclient.message_type == display.winStateAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 			{
 				unsigned long wState, state;
@@ -1411,7 +1407,7 @@ handleEvent (CompDisplay *d,
 
 				for (i = 1; i < 3; i++)
 				{
-					state = windowStateMask (d, event->xclient.data.l[i]);
+					state = windowStateMask (event->xclient.data.l[i]);
 					if (state & ~CompWindowStateHiddenMask)
 					{
 
@@ -1434,7 +1430,7 @@ handleEvent (CompDisplay *d,
 				}
 
 				wState = constrainWindowState (wState, w->actions);
-				if (w->id == d->activeWindow)
+				if (w->id == display.activeWindow)
 					wState &= ~CompWindowStateDemandsAttentionMask;
 
 				if (wState != w->state)
@@ -1460,11 +1456,11 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (event->xclient.message_type == d->wmProtocolsAtom)
+		else if (event->xclient.message_type == display.wmProtocolsAtom)
 		{
-			if (event->xclient.data.l[0] == d->wmPingAtom)
+			if (event->xclient.data.l[0] == display.wmPingAtom)
 			{
-				w = findWindowAtDisplay (d, event->xclient.data.l[2]);
+				w = findWindowAtDisplay (event->xclient.data.l[2]);
 				if (w)
 				{
 					if (!w->alive)
@@ -1474,7 +1470,7 @@ handleEvent (CompDisplay *d,
 						if (w->lastCloseRequestTime)
 						{
 							toolkitAction (w->screen,
-							               d->toolkitActionForceQuitDialogAtom,
+							               display.toolkitActionForceQuitDialogAtom,
 							               w->lastCloseRequestTime,
 							               w->id,
 							               FALSE,
@@ -1484,19 +1480,19 @@ handleEvent (CompDisplay *d,
 							w->lastCloseRequestTime = 0;
 						}
 					}
-					w->lastPong = d->lastPing;
+					w->lastPong = display.lastPing;
 				}
 			}
 		}
-		else if (event->xclient.message_type == d->closeWindowAtom)
+		else if (event->xclient.message_type == display.closeWindowAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 				closeWindow (w, event->xclient.data.l[0]);
 		}
-		else if (event->xclient.message_type == d->desktopGeometryAtom)
+		else if (event->xclient.message_type == display.desktopGeometryAtom)
 		{
-			s = findScreenAtDisplay (d, event->xclient.window);
+			s = findScreenAtDisplay (event->xclient.window);
 			if (s)
 			{
 				BananaValue value;
@@ -1516,9 +1512,9 @@ handleEvent (CompDisplay *d,
 				                 &value);
 			}
 		}
-		else if (event->xclient.message_type == d->moveResizeWindowAtom)
+		else if (event->xclient.message_type == display.moveResizeWindowAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 			{
 				unsigned int   xwcm = 0;
@@ -1558,9 +1554,9 @@ handleEvent (CompDisplay *d,
 				moveResizeWindow (w, &xwc, xwcm, gravity, source);
 			}
 		}
-		else if (event->xclient.message_type == d->restackWindowAtom)
+		else if (event->xclient.message_type == display.restackWindowAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 			{
 				/* TODO: other stack modes than Above and Below */
@@ -1568,7 +1564,7 @@ handleEvent (CompDisplay *d,
 				{
 					CompWindow *sibling;
 
-					sibling = findWindowAtDisplay (d, event->xclient.data.l[1]);
+					sibling = findWindowAtDisplay (event->xclient.data.l[1]);
 					if (sibling)
 					{
 						if (event->xclient.data.l[2] == Above)
@@ -1586,9 +1582,9 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (event->xclient.message_type == d->wmChangeStateAtom)
+		else if (event->xclient.message_type == display.wmChangeStateAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 			{
 				if (event->xclient.data.l[0] == IconicState)
@@ -1600,9 +1596,9 @@ handleEvent (CompDisplay *d,
 					unminimizeWindow (w);
 			}
 		}
-		else if (event->xclient.message_type == d->showingDesktopAtom)
+		else if (event->xclient.message_type == display.showingDesktopAtom)
 		{
-			for (s = d->screens; s; s = s->next)
+			for (s = display.screens; s; s = s->next)
 			{
 				if (event->xclient.window == s->root ||
 					event->xclient.window == None)
@@ -1614,9 +1610,9 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (event->xclient.message_type == d->numberOfDesktopsAtom)
+		else if (event->xclient.message_type == display.numberOfDesktopsAtom)
 		{
-			s = findScreenAtDisplay (d, event->xclient.window);
+			s = findScreenAtDisplay (event->xclient.window);
 			if (s)
 			{
 				BananaValue value;
@@ -1629,21 +1625,21 @@ handleEvent (CompDisplay *d,
 				                 &value);
 			}
 		}
-		else if (event->xclient.message_type == d->currentDesktopAtom)
+		else if (event->xclient.message_type == display.currentDesktopAtom)
 		{
-			s = findScreenAtDisplay (d, event->xclient.window);
+			s = findScreenAtDisplay (event->xclient.window);
 			if (s)
 				setCurrentDesktop (s, event->xclient.data.l[0]);
 		}
-		else if (event->xclient.message_type == d->winDesktopAtom)
+		else if (event->xclient.message_type == display.winDesktopAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 				setDesktopForWindow (w, event->xclient.data.l[0]);
 		}
-		else if (event->xclient.message_type == d->wmFullscreenMonitorsAtom)
+		else if (event->xclient.message_type == display.wmFullscreenMonitorsAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 			{
 				CompFullscreenMonitorSet monitors;
@@ -1658,10 +1654,10 @@ handleEvent (CompDisplay *d,
 		}
 		break;
 	case MappingNotify:
-		updateModifierMappings (d);
+		updateModifierMappings ();
 		break;
 	case MapRequest:
-		w = findWindowAtDisplay (d, event->xmaprequest.window);
+		w = findWindowAtDisplay (event->xmaprequest.window);
 		if (w)
 		{
 			XWindowAttributes attr;
@@ -1669,7 +1665,7 @@ handleEvent (CompDisplay *d,
 
 			/* We should check the override_redirect flag here, because the
 			   client might have changed it while being unmapped. */
-			if (XGetWindowAttributes (d->display, w->id, &attr))
+			if (XGetWindowAttributes (display.display, w->id, &attr))
 			{
 				if (w->attrib.override_redirect != attr.override_redirect)
 				{
@@ -1677,7 +1673,7 @@ handleEvent (CompDisplay *d,
 					recalcWindowType (w);
 					recalcWindowActions (w);
 
-					(*d->matchPropertyChanged) (d, w);
+					(*display.matchPropertyChanged) (w);
 				}
 			}
 
@@ -1775,15 +1771,15 @@ handleEvent (CompDisplay *d,
 				}
 			}
 
-			setWindowProp (d, w->id, d->winDesktopAtom, w->desktop);
+			setWindowProp (w->id, display.winDesktopAtom, w->desktop);
 		}
 		else
 		{
-			XMapWindow (d->display, event->xmaprequest.window);
+			XMapWindow (display.display, event->xmaprequest.window);
 		}
 		break;
 	case ConfigureRequest:
-		w = findWindowAtDisplay (d, event->xconfigurerequest.window);
+		w = findWindowAtDisplay (event->xconfigurerequest.window);
 		if (w && w->managed)
 		{
 			XWindowChanges xwc;
@@ -1808,7 +1804,7 @@ handleEvent (CompDisplay *d,
 				if (event->xconfigurerequest.value_mask & CWSibling)
 				{
 					above   = event->xconfigurerequest.above;
-					sibling = findTopLevelWindowAtDisplay (d, above);
+					sibling = findTopLevelWindowAtDisplay (above);
 				}
 
 				switch (event->xconfigurerequest.detail) {
@@ -1859,7 +1855,7 @@ handleEvent (CompDisplay *d,
 			if (w)
 				configureXWindow (w, xwcm, &xwc);
 			else
-				XConfigureWindow (d->display, event->xconfigurerequest.window,
+				XConfigureWindow (display.display, event->xconfigurerequest.window,
 				                  xwcm, &xwc);
 		}
 		break;
@@ -1868,20 +1864,20 @@ handleEvent (CompDisplay *d,
 	case FocusIn:
 		if (event->xfocus.mode != NotifyGrab)
 		{
-			w = findTopLevelWindowAtDisplay (d, event->xfocus.window);
+			w = findTopLevelWindowAtDisplay (event->xfocus.window);
 			if (w && w->managed)
 			{
 				unsigned int state = w->state;
 
-				if (w->id != d->activeWindow)
+				if (w->id != display.activeWindow)
 				{
-					d->activeWindow = w->id;
+					display.activeWindow = w->id;
 					w->activeNum = w->screen->activeNum++;
 
 					addToCurrentActiveWindowHistory (w->screen, w->id);
 
-					XChangeProperty (d->display, w->screen->root,
-					                 d->winActiveAtom,
+					XChangeProperty (display.display, w->screen->root,
+					                 display.winActiveAtom,
 					                 XA_WINDOW, 32, PropModeReplace,
 					                 (unsigned char *) &w->id, 1);
 				}
@@ -1891,9 +1887,9 @@ handleEvent (CompDisplay *d,
 			}
 			else
 			{
-				d->activeWindow = None;
+				display.activeWindow = None;
 
-				s = findScreenAtDisplay (d, event->xfocus.window);
+				s = findScreenAtDisplay (event->xfocus.window);
 				if (s)
 				{
 					if (event->xfocus.detail == NotifyDetailNone ||
@@ -1906,20 +1902,20 @@ handleEvent (CompDisplay *d,
 				}
 			}
 
-			if (d->nextActiveWindow == event->xfocus.window)
-				d->nextActiveWindow = None;
+			if (display.nextActiveWindow == event->xfocus.window)
+				display.nextActiveWindow = None;
 		}
 		break;
 	case EnterNotify:
-		s = findScreenAtDisplay (d, event->xcrossing.root);
+		s = findScreenAtDisplay (event->xcrossing.root);
 		if (s)
 			w = findTopLevelWindowAtScreen (s, event->xcrossing.window);
 		else
 			w = NULL;
 
-		if (w && w->id != d->below)
+		if (w && w->id != display.below)
 		{
-			d->below = w->id;
+			display.below = w->id;
 
 			const BananaValue *
 			option_click_to_focus = bananaGetOption (
@@ -1945,10 +1941,10 @@ handleEvent (CompDisplay *d,
 
 				delay = option_autoraise_delay->i;
 
-				if (d->autoRaiseHandle && d->autoRaiseWindow != w->id)
+				if (display.autoRaiseHandle && display.autoRaiseWindow != w->id)
 				{
-					compRemoveTimeout (d->autoRaiseHandle);
-					d->autoRaiseHandle = 0;
+					compRemoveTimeout (display.autoRaiseHandle);
+					display.autoRaiseHandle = 0;
 				}
 
 				if (w->type & NO_FOCUS_MASK)
@@ -1964,10 +1960,10 @@ handleEvent (CompDisplay *d,
 					{
 						if (delay > 0)
 						{
-							d->autoRaiseWindow = w->id;
-							d->autoRaiseHandle =
+							display.autoRaiseWindow = w->id;
+							display.autoRaiseHandle =
 							      compAddTimeout (delay, (float) delay * 1.2,
-							      autoRaiseTimeout, d);
+							      autoRaiseTimeout, &display);
 						}
 						else
 						{
@@ -1984,12 +1980,12 @@ handleEvent (CompDisplay *d,
 	case LeaveNotify:
 		if (event->xcrossing.detail != NotifyInferior)
 		{
-			if (event->xcrossing.window == d->below)
-				d->below = None;
+			if (event->xcrossing.window == display.below)
+				display.below = None;
 		}
 		break;
 	default:
-		if (event->type == d->damageEvent + XDamageNotify)
+		if (event->type == display.damageEvent + XDamageNotify)
 		{
 			XDamageNotifyEvent *de = (XDamageNotifyEvent *) event;
 
@@ -1999,7 +1995,7 @@ handleEvent (CompDisplay *d,
 			}
 			else
 			{
-				w = findWindowAtDisplay (d, de->drawable);
+				w = findWindowAtDisplay (de->drawable);
 				if (w)
 					lastDamagedWindow = w;
 			}
@@ -2034,10 +2030,10 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (d->shapeExtension &&
-		         event->type == d->shapeEvent + ShapeNotify)
+		else if (display.shapeExtension &&
+		         event->type == display.shapeEvent + ShapeNotify)
 		{
-			w = findWindowAtDisplay (d, ((XShapeEvent *) event)->window);
+			w = findWindowAtDisplay (((XShapeEvent *) event)->window);
 			if (w)
 			{
 				if (w->mapNum)
@@ -2048,24 +2044,24 @@ handleEvent (CompDisplay *d,
 				}
 			}
 		}
-		else if (d->randrExtension &&
-		         event->type == d->randrEvent + RRScreenChangeNotify)
+		else if (display.randrExtension &&
+		         event->type == display.randrEvent + RRScreenChangeNotify)
 		{
 			XRRScreenChangeNotifyEvent *rre;
 
 			rre = (XRRScreenChangeNotifyEvent *) event;
 
-			s = findScreenAtDisplay (d, rre->root);
+			s = findScreenAtDisplay (rre->root);
 			if (s)
 				detectRefreshRateOfScreen (s);
 		}
-		else if (event->type == d->syncEvent + XSyncAlarmNotify)
+		else if (event->type == display.syncEvent + XSyncAlarmNotify)
 		{
 			XSyncAlarmNotifyEvent *sa;
 
 			sa = (XSyncAlarmNotifyEvent *) event;
 
-			for (s = d->screens; s; s = s->next)
+			for (s = display.screens; s; s = s->next)
 			{
 				for (w = s->windows; w; w = w->next)
 				{

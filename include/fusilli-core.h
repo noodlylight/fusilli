@@ -233,6 +233,7 @@ extern int pointerX;
 extern int pointerY;
 
 extern CompCore     core;
+extern CompDisplay  display;
 extern int coreBananaIndex;
 
 #define RESTRICT_VALUE(value, min, max) \
@@ -529,32 +530,27 @@ typedef struct _CompButtonBinding {
 typedef union _CompMatchOp CompMatchOp;
 
 struct _CompMatch {
-	CompDisplay *display;
+	Bool        active;
 	CompMatchOp *op;
 	int         nOp;
 };
 
 char *
-keyBindingToString (CompDisplay    *d,
-                    CompKeyBinding *key);
+keyBindingToString (CompKeyBinding *key);
 
 char *
-buttonBindingToString (CompDisplay       *d,
-                       CompButtonBinding *button);
+buttonBindingToString (CompButtonBinding *button);
 
 Bool
-stringToKeyBinding (CompDisplay    *d,
-                    const char     *binding,
+stringToKeyBinding (const char     *binding,
                     CompKeyBinding *key);
 
 Bool
-stringToButtonBinding (CompDisplay       *d,
-                       const char        *binding,
+stringToButtonBinding (const char        *binding,
                        CompButtonBinding *button);
 
 unsigned int
-stringToModifiers (CompDisplay *d,
-                   const char  *binding);
+stringToModifiers (const char  *binding);
 
 
 const char *
@@ -631,8 +627,6 @@ typedef void (*LogMessageProc) (const char   *componentName,
 struct _CompCore {
 	CompObject base;
 
-	CompDisplay *displays;
-
 	Region tmpRegion;
 	Region outputRegion;
 
@@ -689,9 +683,6 @@ allocateCorePrivateIndex (void);
 void
 freeCorePrivateIndex (int index);
 
-void
-addDisplayToCore (CompDisplay *d);
-
 CompFileWatchHandle
 addFileWatch (const char            *path,
               int                   mask,
@@ -707,28 +698,24 @@ getCoreABI (void);
 
 /* display.c */
 
-typedef void (*HandleEventProc) (CompDisplay *display,
-                                 XEvent      *event);
+typedef void (*HandleEventProc) (XEvent      *event);
 
-typedef void (*HandleFusilliEventProc) (CompDisplay   *display,
-                                       const char     *pluginName,
-                                       const char     *eventName,
-                                       BananaArgument *arg,
-                                       int            nArg);
+typedef void (*HandleFusilliEventProc) (const char     *pluginName,
+                                        const char     *eventName,
+                                        BananaArgument *arg,
+                                        int            nArg);
 
 typedef void (*ForEachWindowProc) (CompWindow *window,
                                    void       *closure);
 
-typedef Bool (*FileToImageProc) (CompDisplay *display,
-                                 const char  *path,
+typedef Bool (*FileToImageProc) (const char  *path,
                                  const char  *name,
                                  int         *width,
                                  int         *height,
                                  int         *stride,
                                  void        **data);
 
-typedef Bool (*ImageToFileProc) (CompDisplay *display,
-                                 const char  *path,
+typedef Bool (*ImageToFileProc) (const char  *path,
                                  const char  *name,
                                  const char  *format,
                                  int         width,
@@ -756,11 +743,9 @@ typedef struct _CompMatchGroupOp {
 	int             nOp;
 } CompMatchGroupOp;
 
-typedef void (*CompMatchExpFiniProc) (CompDisplay *display,
-                                      CompPrivate priv);
+typedef void (*CompMatchExpFiniProc) (CompPrivate priv);
 
-typedef Bool (*CompMatchExpEvalProc) (CompDisplay *display,
-                                      CompWindow  *window,
+typedef Bool (*CompMatchExpEvalProc) (CompWindow  *window,
                                       CompPrivate priv);
 
 typedef struct _CompMatchExp {
@@ -783,13 +768,10 @@ union _CompMatchOp {
 	CompMatchExpOp   exp;
 };
 
-typedef void (*MatchPropertyChangedProc) (CompDisplay *display,
-                                          CompWindow  *window);
+typedef void (*MatchPropertyChangedProc) (CompWindow  *window);
 
 struct _CompDisplay {
 	CompObject base;
-
-	CompDisplay *next;
 
 	Display    *display;
 	CompScreen *screens;
@@ -1011,9 +993,6 @@ struct _CompDisplay {
 	void *reserved;
 };
 
-#define GET_CORE_DISPLAY(object) ((CompDisplay *) (object))
-#define CORE_DISPLAY(object) CompDisplay *d = GET_CORE_DISPLAY (object)
-
 CompBool
 allocDisplayObjectPrivates (CompObject *object,
                             CompObject *parent);
@@ -1067,59 +1046,50 @@ int
 compCheckForError (Display *dpy);
 
 void
-addScreenToDisplay (CompDisplay *display,
-                    CompScreen *s);
+addScreenToDisplay (CompScreen *s);
 
 Bool
 addDisplay (const char *name);
 
 void
-removeDisplay (CompDisplay *d);
+removeDisplay (void);
 
 Time
-getCurrentTimeFromDisplay (CompDisplay *d);
+getCurrentTimeFromDisplay (void);
 
 void
-forEachWindowOnDisplay (CompDisplay       *display,
-                        ForEachWindowProc proc,
+forEachWindowOnDisplay (ForEachWindowProc proc,
                         void              *closure);
 
 CompScreen *
-findScreenAtDisplay (CompDisplay *d,
-                     Window      root);
+findScreenAtDisplay (Window      root);
 
 CompScreen *
 getScreenFromScreenNum (int screenNum);
 
 CompWindow *
-findWindowAtDisplay (CompDisplay *display,
-                     Window      id);
+findWindowAtDisplay (Window      id);
 
 CompWindow *
-findTopLevelWindowAtDisplay (CompDisplay *d,
-                             Window      id);
+findTopLevelWindowAtDisplay (Window      id);
 
 unsigned int
-virtualToRealModMask (CompDisplay  *d,
-                      unsigned int modMask);
+virtualToRealModMask (unsigned int modMask);
 
 void
-updateModifierMappings (CompDisplay *d);
+updateModifierMappings (void);
 
 unsigned int
-keycodeToModifiers (CompDisplay *d,
-                    int         keycode);
+keycodeToModifiers (int         keycode);
 
 void
 eventLoop (void);
 
 void
-handleSelectionRequest (CompDisplay *display,
-                        XEvent      *event);
+handleSelectionRequest (XEvent      *event);
 
 void
-handleSelectionClear (CompDisplay *display,
-                      XEvent      *event);
+handleSelectionClear (XEvent      *event);
 
 void
 warpPointer (CompScreen *screen,
@@ -1163,15 +1133,13 @@ isButtonPressEvent (XEvent            *event,
                     CompButtonBinding *button);
 
 Bool
-readImageFromFile (CompDisplay *display,
-                   const char  *name,
+readImageFromFile (const char  *name,
                    int         *width,
                    int         *height,
                    void        **data);
 
 Bool
-writeImageToFile (CompDisplay *display,
-                  const char  *path,
+writeImageToFile (const char  *path,
                   const char  *name,
                   const char  *format,
                   int         width,
@@ -1179,8 +1147,7 @@ writeImageToFile (CompDisplay *display,
                   void        *data);
 
 Bool
-fileToImage (CompDisplay *display,
-             const char  *path,
+fileToImage (const char  *path,
              const char  *name,
              int         *width,
              int         *height,
@@ -1188,8 +1155,7 @@ fileToImage (CompDisplay *display,
              void        **data);
 
 Bool
-imageToFile (CompDisplay *display,
-             const char  *path,
+imageToFile (const char  *path,
              const char  *name,
              const char  *format,
              int         width,
@@ -1198,28 +1164,25 @@ imageToFile (CompDisplay *display,
              void        *data);
 
 CompCursor *
-findCursorAtDisplay (CompDisplay *display);
+findCursorAtDisplay (void);
 
 
 /* event.c */
 
 void
-handleEvent (CompDisplay *display,
-             XEvent      *event);
+handleEvent (XEvent      *event);
 
 void
-handleFusilliEvent (CompDisplay    *display,
-                   const char      *pluginName,
-                   const char      *eventName,
-                   BananaArgument  *arg,
-                   int             nArg);
+handleFusilliEvent (const char      *pluginName,
+                    const char      *eventName,
+                    BananaArgument  *arg,
+                    int             nArg);
 
 void
 handleSyncAlarm (CompWindow *w);
 
 void
-clearTargetOutput (CompDisplay  *display,
-                   unsigned int mask);
+clearTargetOutput (unsigned int mask);
 
 /* paint.c */
 
@@ -1935,7 +1898,7 @@ struct _CompScreen {
 	CompObject base;
 
 	CompScreen  *next;
-	CompDisplay *display;
+
 	CompWindow  *windows;
 	CompWindow  *reverseWindows;
 
@@ -2171,11 +2134,10 @@ findScreenObject (CompObject *parent,
                   const char *name);
 
 int
-allocateScreenPrivateIndex (CompDisplay *display);
+allocateScreenPrivateIndex (void);
 
 void
-freeScreenPrivateIndex (CompDisplay *display,
-                        int         index);
+freeScreenPrivateIndex (int         index);
 
 void
 screenChangeNotify (const char        *optionName,
@@ -2211,8 +2173,7 @@ void
 updateOutputWindow (CompScreen *s);
 
 Bool
-addScreen (CompDisplay *display,
-           int         screenNum,
+addScreen (int         screenNum,
            Window      wmSnSelectionWindow,
            Atom        wmSnAtom,
            Time        wmSnTimestamp);
@@ -2299,8 +2260,7 @@ void
 updateClientListForScreen (CompScreen *s);
 
 Window
-getActiveWindow (CompDisplay *display,
-                 Window      root);
+getActiveWindow (Window      root);
 
 void
 toolkitAction (CompScreen *s,
@@ -2660,19 +2620,16 @@ freeWindowPrivateIndex (CompScreen *screen,
                         int        index);
 
 unsigned int
-windowStateMask (CompDisplay *display,
-                 Atom        state);
+windowStateMask (Atom        state);
 
 unsigned int
 windowStateFromString (const char *str);
 
 unsigned int
-getWindowState (CompDisplay *display,
-                Window      id);
+getWindowState (Window      id);
 
 void
-setWindowState (CompDisplay  *display,
-                unsigned int state,
+setWindowState (unsigned int state,
                 Window       id);
 
 void
@@ -2690,49 +2647,41 @@ unsigned int
 windowTypeFromString (const char *str);
 
 unsigned int
-getWindowType (CompDisplay *display,
-               Window      id);
+getWindowType (Window      id);
 
 void
 recalcWindowType (CompWindow *w);
 
 void
-getMwmHints (CompDisplay  *display,
-             Window       id,
+getMwmHints (Window       id,
              unsigned int *func,
              unsigned int *decor);
 
 unsigned int
-getProtocols (CompDisplay *display,
-              Window      id);
+getProtocols (Window      id);
 
 unsigned int
-getWindowProp (CompDisplay  *display,
-               Window       id,
+getWindowProp (Window       id,
                Atom         property,
                unsigned int defaultValue);
 
 void
-setWindowProp (CompDisplay  *display,
-               Window       id,
+setWindowProp (Window       id,
                Atom         property,
                unsigned int value);
 
 Bool
-readWindowProp32 (CompDisplay    *display,
-                  Window         id,
+readWindowProp32 (Window         id,
                   Atom           property,
                   unsigned short *returnValue);
 
 unsigned short
-getWindowProp32 (CompDisplay    *display,
-                 Window	        id,
+getWindowProp32 (Window	        id,
                  Atom           property,
                  unsigned short defaultValue);
 
 void
-setWindowProp32 (CompDisplay    *display,
-                 Window         id,
+setWindowProp32 (Window         id,
                  Atom           property,
                  unsigned short value);
 
@@ -2758,12 +2707,10 @@ char *
 getStartupId (CompWindow *w);
 
 int
-getWmState (CompDisplay *display,
-            Window      id);
+getWmState (Window      id);
 
 void
-setWmState (CompDisplay *display,
-            int         state,
+setWmState (int         state,
             Window      id);
 
 void
@@ -3297,21 +3244,18 @@ char *
 matchToString (CompMatch *match);
 
 void
-matchUpdate (CompDisplay *display,
-             CompMatch   *match);
+matchUpdate (CompMatch   *match);
 
 Bool
 matchEval (CompMatch  *match,
            CompWindow *window);
 
 void
-matchPropertyChanged (CompDisplay *display,
-                      CompWindow  *window);
+matchPropertyChanged (CompWindow  *window);
 
 /* png.c */
 Bool
-pngImageToFile (CompDisplay *d,
-                const char  *path,
+pngImageToFile (const char  *path,
                 const char  *name,
                 int         width,
                 int         height,
@@ -3319,8 +3263,7 @@ pngImageToFile (CompDisplay *d,
                 void        *data);
 
 Bool
-pngFileToImage (CompDisplay *d,
-                const char  *path,
+pngFileToImage (const char  *path,
                 const char  *name,
                 int         *width,
                 int         *height,

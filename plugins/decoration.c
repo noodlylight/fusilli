@@ -152,7 +152,7 @@ typedef struct _DecorWindow {
         ((DecorScreen *) (s)->base.privates[(dd)->screenPrivateIndex].ptr)
 
 #define DECOR_SCREEN(s) \
-        DecorScreen *ds = GET_DECOR_SCREEN (s, GET_DECOR_DISPLAY (s->display))
+        DecorScreen *ds = GET_DECOR_SCREEN (s, GET_DECOR_DISPLAY (&display))
 
 #define GET_DECOR_WINDOW(w, ds) \
         ((DecorWindow *) (w)->base.privates[(ds)->windowPrivateIndex].ptr)
@@ -160,7 +160,7 @@ typedef struct _DecorWindow {
 #define DECOR_WINDOW(w) \
         DecorWindow *dw = GET_DECOR_WINDOW  (w, \
                           GET_DECOR_SCREEN  (w->screen, \
-                          GET_DECOR_DISPLAY (w->screen->display)))
+                          GET_DECOR_DISPLAY (&display)))
 
 static Bool
 decorDrawWindow (CompWindow           *w,
@@ -226,7 +226,7 @@ decorGetTexture (CompScreen *screen,
 	Window       root;
 	int          i;
 
-	DECOR_DISPLAY (screen->display);
+	DECOR_DISPLAY (&display);
 
 	for (texture = dd->textures; texture; texture = texture->next)
 	{
@@ -243,7 +243,7 @@ decorGetTexture (CompScreen *screen,
 
 	initTexture (screen, &texture->texture);
 
-	if (!XGetGeometry (screen->display->display, pixmap, &root,
+	if (!XGetGeometry (display.display, pixmap, &root,
 	                   &i, &i, &width, &height, &ui, &depth))
 	{
 		finiTexture (screen, &texture->texture);
@@ -265,7 +265,7 @@ decorGetTexture (CompScreen *screen,
 	if (!option_mipmap->b)
 		texture->texture.mipmap = FALSE;
 
-	texture->damage = XDamageCreate (screen->display->display, pixmap,
+	texture->damage = XDamageCreate (display.display, pixmap,
 	                             XDamageReportRawRectangles);
 
 	texture->refCount = 1;
@@ -281,7 +281,7 @@ static void
 decorReleaseTexture (CompScreen   *screen,
                      DecorTexture *texture)
 {
-	DECOR_DISPLAY (screen->display);
+	DECOR_DISPLAY (&display);
 
 	texture->refCount--;
 	if (texture->refCount)
@@ -401,7 +401,7 @@ decorCreateDecoration (CompScreen *screen,
 	int             left, right, top, bottom;
 	int             x1, y1, x2, y2;
 
-	result = XGetWindowProperty (screen->display->display, id,
+	result = XGetWindowProperty (display.display, id,
 	                         decorAtom, 0L, 1024L, FALSE,
 	                         XA_INTEGER, &actual, &format,
 	                         &n, &nleft, &data);
@@ -535,7 +535,7 @@ decorWindowUpdateDecoration (CompWindow *w)
 {
 	Decoration *decoration;
 
-	DECOR_DISPLAY (w->screen->display);
+	DECOR_DISPLAY (&display);
 	DECOR_WINDOW (w);
 
 	decoration = decorCreateDecoration (w->screen, w->id, dd->winDecorAtom);
@@ -759,7 +759,7 @@ decorWindowUpdate (CompWindow *w,
 		}
 		else
 		{
-			if (w->id == w->screen->display->activeWindow)
+			if (w->id == display.activeWindow)
 				decor = ds->decor[DECOR_ACTIVE];
 			else
 				decor = ds->decor[DECOR_NORMAL];
@@ -861,14 +861,14 @@ static void
 decorCheckForDmOnScreen (CompScreen *s,
                          Bool       updateWindows)
 {
-	CompDisplay   *d = s->display;
+	CompDisplay   *d = &display;
 	Atom          actual;
 	int           result, format;
 	unsigned long n, left;
 	unsigned char *data;
 	Window        dmWin = None;
 
-	DECOR_DISPLAY (s->display);
+	DECOR_DISPLAY (d);
 	DECOR_SCREEN (s);
 
 	result = XGetWindowProperty (d->display, s->root,
@@ -940,17 +940,16 @@ decorCheckForDmOnScreen (CompScreen *s,
 }
 
 static void
-decorHandleEvent (CompDisplay *d,
-                  XEvent      *event)
+decorHandleEvent (XEvent      *event)
 {
-	Window     activeWindow = d->activeWindow;
+	Window     activeWindow = display.activeWindow;
 	CompWindow *w;
 
-	DECOR_DISPLAY (d);
+	DECOR_DISPLAY (&display);
 
 	switch (event->type) {
 	case DestroyNotify:
-		w = findWindowAtDisplay (d, event->xdestroywindow.window);
+		w = findWindowAtDisplay (event->xdestroywindow.window);
 		if (w)
 		{
 			DECOR_SCREEN (w->screen);
@@ -960,20 +959,20 @@ decorHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MapRequest:
-		w = findWindowAtDisplay (d, event->xmaprequest.window);
+		w = findWindowAtDisplay (event->xmaprequest.window);
 		if (w)
 			decorWindowUpdate (w, TRUE);
 		break;
 	case ClientMessage:
 		if (event->xclient.message_type == dd->requestFrameExtentsAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.window);
+			w = findWindowAtDisplay (event->xclient.window);
 			if (w)
 				decorWindowUpdate (w, TRUE);
 		}
 		break;
 	default:
-		if (event->type == d->damageEvent + XDamageNotify)
+		if (event->type == display.damageEvent + XDamageNotify)
 		{
 			XDamageNotifyEvent *de = (XDamageNotifyEvent *) event;
 			DecorTexture       *t;
@@ -988,7 +987,7 @@ decorHandleEvent (CompDisplay *d,
 
 					t->texture.oldMipmaps = TRUE;
 
-					for (s = d->screens; s; s = s->next)
+					for (s = display.screens; s; s = s->next)
 					{
 						ds = GET_DECOR_SCREEN (s, dd);
 
@@ -1010,17 +1009,17 @@ decorHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (dd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (dd, d, handleEvent, decorHandleEvent);
+	UNWRAP (dd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (dd, &display, handleEvent, decorHandleEvent);
 
-	if (d->activeWindow != activeWindow)
+	if (display.activeWindow != activeWindow)
 	{
-		w = findWindowAtDisplay (d, activeWindow);
+		w = findWindowAtDisplay (activeWindow);
 		if (w)
 			decorWindowUpdate (w, TRUE);
 
-		w = findWindowAtDisplay (d, d->activeWindow);
+		w = findWindowAtDisplay (display.activeWindow);
 		if (w)
 			decorWindowUpdate (w, TRUE);
 	}
@@ -1029,16 +1028,16 @@ decorHandleEvent (CompDisplay *d,
 	case PropertyNotify:
 		if (event->xproperty.atom == dd->winDecorAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				decorWindowUpdateDecoration (w);
 				decorWindowUpdate (w, TRUE);
 			}
 		}
-		else if (event->xproperty.atom == d->mwmHintsAtom)
+		else if (event->xproperty.atom == display.mwmHintsAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 				decorWindowUpdate (w, TRUE);
 		}
@@ -1046,7 +1045,7 @@ decorHandleEvent (CompDisplay *d,
 		{
 			CompScreen *s;
 
-			s = findScreenAtDisplay (d, event->xproperty.window);
+			s = findScreenAtDisplay (event->xproperty.window);
 			if (s)
 			{
 				if (event->xproperty.atom == dd->supportingDmCheckAtom)
@@ -1079,9 +1078,9 @@ decorHandleEvent (CompDisplay *d,
 		}
 		break;
 	default:
-		if (d->shapeExtension && event->type == d->shapeEvent + ShapeNotify)
+		if (display.shapeExtension && event->type == display.shapeEvent + ShapeNotify)
 		{
-			w = findWindowAtDisplay (d, ((XShapeEvent *) event)->window);
+			w = findWindowAtDisplay (((XShapeEvent *) event)->window);
 			if (w)
 				decorWindowUpdate (w, TRUE);
 		}
@@ -1115,7 +1114,7 @@ decorAddSupportedAtoms (CompScreen   *s,
 {
 	unsigned int count;
 
-	DECOR_DISPLAY (s->display);
+	DECOR_DISPLAY (&display);
 	DECOR_SCREEN (s);
 
 	UNWRAP (ds, s, addSupportedAtoms);
@@ -1185,7 +1184,7 @@ decorChangeNotify (const char        *optionName,
 	{
 		CompScreen *s;
 
-		for (s = core.displays->screens; s; s = s->next)
+		for (s = display.screens; s; s = s->next)
 		{
 			DECOR_SCREEN (s);
 
@@ -1214,14 +1213,14 @@ decorChangeNotify (const char        *optionName,
 		if (!strstr (optionValue->s, "rgba="))
 			matchAddFromString (&shadow_match, "rgba=0");
 		*/
-		matchUpdate (core.displays, &shadow_match);
+		matchUpdate (&shadow_match);
 	}
 	else if (strcasecmp (optionName, "decoration_match") == 0)
 	{
 		matchFini (&decoration_match);
 		matchInit (&decoration_match);
 		matchAddFromString (&decoration_match, optionValue->s);
-		matchUpdate (core.displays, &decoration_match);
+		matchUpdate (&decoration_match);
 	}
 
 	if (strcasecmp (optionName, "shadow_match") == 0 ||
@@ -1230,7 +1229,7 @@ decorChangeNotify (const char        *optionName,
 		CompScreen *s;
 		CompWindow *w;
 
-		for (s = core.displays->screens; s; s = s->next)
+		for (s = display.screens; s; s = s->next)
 			for (w = s->windows; w; w = w->next)
 				decorWindowUpdate (w, TRUE);
 	}
@@ -1329,16 +1328,15 @@ decorWindowStateChangeNotify (CompWindow   *w,
 }
 
 static void
-decorMatchPropertyChanged (CompDisplay *d,
-                           CompWindow  *w)
+decorMatchPropertyChanged (CompWindow  *w)
 {
-	DECOR_DISPLAY (d);
+	DECOR_DISPLAY (&display);
 
 	decorWindowUpdate (w, TRUE);
 
-	UNWRAP (dd, d, matchPropertyChanged);
-	(*d->matchPropertyChanged) (d, w);
-	WRAP (dd, d, matchPropertyChanged, decorMatchPropertyChanged);
+	UNWRAP (dd, &display, matchPropertyChanged);
+	(*display.matchPropertyChanged) (w);
+	WRAP (dd, &display, matchPropertyChanged, decorMatchPropertyChanged);
 }
 
 static void
@@ -1446,7 +1444,7 @@ decorInitDisplay (CompPlugin  *p,
 	if (!dd)
 		return FALSE;
 
-	dd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	dd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (dd->screenPrivateIndex < 0)
 	{
 		free (dd);
@@ -1482,7 +1480,7 @@ decorFiniDisplay (CompPlugin  *p,
 {
 	DECOR_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, dd->screenPrivateIndex);
+	freeScreenPrivateIndex (dd->screenPrivateIndex);
 
 	UNWRAP (dd, d, handleEvent);
 	UNWRAP (dd, d, matchPropertyChanged);
@@ -1496,7 +1494,7 @@ decorInitScreen (CompPlugin *p,
 {
 	DecorScreen *ds;
 
-	DECOR_DISPLAY (s->display);
+	DECOR_DISPLAY (&display);
 
 	ds = malloc (sizeof (DecorScreen));
 	if (!ds)
@@ -1679,11 +1677,11 @@ decorInit (CompPlugin *p)
 
 	matchInit (&decoration_match);
 	matchAddFromString (&decoration_match, option_decoration_match->s);
-	matchUpdate (core.displays, &decoration_match);
+	matchUpdate (&decoration_match);
 
 	matchInit (&shadow_match);
 	matchAddFromString (&shadow_match, option_shadow_match->s);
-	matchUpdate (core.displays, &shadow_match);
+	matchUpdate (&shadow_match);
 
 	return TRUE;
 }

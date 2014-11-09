@@ -94,7 +94,7 @@ typedef struct _FadeWindow {
         ((FadeScreen *) (s)->base.privates[(fd)->screenPrivateIndex].ptr)
 
 #define FADE_SCREEN(s) \
-        FadeScreen *fs = GET_FADE_SCREEN (s, GET_FADE_DISPLAY (s->display))
+        FadeScreen *fs = GET_FADE_SCREEN (s, GET_FADE_DISPLAY (&display))
 
 #define GET_FADE_WINDOW(w, fs) \
         ((FadeWindow *) (w)->base.privates[(fs)->windowPrivateIndex].ptr)
@@ -102,7 +102,7 @@ typedef struct _FadeWindow {
 #define FADE_WINDOW(w) \
         FadeWindow *fw = GET_FADE_WINDOW  (w, \
                          GET_FADE_SCREEN  (w->screen, \
-                         GET_FADE_DISPLAY (w->screen->display)))
+                         GET_FADE_DISPLAY (&display)))
 
 static void
 fadeChangeNotify (const char        *optionName,
@@ -126,7 +126,7 @@ fadeChangeNotify (const char        *optionName,
 		matchInit (&fs->match);
 		matchAddFromString (&fs->match, "!type=desktop");
 		matchAddFromString (&fs->match, optionValue->s);
-		matchUpdate (core.displays, &fs->match);
+		matchUpdate (&fs->match);
 	}
 }
 
@@ -211,7 +211,7 @@ fadePaintWindow (CompWindow              *w,
 	CompScreen *s = w->screen;
 	Bool       status;
 
-	FADE_DISPLAY (s->display);
+	FADE_DISPLAY (&display);
 	FADE_SCREEN (s);
 	FADE_WINDOW (w);
 
@@ -446,7 +446,7 @@ fadeRemoveDisplayModal (CompDisplay *d,
 static Bool
 isFadeWinForOpenClose (CompWindow *w)
 {
-	FADE_DISPLAY (w->screen->display);
+	FADE_DISPLAY (&display);
 
 	const BananaValue *
 	option_minimize_open_close = bananaGetOption (bananaIndex,
@@ -462,16 +462,15 @@ isFadeWinForOpenClose (CompWindow *w)
 }
 
 static void
-fadeHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+fadeHandleEvent (XEvent      *event)
 {
 	CompWindow *w;
 
-	FADE_DISPLAY (d);
+	FADE_DISPLAY (&display);
 
 	switch (event->type) {
 	case DestroyNotify:
-		w = findWindowAtDisplay (d, event->xdestroywindow.window);
+		w = findWindowAtDisplay (event->xdestroywindow.window);
 		if (w)
 		{
 			FADE_SCREEN (w->screen);
@@ -492,11 +491,11 @@ fadeHandleEvent (CompDisplay *d,
 				addWindowDamage (w);
 			}
 
-			fadeRemoveDisplayModal (d, w);
+			fadeRemoveDisplayModal (&display, w);
 		}
 		break;
 	case UnmapNotify:
-		w = findWindowAtDisplay (d, event->xunmap.window);
+		w = findWindowAtDisplay (event->xunmap.window);
 		if (w)
 		{
 			FADE_SCREEN (w->screen);
@@ -524,11 +523,11 @@ fadeHandleEvent (CompDisplay *d,
 				addWindowDamage (w);
 			}
 
-			fadeRemoveDisplayModal (d, w);
+			fadeRemoveDisplayModal (&display, w);
 		}
 		break;
 	case MapNotify:
-		w = findWindowAtDisplay (d, event->xmap.window);
+		w = findWindowAtDisplay (event->xmap.window);
 		if (w)
 		{
 			const BananaValue *
@@ -541,11 +540,11 @@ fadeHandleEvent (CompDisplay *d,
 				fadeWindowStop (w);
 			}
 			if (w->state & CompWindowStateDisplayModalMask)
-				fadeAddDisplayModal (d, w);
+				fadeAddDisplayModal (&display, w);
 		}
 		break;
 	default:
-		if (event->type == d->xkbEvent)
+		if (event->type == display.xkbEvent)
 		{
 			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
 
@@ -554,9 +553,9 @@ fadeHandleEvent (CompDisplay *d,
 				XkbBellNotifyEvent *xkbBellEvent = (XkbBellNotifyEvent *)
 					xkbEvent;
 
-				w = findWindowAtDisplay (d, xkbBellEvent->window);
+				w = findWindowAtDisplay (xkbBellEvent->window);
 				if (!w)
-					w = findWindowAtDisplay (d, d->activeWindow);
+					w = findWindowAtDisplay (display.activeWindow);
 
 				if (w)
 				{
@@ -606,29 +605,29 @@ fadeHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (fd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (fd, d, handleEvent, fadeHandleEvent);
+	UNWRAP (fd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (fd, &display, handleEvent, fadeHandleEvent);
 
 	switch (event->type) {
 	case PropertyNotify:
-		if (event->xproperty.atom == d->winStateAtom)
+		if (event->xproperty.atom == display.winStateAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w && w->attrib.map_state == IsViewable)
 			{
 				if (w->state & CompWindowStateDisplayModalMask)
-					fadeAddDisplayModal (d, w);
+					fadeAddDisplayModal (&display, w);
 				else
-					fadeRemoveDisplayModal (d, w);
+					fadeRemoveDisplayModal (&display, w);
 			}
 		}
 		break;
 	case ClientMessage:
-		if (event->xclient.message_type == d->wmProtocolsAtom &&
-		    event->xclient.data.l[0] == d->wmPingAtom)
+		if (event->xclient.message_type == display.wmProtocolsAtom &&
+		    event->xclient.data.l[0] == display.wmPingAtom)
 		{
-			w = findWindowAtDisplay (d, event->xclient.data.l[2]);
+			w = findWindowAtDisplay (event->xclient.data.l[2]);
 			if (w)
 			{
 				FADE_WINDOW (w);
@@ -724,7 +723,7 @@ fadeInitDisplay (CompPlugin  *p,
 	if (!fd)
 		return FALSE;
 
-	fd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	fd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (fd->screenPrivateIndex < 0)
 	{
 		free (fd);
@@ -741,7 +740,7 @@ fadeInitDisplay (CompPlugin  *p,
 	matchAddExp (&fd->alwaysFadeWindowMatch, 0, "title=gksu");
 	matchAddExp (&fd->alwaysFadeWindowMatch, 0, "title=x-session-manager");
 	matchAddExp (&fd->alwaysFadeWindowMatch, 0, "title=gnome-session");
-	matchUpdate (d, &fd->alwaysFadeWindowMatch);
+	matchUpdate (&fd->alwaysFadeWindowMatch);
 
 	WRAP (fd, d, handleEvent, fadeHandleEvent);
 
@@ -756,7 +755,7 @@ fadeFiniDisplay (CompPlugin  *p,
 {
 	FADE_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, fd->screenPrivateIndex);
+	freeScreenPrivateIndex (fd->screenPrivateIndex);
 
 	matchFini (&fd->alwaysFadeWindowMatch);
 
@@ -771,7 +770,7 @@ fadeInitScreen (CompPlugin *p,
 {
 	FadeScreen *fs;
 
-	FADE_DISPLAY (s->display);
+	FADE_DISPLAY (&display);
 
 	fs = malloc (sizeof (FadeScreen));
 	if (!fs)
@@ -799,7 +798,7 @@ fadeInitScreen (CompPlugin *p,
 	matchInit (&fs->match);
 	matchAddFromString (&fs->match, "!type=desktop");
 	matchAddFromString (&fs->match, option_window_match->s);
-	matchUpdate (core.displays, &fs->match);
+	matchUpdate (&fs->match);
 
 	WRAP (fs, s, preparePaintScreen, fadePreparePaintScreen);
 	WRAP (fs, s, paintWindow, fadePaintWindow);
@@ -871,7 +870,7 @@ fadeInitWindow (CompPlugin *p,
 	if (w->attrib.map_state == IsViewable)
 	{
 		if (w->state & CompWindowStateDisplayModalMask)
-			fadeAddDisplayModal (w->screen->display, w);
+			fadeAddDisplayModal (&display, w);
 	}
 
 	return TRUE;
@@ -883,7 +882,7 @@ fadeFiniWindow (CompPlugin *p,
 {
 	FADE_WINDOW (w);
 
-	fadeRemoveDisplayModal (w->screen->display, w);
+	fadeRemoveDisplayModal (&display, w);
 	fadeWindowStop (w);
 
 	free (fw);

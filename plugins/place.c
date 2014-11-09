@@ -97,7 +97,7 @@ typedef struct _PlaceWindow {
         ((PlaceScreen *) (s)->base.privates[(pd)->screenPrivateIndex].ptr)
 
 #define PLACE_SCREEN(s) \
-        PlaceScreen *ps = GET_PLACE_SCREEN (s, GET_PLACE_DISPLAY (s->display))
+        PlaceScreen *ps = GET_PLACE_SCREEN (s, GET_PLACE_DISPLAY (&display))
 
 #define GET_PLACE_WINDOW(w, ps) \
         ((PlaceWindow *) (w)->base.privates[(ps)->windowPrivateIndex].ptr)
@@ -105,7 +105,7 @@ typedef struct _PlaceWindow {
 #define PLACE_WINDOW(w) \
         PlaceWindow *pw = GET_PLACE_WINDOW  (w, \
                           GET_PLACE_SCREEN  (w->screen, \
-                          GET_PLACE_DISPLAY (w->screen->display)))
+                          GET_PLACE_DISPLAY (&display)))
 
 typedef enum {
 	NoPlacement = 0,
@@ -261,22 +261,21 @@ static void
 placeSendWindowMaximizationRequest (CompWindow *w)
 {
 	XEvent      xev;
-	CompDisplay *d = w->screen->display;
 
 	xev.xclient.type    = ClientMessage;
-	xev.xclient.display = d->display;
+	xev.xclient.display = display.display;
 	xev.xclient.format  = 32;
 
-	xev.xclient.message_type = d->winStateAtom;
+	xev.xclient.message_type = display.winStateAtom;
 	xev.xclient.window       = w->id;
 
 	xev.xclient.data.l[0] = 1;
-	xev.xclient.data.l[1] = d->winStateMaximizedHorzAtom;
-	xev.xclient.data.l[2] = d->winStateMaximizedVertAtom;
+	xev.xclient.data.l[1] = display.winStateMaximizedHorzAtom;
+	xev.xclient.data.l[2] = display.winStateMaximizedVertAtom;
 	xev.xclient.data.l[3] = 0;
 	xev.xclient.data.l[4] = 0;
 
-	XSendEvent (d->display, w->screen->root, FALSE,
+	XSendEvent (display.display, w->screen->root, FALSE,
 	            SubstructureRedirectMask | SubstructureNotifyMask, &xev);
 }
 
@@ -292,7 +291,7 @@ placeGetPointerPosition (CompScreen *s,
 	/* this means a server roundtrip, which kind of sucks; thus
 	   this code should be removed as soon as we have software
 	   cursor rendering and thus have a cached pointer coordinate */
-	return XQueryPointer (s->display->display, s->root,
+	return XQueryPointer (display.display, s->root,
 	                      &wDummy, &wDummy, x, y,
 	                      &iDummy, &iDummy, &uiDummy);
 }
@@ -1131,7 +1130,7 @@ placeGetPlacementOutput (CompWindow        *w,
 		{
 			CompWindow *active;
 
-			active = findWindowAtScreen (s, s->display->activeWindow);
+			active = findWindowAtScreen (s, display.activeWindow);
 			if (active)
 				output = outputDeviceForWindow (active);
 		}
@@ -1549,7 +1548,7 @@ placeAddSupportedAtoms (CompScreen   *s,
 {
 	unsigned int count;
 
-	PLACE_DISPLAY (s->display);
+	PLACE_DISPLAY (&display);
 	PLACE_SCREEN (s);
 
 	UNWRAP (ps, s, addSupportedAtoms);
@@ -1926,17 +1925,16 @@ placeHandleScreenSizeChange (CompScreen *s,
 }
 
 static void
-placeHandleEvent (CompDisplay *d,
-                  XEvent      *event)
+placeHandleEvent (XEvent      *event)
 {
-	PLACE_DISPLAY (d);
+	PLACE_DISPLAY (&display);
 
 	switch (event->type) {
 	case ConfigureNotify:
 		{
 			CompScreen *s;
 
-			s = findScreenAtDisplay (d, event->xconfigure.window);
+			s = findScreenAtDisplay (event->xconfigure.window);
 			if (s)
 				placeHandleScreenSizeChange (s,
 				                     event->xconfigure.width,
@@ -1944,12 +1942,12 @@ placeHandleEvent (CompDisplay *d,
 		}
 		break;
 	case PropertyNotify:
-		if (event->xproperty.atom == d->wmStrutAtom ||
-		    event->xproperty.atom == d->wmStrutPartialAtom)
+		if (event->xproperty.atom == display.wmStrutAtom ||
+		    event->xproperty.atom == display.wmStrutPartialAtom)
 		{
 			CompWindow *w;
 
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				PLACE_SCREEN (w->screen);
@@ -1974,9 +1972,9 @@ placeHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (pd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (pd, d, handleEvent, placeHandleEvent);
+	UNWRAP (pd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (pd, &display, handleEvent, placeHandleEvent);
 }
 
 static Bool
@@ -1989,7 +1987,7 @@ placeInitDisplay (CompPlugin  *p,
 	if (!pd)
 		return FALSE;
 
-	pd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	pd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (pd->screenPrivateIndex < 0)
 	{
 		free (pd);
@@ -2014,7 +2012,7 @@ placeFiniDisplay (CompPlugin  *p,
 
 	UNWRAP (pd, d, handleEvent);
 
-	freeScreenPrivateIndex (d, pd->screenPrivateIndex);
+	freeScreenPrivateIndex (pd->screenPrivateIndex);
 
 	free (pd);
 }
@@ -2025,7 +2023,7 @@ placeInitScreen (CompPlugin *p,
 {
 	PlaceScreen *ps;
 
-	PLACE_DISPLAY (s->display);
+	PLACE_DISPLAY (&display);
 
 	ps = malloc (sizeof (PlaceScreen));
 	if (!ps)
@@ -2051,7 +2049,7 @@ placeInitScreen (CompPlugin *p,
 
 	matchInit (&ps->force_placement);
 	matchAddFromString (&ps->force_placement, option_force_placement_match->s);
-	matchUpdate (core.displays, &ps->force_placement);
+	matchUpdate (&ps->force_placement);
 
 	const BananaValue *
 	option_position_matches = bananaGetOption (bananaIndex,
@@ -2065,7 +2063,7 @@ placeInitScreen (CompPlugin *p,
 		matchInit (&ps->position_match[i]);
 		matchAddFromString (&ps->position_match[i],
 		                    option_position_matches->list.item[i].s);
-		matchUpdate (core.displays, &ps->position_match[i]);
+		matchUpdate (&ps->position_match[i]);
 	}
 
 	const BananaValue *
@@ -2079,7 +2077,7 @@ placeInitScreen (CompPlugin *p,
 		matchInit (&ps->mode_match[i]);
 		matchAddFromString (&ps->mode_match[i],
 		                    option_mode_matches->list.item[i].s);
-		matchUpdate (core.displays, &ps->mode_match[i]);
+		matchUpdate (&ps->mode_match[i]);
 	}
 
 	const BananaValue *
@@ -2093,7 +2091,7 @@ placeInitScreen (CompPlugin *p,
 		matchInit (&ps->viewport_match[i]);
 		matchAddFromString (&ps->viewport_match[i],
 		                    option_viewport_matches->list.item[i].s);
-		matchUpdate (core.displays, &ps->viewport_match[i]);
+		matchUpdate (&ps->viewport_match[i]);
 	}
 
 	WRAP (ps, s, placeWindow, placePlaceWindow);
@@ -2216,7 +2214,7 @@ placeChangeNotify (const char        *optionName,
 		matchFini (&ps->force_placement);
 		matchInit (&ps->force_placement);
 		matchAddFromString (&ps->force_placement, optionValue->s);
-		matchUpdate (core.displays, &ps->force_placement);
+		matchUpdate (&ps->force_placement);
 	}
 	else if (strcasecmp (optionName, "position_matches") == 0)
 	{
@@ -2230,7 +2228,7 @@ placeChangeNotify (const char        *optionName,
 			matchInit (&ps->position_match[i]);
 			matchAddFromString (&ps->position_match[i],
 			                    optionValue->list.item[i].s);
-			matchUpdate (core.displays, &ps->position_match[i]);
+			matchUpdate (&ps->position_match[i]);
 		}
 	}
 	else if (strcasecmp (optionName, "mode_matches") == 0)
@@ -2245,7 +2243,7 @@ placeChangeNotify (const char        *optionName,
 			matchInit (&ps->mode_match[i]);
 			matchAddFromString (&ps->mode_match[i],
 			                    optionValue->list.item[i].s);
-			matchUpdate (core.displays, &ps->mode_match[i]);
+			matchUpdate (&ps->mode_match[i]);
 		}
 	}
 	else if (strcasecmp (optionName, "viewport_matches") == 0)
@@ -2260,7 +2258,7 @@ placeChangeNotify (const char        *optionName,
 			matchInit (&ps->viewport_match[i]);
 			matchAddFromString (&ps->viewport_match[i],
 			                    optionValue->list.item[i].s);
-			matchUpdate (core.displays, &ps->viewport_match[i]);
+			matchUpdate (&ps->viewport_match[i]);
 		}
 	}
 }

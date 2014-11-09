@@ -193,7 +193,7 @@ typedef struct _CubeScreen {
         ((CubeScreen *) (s)->base.privates[(cd)->screenPrivateIndex].ptr)
 
 #define CUBE_SCREEN(s) \
-        CubeScreen *cs = GET_CUBE_SCREEN (s, GET_CUBE_DISPLAY (s->display))
+        CubeScreen *cs = GET_CUBE_SCREEN (s, GET_CUBE_DISPLAY (&display))
 
 #ifdef  __cplusplus
 }

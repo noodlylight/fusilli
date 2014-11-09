@@ -174,7 +174,7 @@ typedef struct _WobblyWindow {
         ((WobblyScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
 
 #define WOBBLY_SCREEN(s) \
-        WobblyScreen *ws = GET_WOBBLY_SCREEN (s, GET_WOBBLY_DISPLAY (s->display))
+        WobblyScreen *ws = GET_WOBBLY_SCREEN (s, GET_WOBBLY_DISPLAY (&display))
 
 #define GET_WOBBLY_WINDOW(w, ws) \
         ((WobblyWindow *) (w)->base.privates[(ws)->windowPrivateIndex].ptr)
@@ -182,7 +182,7 @@ typedef struct _WobblyWindow {
 #define WOBBLY_WINDOW(w) \
         WobblyWindow *ww = GET_WOBBLY_WINDOW  (w, \
                            GET_WOBBLY_SCREEN  (w->screen, \
-                           GET_WOBBLY_DISPLAY (w->screen->display)))
+                           GET_WOBBLY_DISPLAY (&display)))
 
 #define SNAP_WINDOW_TYPE (CompWindowTypeNormalMask  | \
                           CompWindowTypeToolbarMask | \
@@ -2020,9 +2020,9 @@ wobblyEnableSnapping (BananaArgument *arg,
 	CompScreen *s;
 	CompWindow *w;
 
-	WOBBLY_DISPLAY (core.displays);
+	WOBBLY_DISPLAY (&display);
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		for (w = s->windows; w; w = w->next)
 		{
@@ -2045,12 +2045,12 @@ wobblyDisableSnapping (BananaArgument *arg,
 	CompScreen *s;
 	CompWindow *w;
 
-	WOBBLY_DISPLAY (core.displays);
+	WOBBLY_DISPLAY (&display);
 
 	if (!wd->snapping)
 		return FALSE;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		for (w = s->windows; w; w = w->next)
 		{
@@ -2090,7 +2090,7 @@ wobblyShiver (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	w = findWindowAtDisplay (core.displays, xid);
+	w = findWindowAtDisplay (xid);
 	if (w && isWobblyWin (w) && wobblyEnsureModel (w))
 	{
 		WOBBLY_SCREEN (w->screen);
@@ -2113,18 +2113,17 @@ wobblyShiver (BananaArgument     *arg,
 }
 
 static void
-wobblyHandleEvent (CompDisplay *d,
-                   XEvent      *event)
+wobblyHandleEvent (XEvent      *event)
 {
-	Window     activeWindow = d->activeWindow;
+	Window     activeWindow = display.activeWindow;
 	CompWindow *w;
 	CompScreen *s;
 
-	WOBBLY_DISPLAY (d);
+	WOBBLY_DISPLAY (&display);
 
 	switch (event->type) {
 	case MapNotify:
-		w = findWindowAtDisplay (d, event->xmap.window);
+		w = findWindowAtDisplay (event->xmap.window);
 		if (w)
 		{
 			WOBBLY_WINDOW (w);
@@ -2140,7 +2139,7 @@ wobblyHandleEvent (CompDisplay *d,
 		}
 		break;
 	default:
-		if (event->type == d->xkbEvent)
+		if (event->type == display.xkbEvent)
 		{
 			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
 
@@ -2183,7 +2182,7 @@ wobblyHandleEvent (CompDisplay *d,
 
 				arg.name = "window";
 				arg.type = BananaInt;
-				arg.value.i = d->activeWindow;
+				arg.value.i = display.activeWindow;
 
 				if (option_shiver->b)
 					wobblyShiver (&arg, 1);
@@ -2193,13 +2192,13 @@ wobblyHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (wd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (wd, d, handleEvent, wobblyHandleEvent);
+	UNWRAP (wd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (wd, &display, handleEvent, wobblyHandleEvent);
 
 	switch (event->type) {
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 		{
 			WOBBLY_SCREEN (s);
@@ -2246,9 +2245,9 @@ wobblyHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	if (d->activeWindow != activeWindow)
+	if (display.activeWindow != activeWindow)
 	{
-		w = findWindowAtDisplay (d, d->activeWindow);
+		w = findWindowAtDisplay (display.activeWindow);
 		if (w && isWobblyWin (w))
 		{
 			int focusEffect;
@@ -2515,7 +2514,7 @@ wobblyWindowMoveNotify (CompWindow *w,
 
 	if (ww->model && ww->grabbed)
 	{
-		WOBBLY_DISPLAY (w->screen->display);
+		WOBBLY_DISPLAY (&display);
 
 		if (wd->yConstrained)
 		{
@@ -2554,7 +2553,7 @@ wobblyWindowGrabNotify (CompWindow   *w,
 			Spring *s;
 			int    i;
 
-			WOBBLY_DISPLAY (w->screen->display);
+			WOBBLY_DISPLAY (&display);
 
 			const BananaValue *
 			option_maximize_effect = bananaGetOption (bananaIndex,
@@ -2740,7 +2739,7 @@ wobblyChangeNotify (const char        *optionName,
 		}
 		else if (strcasecmp (optionName, "snap_key") == 0)
 		{
-			snap_key_modifiers = stringToModifiers (core.displays, optionValue->s);
+			snap_key_modifiers = stringToModifiers (optionValue->s);
 		}
 	}
 	else
@@ -2756,28 +2755,28 @@ wobblyChangeNotify (const char        *optionName,
 			matchFini (&ws->map_window_match);
 			matchInit (&ws->map_window_match);
 			matchAddFromString (&ws->map_window_match, optionValue->s);
-			matchUpdate (core.displays, &ws->map_window_match);
+			matchUpdate (&ws->map_window_match);
 		}
 		else if (strcasecmp (optionName, "focus_window_match") == 0)
 		{
 			matchFini (&ws->focus_window_match);
 			matchInit (&ws->focus_window_match);
 			matchAddFromString (&ws->focus_window_match, optionValue->s);
-			matchUpdate (core.displays, &ws->focus_window_match);
+			matchUpdate (&ws->focus_window_match);
 		}
 		else if (strcasecmp (optionName, "grab_window_match") == 0)
 		{
 			matchFini (&ws->grab_window_match);
 			matchInit (&ws->grab_window_match);
 			matchAddFromString (&ws->grab_window_match, optionValue->s);
-			matchUpdate (core.displays, &ws->grab_window_match);
+			matchUpdate (&ws->grab_window_match);
 		}
 		else if (strcasecmp (optionName, "move_window_match") == 0)
 		{
 			matchFini (&ws->move_window_match);
 			matchInit (&ws->move_window_match);
 			matchAddFromString (&ws->move_window_match, optionValue->s);
-			matchUpdate (core.displays, &ws->move_window_match);
+			matchUpdate (&ws->move_window_match);
 		}
 	}
 }
@@ -2792,7 +2791,7 @@ wobblyInitDisplay (CompPlugin  *p,
 	if (!wd)
 		return FALSE;
 
-	wd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	wd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (wd->screenPrivateIndex < 0)
 	{
 		free (wd);
@@ -2815,7 +2814,7 @@ wobblyFiniDisplay (CompPlugin  *p,
 {
 	WOBBLY_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, wd->screenPrivateIndex);
+	freeScreenPrivateIndex (wd->screenPrivateIndex);
 
 	UNWRAP (wd, d, handleEvent);
 
@@ -2828,7 +2827,7 @@ wobblyInitScreen (CompPlugin *p,
 {
 	WobblyScreen *ws;
 
-	WOBBLY_DISPLAY (s->display);
+	WOBBLY_DISPLAY (&display);
 
 	ws = malloc (sizeof (WobblyScreen));
 	if (!ws)
@@ -2871,19 +2870,19 @@ wobblyInitScreen (CompPlugin *p,
 
 	matchInit (&ws->map_window_match);
 	matchAddFromString (&ws->map_window_match, option_map_window_match->s);
-	matchUpdate (core.displays, &ws->map_window_match);
+	matchUpdate (&ws->map_window_match);
 
 	matchInit (&ws->focus_window_match);
 	matchAddFromString (&ws->focus_window_match, option_focus_window_match->s);
-	matchUpdate (core.displays, &ws->focus_window_match);
+	matchUpdate (&ws->focus_window_match);
 
 	matchInit (&ws->grab_window_match);
 	matchAddFromString (&ws->grab_window_match, option_grab_window_match->s);
-	matchUpdate (core.displays, &ws->grab_window_match);
+	matchUpdate (&ws->grab_window_match);
 
 	matchInit (&ws->move_window_match);
 	matchAddFromString (&ws->move_window_match, option_move_window_match->s);
-	matchUpdate (core.displays, &ws->move_window_match);
+	matchUpdate (&ws->move_window_match);
 
 	WRAP (ws, s, preparePaintScreen, wobblyPreparePaintScreen);
 	WRAP (ws, s, donePaintScreen, wobblyDonePaintScreen);
@@ -3041,7 +3040,7 @@ wobblyInit (CompPlugin *p)
 	const BananaValue *
 	option_snap_key = bananaGetOption (bananaIndex, "snap_key", -1);
 
-	snap_key_modifiers = stringToModifiers (core.displays, option_snap_key->s);
+	snap_key_modifiers = stringToModifiers (option_snap_key->s);
 
 	return TRUE;
 }

@@ -481,7 +481,7 @@ paintTransformedOutput (CompScreen              *screen,
 	CompTransform sTransform = *transform;
 
 	if (mask & PAINT_SCREEN_CLEAR_MASK)
-		clearTargetOutput (screen->display, GL_COLOR_BUFFER_BIT);
+		clearTargetOutput (GL_COLOR_BUFFER_BIT);
 
 	screenLighting (screen, TRUE);
 

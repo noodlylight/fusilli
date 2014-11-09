@@ -158,7 +158,7 @@ static float _boxVertices[] =
         ((SwitchScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
 
 #define SWITCH_SCREEN(s) \
-        SwitchScreen *ss = GET_SWITCH_SCREEN (s, GET_SWITCH_DISPLAY (s->display))
+        SwitchScreen *ss = GET_SWITCH_SCREEN (s, GET_SWITCH_DISPLAY (&display))
 
 static void
 switchChangeNotify (const char        *optionName,
@@ -208,7 +208,7 @@ switchChangeNotify (const char        *optionName,
 		matchFini (&ss->window_match);
 		matchInit (&ss->window_match);
 		matchAddFromString (&ss->window_match, optionValue->s);
-		matchUpdate (core.displays, &ss->window_match);
+		matchUpdate (&ss->window_match);
 	}
 }
 
@@ -217,13 +217,13 @@ setSelectedWindowHint (CompScreen *s)
 {
 	Window selectedWindowId = None;
 
-	SWITCH_DISPLAY (s->display);
+	SWITCH_DISPLAY (&display);
 	SWITCH_SCREEN (s);
 
 	if (ss->selectedWindow && !ss->selectedWindow->destroyed)
 		selectedWindowId = ss->selectedWindow->id;
 
-	XChangeProperty (s->display->display, ss->popupWindow, sd->selectWinAtom,
+	XChangeProperty (display.display, ss->popupWindow, sd->selectWinAtom,
 	                 XA_WINDOW, 32, PropModeReplace,
 	                 (unsigned char *) &selectedWindowId, 1);
 }
@@ -303,7 +303,7 @@ switchActivateEvent (CompScreen *s,
 	arg[1].name = "active";
 	arg[1].value.b = activating;
 
-	(*s->display->handleFusilliEvent) (s->display, "switcher", "activate", arg, 2);
+	(*display.handleFusilliEvent) ("switcher", "activate", arg, 2);
 }
 
 static int
@@ -367,7 +367,7 @@ switchUpdateWindowList (CompScreen *s,
 		s->outputDev[s->currentOutputDev].height / 2;
 
 	if (ss->popupWindow)
-		XMoveResizeWindow (s->display->display, ss->popupWindow,
+		XMoveResizeWindow (display.display, ss->popupWindow,
 		                   x - WINDOW_WIDTH (count) / 2,
 		                   y - WINDOW_HEIGHT / 2,
 		                   WINDOW_WIDTH (count),
@@ -445,10 +445,10 @@ switchToWindow (CompScreen *s,
 			defaultViewportForWindow (w, &x, &y);
 
 			xev.xclient.type = ClientMessage;
-			xev.xclient.display = s->display->display;
+			xev.xclient.display = display.display;
 			xev.xclient.format = 32;
 
-			xev.xclient.message_type = s->display->desktopViewportAtom;
+			xev.xclient.message_type = display.desktopViewportAtom;
 			xev.xclient.window = s->root;
 
 			xev.xclient.data.l[0] = x * s->width;
@@ -457,7 +457,7 @@ switchToWindow (CompScreen *s,
 			xev.xclient.data.l[3] = 0;
 			xev.xclient.data.l[4] = 0;
 
-			XSendEvent (s->display->display, s->root, FALSE,
+			XSendEvent (display.display, s->root, FALSE,
 			            SubstructureRedirectMask | SubstructureNotifyMask,
 			            &xev);
 		}
@@ -572,7 +572,7 @@ switchInitiate (CompScreen            *s,
 
 	if (!ss->popupWindow && showPopup)
 	{
-		Display          *dpy = s->display->display;
+		Display          *dpy = display.display;
 		XSizeHints       xsh;
 		XWMHints         xwmh;
 		XClassHint       xch;
@@ -620,23 +620,23 @@ switchInitiate (CompScreen            *s,
 		                  programArgv, programArgc,
 		                  &xsh, &xwmh, &xch);
 
-		state[nState++] = s->display->winStateAboveAtom;
-		state[nState++] = s->display->winStateStickyAtom;
-		state[nState++] = s->display->winStateSkipTaskbarAtom;
-		state[nState++] = s->display->winStateSkipPagerAtom;
+		state[nState++] = display.winStateAboveAtom;
+		state[nState++] = display.winStateStickyAtom;
+		state[nState++] = display.winStateSkipTaskbarAtom;
+		state[nState++] = display.winStateSkipPagerAtom;
 
 		XChangeProperty (dpy, ss->popupWindow,
-		                 s->display->winStateAtom,
+		                 display.winStateAtom,
 		                 XA_ATOM, 32, PropModeReplace,
 		                 (unsigned char *) state, nState);
 
 		XChangeProperty (dpy, ss->popupWindow,
-		                 s->display->winTypeAtom,
+		                 display.winTypeAtom,
 		                 XA_ATOM, 32, PropModeReplace,
-		                 (unsigned char *) &s->display->winTypeUtilAtom, 1);
+		                 (unsigned char *) &display.winTypeUtilAtom, 1);
 
-		setWindowProp (s->display, ss->popupWindow,
-		               s->display->winDesktopAtom,
+		setWindowProp (ss->popupWindow,
+		               display.winDesktopAtom,
 		               0xffffffff);
 
 		setSelectedWindowHint (s);
@@ -667,7 +667,7 @@ switchInitiate (CompScreen            *s,
 				}
 				else
 				{
-					XMapWindow (s->display->display, ss->popupWindow);
+					XMapWindow (display.display, ss->popupWindow);
 				}
 			}
 
@@ -695,7 +695,7 @@ switchTerminate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		SWITCH_SCREEN (s);
 
@@ -716,7 +716,7 @@ switchTerminate (BananaArgument     *arg,
 				}
 				else
 				{
-					XUnmapWindow (s->display->display, ss->popupWindow);
+					XUnmapWindow (display.display, ss->popupWindow);
 				}
 			}
 
@@ -777,7 +777,7 @@ switchInitiateCommon (BananaArgument        *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 
 	if (s)
 	{
@@ -915,13 +915,13 @@ updateForegroundColor (CompScreen *s)
 	unsigned char *propData;
 
 	SWITCH_SCREEN (s);
-	SWITCH_DISPLAY (s->display);
+	SWITCH_DISPLAY (&display);
 
 	if (!ss->popupWindow)
 		return;
 
 
-	result = XGetWindowProperty (s->display->display, ss->popupWindow,
+	result = XGetWindowProperty (display.display, ss->popupWindow,
 	                         sd->selectFgColorAtom, 0L, 4L, FALSE,
 	                         XA_INTEGER, &actual, &format,
 	                         &n, &left, &propData);
@@ -952,11 +952,10 @@ updateForegroundColor (CompScreen *s)
 }
 
 static void
-switchHandleEvent (CompDisplay *d,
-                   XEvent      *event)
+switchHandleEvent (XEvent      *event)
 {
 	CompWindow *w = NULL;
-	SWITCH_DISPLAY (d);
+	SWITCH_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
@@ -1012,7 +1011,7 @@ switchHandleEvent (CompDisplay *d,
 			switchInitiateCommon (&arg, 1, AllViewports, 
 			                      option_show_popup->b, FALSE);
 		}
-		if (event->xkey.keycode == d->escapeKeyCode)
+		if (event->xkey.keycode == display.escapeKeyCode)
 		{
 			BananaArgument arg;
 
@@ -1024,7 +1023,7 @@ switchHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MapNotify:
-		w = findWindowAtDisplay (d, event->xmap.window);
+		w = findWindowAtDisplay (event->xmap.window);
 		if (w)
 		{
 			SWITCH_SCREEN (w->screen);
@@ -1034,7 +1033,7 @@ switchHandleEvent (CompDisplay *d,
 				/* we don't get a MapRequest for internal window
 				   creations, so we need to update the internals
 				   ourselves */
-				w->wmType  = getWindowType (d, w->id);
+				w->wmType  = getWindowType (w->id);
 				w->managed = TRUE;
 				recalcWindowType (w);
 				recalcWindowActions (w);
@@ -1044,13 +1043,13 @@ switchHandleEvent (CompDisplay *d,
 		break;
 	case DestroyNotify:
 		/* We need to get the CompWindow * for event->xdestroywindow.window
-		   here because in the (*d->handleEvent) call below, that CompWindow's
+		   here because in the (*display.handleEvent) call below, that CompWindow's
 		   id will become 1, so findWindowAtDisplay won't be able to find the
 		   CompWindow after that. */
-		w = findWindowAtDisplay (d, event->xdestroywindow.window);
+		w = findWindowAtDisplay (event->xdestroywindow.window);
 		break;
 	default:
-		if (event->type == d->xkbEvent)
+		if (event->type == display.xkbEvent)
 		{
 			XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
 
@@ -1069,22 +1068,22 @@ switchHandleEvent (CompDisplay *d,
 		}
 	}
 
-	UNWRAP (sd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (sd, d, handleEvent, switchHandleEvent);
+	UNWRAP (sd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (sd, &display, handleEvent, switchHandleEvent);
 
 	switch (event->type) {
 	case UnmapNotify:
-		w = findWindowAtDisplay (d, event->xunmap.window);
-		switchWindowRemove (d, w);
+		w = findWindowAtDisplay (event->xunmap.window);
+		switchWindowRemove (&display, w);
 		break;
 	case DestroyNotify:
-		switchWindowRemove (d, w);
+		switchWindowRemove (&display, w);
 		break;
 	case PropertyNotify:
 		if (event->xproperty.atom == sd->selectFgColorAtom)
 		{
-			w = findWindowAtDisplay (d, event->xproperty.window);
+			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
 			{
 				SWITCH_SCREEN (w->screen);
@@ -1492,7 +1491,7 @@ switchPaintThumb (CompWindow              *w,
 		glPushMatrix ();
 		glLoadMatrixf (wTransform.m);
 
-		filter = w->screen->display->textureFilter;
+		filter = display.textureFilter;
 
 		const BananaValue *
 		option_mipmap = bananaGetOption (bananaIndex,
@@ -1500,7 +1499,7 @@ switchPaintThumb (CompWindow              *w,
 		                                 w->screen->screenNum);
 
 		if (option_mipmap->b)
-			w->screen->display->textureFilter = GL_LINEAR_MIPMAP_LINEAR;
+			display.textureFilter = GL_LINEAR_MIPMAP_LINEAR;
 
 		/* XXX: replacing the addWindowGeometry function like this is
 		   very ugly but necessary until the vertex stage has been made
@@ -1511,7 +1510,7 @@ switchPaintThumb (CompWindow              *w,
 		                     mask);
 		w->screen->addWindowGeometry = oldAddWindowGeometry;
 
-		w->screen->display->textureFilter = filter;
+		display.textureFilter = filter;
 
 		glPopMatrix ();
 
@@ -1832,7 +1831,7 @@ switchInitDisplay (CompPlugin  *p,
 	if (!sd)
 		return FALSE;
 
-	sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	sd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (sd->screenPrivateIndex < 0)
 	{
 		free (sd);
@@ -1857,7 +1856,7 @@ switchFiniDisplay (CompPlugin  *p,
 {
 	SWITCH_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+	freeScreenPrivateIndex (sd->screenPrivateIndex);
 
 	UNWRAP (sd, d, handleEvent);
 
@@ -1870,7 +1869,7 @@ switchInitScreen (CompPlugin *p,
 {
 	SwitchScreen *ss;
 
-	SWITCH_DISPLAY (s->display);
+	SWITCH_DISPLAY (&display);
 
 	ss = malloc (sizeof (SwitchScreen));
 	if (!ss)
@@ -1927,7 +1926,7 @@ switchInitScreen (CompPlugin *p,
 
 	matchInit (&ss->window_match);
 	matchAddFromString (&ss->window_match, option_window_match->s);
-	matchUpdate (core.displays, &ss->window_match);
+	matchUpdate (&ss->window_match);
 
 	WRAP (ss, s, preparePaintScreen, switchPreparePaintScreen);
 	WRAP (ss, s, donePaintScreen, switchDonePaintScreen);
@@ -1953,7 +1952,7 @@ switchFiniScreen (CompPlugin *p,
 	UNWRAP (ss, s, damageWindowRect);
 
 	if (ss->popupWindow)
-		XDestroyWindow (s->display->display, ss->popupWindow);
+		XDestroyWindow (display.display, ss->popupWindow);
 
 	if (ss->windows)
 		free (ss->windows);

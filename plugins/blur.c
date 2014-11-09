@@ -172,7 +172,7 @@ typedef struct _BlurWindow {
         ((BlurScreen *) (s)->base.privates[(bd)->screenPrivateIndex].ptr)
 
 #define BLUR_SCREEN(s) \
-        BlurScreen *bs = GET_BLUR_SCREEN (s, GET_BLUR_DISPLAY (s->display))
+        BlurScreen *bs = GET_BLUR_SCREEN (s, GET_BLUR_DISPLAY (&display))
 
 #define GET_BLUR_WINDOW(w, bs) \
         ((BlurWindow *) (w)->base.privates[(bs)->windowPrivateIndex].ptr)
@@ -180,7 +180,7 @@ typedef struct _BlurWindow {
 #define BLUR_WINDOW(w) \
         BlurWindow *bw = GET_BLUR_WINDOW  (w, \
                          GET_BLUR_SCREEN  (w->screen, \
-                         GET_BLUR_DISPLAY (w->screen->display)))
+                         GET_BLUR_DISPLAY (&display)))
 
 /* pascal triangle based kernel generator */
 static int
@@ -516,7 +516,7 @@ blurUpdateAlphaWindowMatch (BlurScreen *bs,
 
 		matchInit (&match);
 		matchAddFromString (&match, alpha_blur_match->s);
-		matchUpdate (core.displays, &match);
+		matchUpdate (&match);
 
 		if (matchEval (&match, w))
 		{
@@ -551,7 +551,7 @@ blurUpdateWindowMatch (BlurScreen *bs,
 
 	matchInit (&match);
 	matchAddFromString (&match, focus_blur_match->s);
-	matchUpdate (core.displays, &match);
+	matchUpdate (&match);
 
 	focus = w->screen->fragmentProgram && matchEval (&match, w);
 	if (focus != bw->focusBlur)
@@ -677,11 +677,11 @@ blurWindowUpdate (CompWindow *w,
 	BlurBox   *box = NULL;
 	int       nBox = 0;
 
-	BLUR_DISPLAY (w->screen->display);
+	BLUR_DISPLAY (&display);
 	BLUR_SCREEN (w->screen);
 	BLUR_WINDOW (w);
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
+	result = XGetWindowProperty (display.display, w->id,
 	                             bd->blurAtom[state], 0L, 8192L, FALSE,
 	                             XA_INTEGER, &actual, &format,
 	                             &n, &left, &propData);
@@ -766,7 +766,7 @@ blurPreparePaintScreen (CompScreen *s,
 
 			focusBlur = bw->focusBlur && focus;
 
-			if (!bw->pulse && (!focusBlur || w->id == s->display->activeWindow))
+			if (!bw->pulse && (!focusBlur || w->id == display.activeWindow))
 			{
 				if (bw->blur)
 				{
@@ -2567,9 +2567,9 @@ blurPulse (BananaArgument     *arg,
 	if (window != NULL)
 		xid = window->i;
 	else
-		xid = core.displays->activeWindow;
+		xid = display.activeWindow;
 
-	w = findWindowAtDisplay (core.displays, xid);
+	w = findWindowAtDisplay (xid);
 	if (w && w->screen->fragmentProgram)
 	{
 		BLUR_SCREEN (w->screen);
@@ -2585,22 +2585,21 @@ blurPulse (BananaArgument     *arg,
 }
 
 static void
-blurHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+blurHandleEvent (XEvent      *event)
 {
-	Window activeWindow = d->activeWindow;
+	Window activeWindow = display.activeWindow;
 
-	BLUR_DISPLAY (d);
+	BLUR_DISPLAY (&display);
 
-	UNWRAP (bd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (bd, d, handleEvent, blurHandleEvent);
+	UNWRAP (bd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (bd, &display, handleEvent, blurHandleEvent);
 
-	if (d->activeWindow != activeWindow)
+	if (display.activeWindow != activeWindow)
 	{
 		CompWindow *w;
 
-		w = findWindowAtDisplay (d, activeWindow);
+		w = findWindowAtDisplay (activeWindow);
 		if (w)
 		{
 			BLUR_SCREEN (w->screen);
@@ -2617,7 +2616,7 @@ blurHandleEvent (CompDisplay *d,
 			}
 		}
 
-		w = findWindowAtDisplay (d, d->activeWindow);
+		w = findWindowAtDisplay (display.activeWindow);
 		if (w)
 		{
 			BLUR_SCREEN (w->screen);
@@ -2645,14 +2644,14 @@ blurHandleEvent (CompDisplay *d,
 			{
 				CompWindow *w;
 
-				w = findWindowAtDisplay (d, event->xproperty.window);
+				w = findWindowAtDisplay (event->xproperty.window);
 				if (w)
 					blurWindowUpdate (w, i);
 			}
 		}
 	}
 
-	if (event->type == d->xkbEvent)
+	if (event->type == display.xkbEvent)
 	{
 		XkbAnyEvent *xkbEvent = (XkbAnyEvent *) event;
 
@@ -2707,17 +2706,16 @@ blurWindowMoveNotify (CompWindow *w,
 }
 
 static void
-blurMatchPropertyChanged (CompDisplay *d,
-                          CompWindow  *w)
+blurMatchPropertyChanged (CompWindow  *w)
 {
-	BLUR_DISPLAY (d);
+	BLUR_DISPLAY (&display);
 	BLUR_SCREEN (w->screen);
 
 	blurUpdateWindowMatch (bs, w);
 
-	UNWRAP (bd, d, matchPropertyChanged);
-	(*d->matchPropertyChanged) (d, w);
-	WRAP (bd, d, matchPropertyChanged, blurMatchPropertyChanged);
+	UNWRAP (bd, &display, matchPropertyChanged);
+	(*display.matchPropertyChanged) (w);
+	WRAP (bd, &display, matchPropertyChanged, blurMatchPropertyChanged);
 }
 
 static void
@@ -2800,7 +2798,7 @@ blurInitDisplay (CompPlugin  *p,
 	if (!bd)
 		return FALSE;
 
-	bd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	bd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (bd->screenPrivateIndex < 0)
 	{
 		free (bd);
@@ -2826,7 +2824,7 @@ blurFiniDisplay (CompPlugin  *p,
 {
 	BLUR_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, bd->screenPrivateIndex);
+	freeScreenPrivateIndex (bd->screenPrivateIndex);
 
 	UNWRAP (bd, d, handleEvent);
 	UNWRAP (bd, d, matchPropertyChanged);
@@ -2841,7 +2839,7 @@ blurInitScreen (CompPlugin *p,
 	BlurScreen *bs;
 	int        i;
 
-	BLUR_DISPLAY (s->display);
+	BLUR_DISPLAY (&display);
 
 	bs = malloc (sizeof (BlurScreen));
 	if (!bs)

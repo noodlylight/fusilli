@@ -44,6 +44,8 @@
 
 #include <fusilli-core.h>
 
+CompDisplay display;
+
 static unsigned int virtualModMask[] = {
 	CompAltMask, CompMetaMask, CompSuperMask, CompHyperMask,
 	CompModeSwitchMask, CompNumLockMask, CompScrollLockMask
@@ -75,17 +77,13 @@ static int
 reallocDisplayPrivate (int  size,
                        void *closure)
 {
-	CompDisplay *d;
 	void        *privates;
 
-	for (d = core.displays; d; d = d->next)
-	{
-		privates = realloc (d->base.privates, size * sizeof (CompPrivate));
-		if (!privates)
-			return FALSE;
+	privates = realloc (display.base.privates, size * sizeof (CompPrivate));
+	if (!privates)
+		return FALSE;
 
-		d->base.privates = (CompPrivate *) privates;
-	}
+	display.base.privates = (CompPrivate *) privates;
 
 	return TRUE;
 }
@@ -113,13 +111,10 @@ forEachDisplayObject (CompObject         *parent,
 {
 	if (parent->type == COMP_OBJECT_TYPE_CORE)
 	{
-		CompDisplay *d;
-
-		for (d = core.displays; d; d = d->next)
-		{
-			if (!(*proc) (&d->base, closure))
+		if (display.screens != NULL) //HACK: Verify that display is initialized
+			if (!(*proc) (&display.base, closure))
 				return FALSE;
-		}
+
 	}
 
 	return TRUE;
@@ -138,7 +133,7 @@ findDisplayObject (CompObject *parent,
 	if (parent->type == COMP_OBJECT_TYPE_CORE)
 	{
 		if (!name || !name[0])
-			return &core.displays->base;
+			return &display.base;
 	}
 
 	return NULL;
@@ -158,11 +153,10 @@ freeDisplayPrivateIndex (int index)
 
 
 static void
-setAudibleBell (CompDisplay *display,
-                Bool        audible)
+setAudibleBell (Bool        audible)
 {
-	if (display->xkbExtension)
-		XkbChangeEnabledControls (display->display,
+	if (display.xkbExtension)
+		XkbChangeEnabledControls (display.display,
 		                          XkbUseCoreKbd,
 		                          XkbAudibleBellMask,
 		                          audible ? XkbAudibleBellMask : 0);
@@ -246,145 +240,145 @@ displayChangeNotify (const char        *optionName,
 {
 	if (strcasecmp (optionName, "active_plugins") == 0)
 	{
-		core.displays->dirtyPluginList = TRUE;
+		display.dirtyPluginList = TRUE;
 	}
 	else if (strcasecmp (optionName, "texture_filter") == 0)
 	{
 		CompScreen *s;
 
-		for (s = core.displays->screens; s; s = s->next)
+		for (s = display.screens; s; s = s->next)
 			damageScreen (s);
 
 		if (!optionValue->i)
-			core.displays->textureFilter = GL_NEAREST;
+			display.textureFilter = GL_NEAREST;
 		else
-			core.displays->textureFilter = GL_LINEAR;
+			display.textureFilter = GL_LINEAR;
 	}
 	else if (strcasecmp (optionName, "ping_delay") == 0)
 	{
-		if (core.displays->pingHandle)
-			compRemoveTimeout (core.displays->pingHandle);
+		if (display.pingHandle)
+			compRemoveTimeout (display.pingHandle);
 
-		core.displays->pingHandle =
+		display.pingHandle =
 		    compAddTimeout (optionValue->i, optionValue->i + 500,
-		                    pingTimeout, core.displays);
+		                    pingTimeout, &display);
 	}
 	else if (strcasecmp (optionName, "audible_bell") == 0)
 	{
-		setAudibleBell (core.displays, optionValue->b);
+		setAudibleBell (optionValue->b);
 	}
 	else if (strcasecmp (optionName, "close_window_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->close_window_key);
+		updateKey (optionValue->s, &display.close_window_key);
 	}
 	else if (strcasecmp (optionName, "raise_window_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->raise_window_key);
+		updateKey (optionValue->s, &display.raise_window_key);
 	}
 	else if (strcasecmp (optionName, "lower_window_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->lower_window_key);
+		updateKey (optionValue->s, &display.lower_window_key);
 	}
 	else if (strcasecmp (optionName, "unmaximize_window_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->unmaximize_window_key);
+		updateKey (optionValue->s, &display.unmaximize_window_key);
 	}
 	else if (strcasecmp (optionName, "minimize_window_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->minimize_window_key);
+		updateKey (optionValue->s, &display.minimize_window_key);
 	}
 	else if (strcasecmp (optionName, "maximize_window_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->maximize_window_key);
+		updateKey (optionValue->s, &display.maximize_window_key);
 	}
 	else if (strcasecmp (optionName, "maximize_window_horizontally_key") == 0)
 	{
 		updateKey (optionValue->s, 
-		           &core.displays->maximize_window_horizontally_key);
+		           &display.maximize_window_horizontally_key);
 	}
 	else if (strcasecmp (optionName, "maximize_window_vertically_key") == 0)
 	{
 		updateKey (optionValue->s, 
-		           &core.displays->maximize_window_vertically_key);
+		           &display.maximize_window_vertically_key);
 	}
 	else if (strcasecmp (optionName, "window_menu_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->window_menu_key);
+		updateKey (optionValue->s, &display.window_menu_key);
 	}
 	else if (strcasecmp (optionName, "show_desktop_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->show_desktop_key);
+		updateKey (optionValue->s, &display.show_desktop_key);
 	}
 	else if (strcasecmp (optionName, "toggle_window_maximized_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->toggle_window_maximized_key);
+		updateKey (optionValue->s, &display.toggle_window_maximized_key);
 	}
 	else if (strcasecmp (optionName, 
 	                     "toggle_window_maximized_horizontally_key") == 0)
 	{
 		updateKey (optionValue->s, 
-		           &core.displays->toggle_window_maximized_horizontally_key);
+		           &display.toggle_window_maximized_horizontally_key);
 	}
 	else if (strcasecmp (optionName, 
 	                     "toggle_window_maximized_vertically_key") == 0)
 	{
 		updateKey (optionValue->s, 
-		           &core.displays->toggle_window_maximized_vertically_key);
+		           &display.toggle_window_maximized_vertically_key);
 	}
 	else if (strcasecmp (optionName, "toggle_window_shaded_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->toggle_window_shaded_key);
+		updateKey (optionValue->s, &display.toggle_window_shaded_key);
 	}
 	else if (strcasecmp (optionName, "slow_animations_key") == 0)
 	{
-		updateKey (optionValue->s, &core.displays->slow_animations_key);
+		updateKey (optionValue->s, &display.slow_animations_key);
 	}
 	else if (strcasecmp (optionName, "close_window_button") == 0)
 	{
-		updateButton (optionValue->s, &core.displays->close_window_button);
+		updateButton (optionValue->s, &display.close_window_button);
 	}
 	else if (strcasecmp (optionName, "raise_window_button") == 0)
 	{
-		updateButton (optionValue->s, &core.displays->raise_window_button);
+		updateButton (optionValue->s, &display.raise_window_button);
 	}
 	else if (strcasecmp (optionName, "lower_window_button") == 0)
 	{
-		updateButton (optionValue->s, &core.displays->lower_window_button);
+		updateButton (optionValue->s, &display.lower_window_button);
 	}
 	else if (strcasecmp (optionName, "minimize_window_button") == 0)
 	{
-		updateButton (optionValue->s, &core.displays->minimize_window_button);
+		updateButton (optionValue->s, &display.minimize_window_button);
 	}
 	else if (strcasecmp (optionName, "window_menu_button") == 0)
 	{
-		updateButton (optionValue->s, &core.displays->window_menu_button);
+		updateButton (optionValue->s, &display.window_menu_button);
 	}
 	else if (strcasecmp (optionName, "toggle_window_maximized_button") == 0)
 	{
 		updateButton (optionValue->s, 
-		              &core.displays->toggle_window_maximized_button);
+		              &display.toggle_window_maximized_button);
 	}
 }
 
 static void
-updatePlugins (CompDisplay *d)
+updatePlugins (void)
 {
 	//pop and unload all plugins *except core*
 	int i;
-	for (i = 0; i < d->plugin.list.nItem - 1; i++)
+	for (i = 0; i < display.plugin.list.nItem - 1; i++)
 	{
 		CompPlugin *p;
 		p = popPlugin ();
 		unloadPlugin (p);
 	}
 
-	finiBananaValue (&d->plugin, BananaListString);
+	finiBananaValue (&display.plugin, BananaListString);
 
 	//load and push all plugins
-	initBananaValue (&d->plugin, BananaListString);
+	initBananaValue (&display.plugin, BananaListString);
 
 	//core was not popped/unloaded, so adding it to the list is enough
-	addItemToBananaList ("core", BananaListString, &d->plugin);
+	addItemToBananaList ("core", BananaListString, &display.plugin);
 
 	const BananaValue *
 	option_active_plugins = bananaGetOption (coreBananaIndex,
@@ -403,7 +397,7 @@ updatePlugins (CompDisplay *d)
 			{
 				addItemToBananaList (option_active_plugins->list.item[i].s,
 				                     BananaListString,
-				                     &d->plugin);
+				                     &display.plugin);
 			}
 			else
 			{
@@ -412,7 +406,7 @@ updatePlugins (CompDisplay *d)
 		}
 	}
 
-	d->dirtyPluginList = FALSE;
+	display.dirtyPluginList = FALSE;
 }
 
 static void
@@ -659,7 +653,7 @@ static const int maskTable[] = {
 static const int maskTableSize = sizeof (maskTable) / sizeof (int);
 
 void
-updateModifierMappings (CompDisplay *d)
+updateModifierMappings (void)
 {
 	unsigned int    modMask[CompModNum];
 	int             i, minKeycode, maxKeycode, keysymsPerKeycode = 0;
@@ -668,32 +662,32 @@ updateModifierMappings (CompDisplay *d)
 	for (i = 0; i < CompModNum; i++)
 		modMask[i] = 0;
 
-	XDisplayKeycodes (d->display, &minKeycode, &maxKeycode);
-	key = XGetKeyboardMapping (d->display,
+	XDisplayKeycodes (display.display, &minKeycode, &maxKeycode);
+	key = XGetKeyboardMapping (display.display,
 	                           minKeycode, (maxKeycode - minKeycode + 1),
 	                           &keysymsPerKeycode);
 
-	if (d->modMap)
-		XFreeModifiermap (d->modMap);
+	if (display.modMap)
+		XFreeModifiermap (display.modMap);
 
-	d->modMap = XGetModifierMapping (d->display);
-	if (d->modMap && d->modMap->max_keypermod > 0)
+	display.modMap = XGetModifierMapping (display.display);
+	if (display.modMap && display.modMap->max_keypermod > 0)
 	{
 		KeySym keysym;
 		int    index, size, mask;
 
-		size = maskTableSize * d->modMap->max_keypermod;
+		size = maskTableSize * display.modMap->max_keypermod;
 
 		for (i = 0; i < size; i++)
 		{
-			if (!d->modMap->modifiermap[i])
+			if (!display.modMap->modifiermap[i])
 				continue;
 
 			index = 0;
 			do
 			{
 				//convert keycode to keysym
-				keysym = key[(d->modMap->modifiermap[i] - minKeycode) *
+				keysym = key[(display.modMap->modifiermap[i] - minKeycode) *
 				             keysymsPerKeycode + index];
 
 				index++;
@@ -701,7 +695,7 @@ updateModifierMappings (CompDisplay *d)
 
 			if (keysym)
 			{
-				mask = maskTable[i / d->modMap->max_keypermod];
+				mask = maskTable[i / display.modMap->max_keypermod];
 
 				if (keysym == XK_Alt_L ||
 				    keysym == XK_Alt_R)
@@ -744,17 +738,17 @@ updateModifierMappings (CompDisplay *d)
 				modMask[i] = CompNoMask;
 		}
 
-		if (memcmp (modMask, d->modMask, sizeof (modMask)))
+		if (memcmp (modMask, display.modMask, sizeof (modMask)))
 		{
 			CompScreen *s;
 
-			memcpy (d->modMask, modMask, sizeof (modMask));
+			memcpy (display.modMask, modMask, sizeof (modMask));
 
-			d->ignoredModMask = LockMask |
+			display.ignoredModMask = LockMask |
 			                    (modMask[CompModNumLock]    & ~CompNoMask) |
 			                    (modMask[CompModScrollLock] & ~CompNoMask);
 
-			for (s = d->screens; s; s = s->next)
+			for (s = display.screens; s; s = s->next)
 				updatePassiveGrabs (s);
 		}
 	}
@@ -764,8 +758,7 @@ updateModifierMappings (CompDisplay *d)
 }
 
 unsigned int
-virtualToRealModMask (CompDisplay  *d,
-                      unsigned int modMask)
+virtualToRealModMask (unsigned int modMask)
 {
 	int i;
 
@@ -774,7 +767,7 @@ virtualToRealModMask (CompDisplay  *d,
 		if (modMask & virtualModMask[i])
 		{
 			modMask &= ~virtualModMask[i];
-			modMask |= d->modMask[i];
+			modMask |= display.modMask[i];
 		}
 	}
 
@@ -782,17 +775,16 @@ virtualToRealModMask (CompDisplay  *d,
 }
 
 unsigned int
-keycodeToModifiers (CompDisplay *d,
-                    int         keycode)
+keycodeToModifiers (int         keycode)
 {
 	unsigned int mods = 0;
 	int mod, k;
 
 	for (mod = 0; mod < maskTableSize; mod++)
 	{
-		for (k = 0; k < d->modMap->max_keypermod; k++)
+		for (k = 0; k < display.modMap->max_keypermod; k++)
 		{
-			if (d->modMap->modifiermap[mod * d->modMap->max_keypermod + k] == 
+			if (display.modMap->modifiermap[mod * display.modMap->max_keypermod + k] == 
 			    keycode)
 				mods |= maskTable[mod];
 		}
@@ -958,102 +950,94 @@ eventLoop (void)
 	int            time, timeToNextRedraw = 0;
 	unsigned int   damageMask, mask;
 
-	for (d = core.displays; d; d = d->next)
-		d->watchFdHandle = compAddWatchFd (ConnectionNumber (d->display),
-		                                   POLLIN, NULL, NULL);
+	d = &display;
+
+	d->watchFdHandle = compAddWatchFd (ConnectionNumber (d->display),
+	                                   POLLIN, NULL, NULL);
 
 	for (;;)
 	{
 		if (restartSignal || shutDown)
 			break;
 
-		for (d = core.displays; d; d = d->next)
+		if (d->dirtyPluginList)
+			updatePlugins ();
+
+		while (XPending (d->display))
 		{
-			if (d->dirtyPluginList)
-				updatePlugins (d);
+			XNextEvent (d->display, &event);
 
-			while (XPending (d->display))
-			{
-				XNextEvent (d->display, &event);
-
-				switch (event.type) {
-				case ButtonPress:
-				case ButtonRelease:
-					pointerX = event.xbutton.x_root;
-					pointerY = event.xbutton.y_root;
-					break;
-				case KeyPress:
-				case KeyRelease:
-					pointerX = event.xkey.x_root;
-					pointerY = event.xkey.y_root;
-					break;
-				case MotionNotify:
-					pointerX = event.xmotion.x_root;
-					pointerY = event.xmotion.y_root;
-					break;
-				case EnterNotify:
-				case LeaveNotify:
-					pointerX = event.xcrossing.x_root;
-					pointerY = event.xcrossing.y_root;
-					break;
-				case ClientMessage:
-					if (event.xclient.message_type == d->xdndPositionAtom)
-					{
-						pointerX = event.xclient.data.l[2] >> 16;
-						pointerY = event.xclient.data.l[2] & 0xffff;
-					}
-				default:
-					break;
+			switch (event.type) {
+			case ButtonPress:
+			case ButtonRelease:
+				pointerX = event.xbutton.x_root;
+				pointerY = event.xbutton.y_root;
+				break;
+			case KeyPress:
+			case KeyRelease:
+				pointerX = event.xkey.x_root;
+				pointerY = event.xkey.y_root;
+				break;
+			case MotionNotify:
+				pointerX = event.xmotion.x_root;
+				pointerY = event.xmotion.y_root;
+				break;
+			case EnterNotify:
+			case LeaveNotify:
+				pointerX = event.xcrossing.x_root;
+				pointerY = event.xcrossing.y_root;
+				break;
+			case ClientMessage:
+				if (event.xclient.message_type == d->xdndPositionAtom)
+				{
+					pointerX = event.xclient.data.l[2] >> 16;
+					pointerY = event.xclient.data.l[2] & 0xffff;
 				}
-				sn_display_process_event (d->snDisplay, &event);
-
-				inHandleEvent = TRUE;
-
-				(*d->handleEvent) (d, &event);
-
-				inHandleEvent = FALSE;
-
-				lastPointerX = pointerX;
-				lastPointerY = pointerY;
+			default:
+				break;
 			}
+			sn_display_process_event (d->snDisplay, &event);
+
+			inHandleEvent = TRUE;
+
+			(*d->handleEvent) (&event);
+
+			inHandleEvent = FALSE;
+
+			lastPointerX = pointerX;
+			lastPointerY = pointerY;
 		}
 
-		for (d = core.displays; d; d = d->next)
+		for (s = d->screens; s; s = s->next)
 		{
-			for (s = d->screens; s; s = s->next)
+			if (s->damageMask)
 			{
-				if (s->damageMask)
-				{
-					finishScreenDrawing (s);
-				}
-				else
-				{
-					s->idle = TRUE;
-				}
+				finishScreenDrawing (s);
+			}
+			else
+			{
+				s->idle = TRUE;
 			}
 		}
 
 		damageMask       = 0;
 		timeToNextRedraw = MAXSHORT;
 
-		for (d = core.displays; d; d = d->next)
+		for (s = d->screens; s; s = s->next)
 		{
-			for (s = d->screens; s; s = s->next)
+			if (!s->damageMask)
+				continue;
+
+			if (!damageMask)
 			{
-				if (!s->damageMask)
-					continue;
-
-				if (!damageMask)
-				{
-					gettimeofday (&tv, 0);
-					damageMask |= s->damageMask;
-				}
-
-				s->timeLeft = getTimeToNextRedraw (s, &tv, &s->lastRedraw,
-				                                   s->idle);
-				if (s->timeLeft < timeToNextRedraw)
-					timeToNextRedraw = s->timeLeft;
+				gettimeofday (&tv, 0);
+				damageMask |= s->damageMask;
 			}
+
+			s->timeLeft = getTimeToNextRedraw (s, &tv, &s->lastRedraw,
+			                                   s->idle);
+			if (s->timeLeft < timeToNextRedraw)
+				timeToNextRedraw = s->timeLeft;
 		}
 
 		if (damageMask)
@@ -1069,185 +1053,182 @@ eventLoop (void)
 				if (core.timeouts)
 					handleTimeouts (&tv);
 
-				for (d = core.displays; d; d = d->next)
+				for (s = d->screens; s; s = s->next)
 				{
-					for (s = d->screens; s; s = s->next)
+					if (!s->damageMask || s->timeLeft > timeToNextRedraw)
+						continue;
+
+					targetScreen = s;
+
+					timeDiff = TIMEVALDIFF (&tv, &s->lastRedraw);
+
+					/* handle clock rollback */
+					if (timeDiff < 0)
+					    timeDiff = 0;
+
+					makeScreenCurrent (s);
+
+					if (s->slowAnimations)
 					{
-						if (!s->damageMask || s->timeLeft > timeToNextRedraw)
-							continue;
+						(*s->preparePaintScreen) (s,
+						                          s->idle ? 2 :
+						                          (timeDiff * 2) /
+						                          s->redrawTime);
+					}
+					else
+						(*s->preparePaintScreen) (s,
+						                          s->idle ? s->redrawTime :
+						                          timeDiff);
 
-						targetScreen = s;
-
-						timeDiff = TIMEVALDIFF (&tv, &s->lastRedraw);
-
-						/* handle clock rollback */
-						if (timeDiff < 0)
-						    timeDiff = 0;
-
-						makeScreenCurrent (s);
-
-						if (s->slowAnimations)
+					/* substract top most overlay window region */
+					if (s->overlayWindowCount)
+					{
+						for (w = s->reverseWindows; w; w = w->prev)
 						{
-							(*s->preparePaintScreen) (s,
-							                          s->idle ? 2 :
-							                          (timeDiff * 2) /
-							                          s->redrawTime);
+							if (w->destroyed || w->invisible)
+								continue;
+
+							if (!w->redirected)
+								XSubtractRegion (s->damage, w->region,
+								                 s->damage);
+
+							break;
+						}
+
+						if (s->damageMask & COMP_SCREEN_DAMAGE_ALL_MASK)
+						{
+							s->damageMask &= ~COMP_SCREEN_DAMAGE_ALL_MASK;
+							s->damageMask |= COMP_SCREEN_DAMAGE_REGION_MASK;
+						}
+					}
+
+					if (s->damageMask & COMP_SCREEN_DAMAGE_REGION_MASK)
+					{
+						XIntersectRegion (s->damage, &s->region,
+						                  core.tmpRegion);
+
+						if (core.tmpRegion->numRects  == 1        &&
+						    core.tmpRegion->rects->x1 == 0        &&
+						    core.tmpRegion->rects->y1 == 0        &&
+						    core.tmpRegion->rects->x2 == s->width &&
+						    core.tmpRegion->rects->y2 == s->height)
+						damageScreen (s);
+					}
+
+					EMPTY_REGION (s->damage);
+
+					mask = s->damageMask;
+					s->damageMask = 0;
+
+					if (s->clearBuffers)
+					{
+						if (mask & COMP_SCREEN_DAMAGE_ALL_MASK)
+							glClear (GL_COLOR_BUFFER_BIT);
+					}
+
+					const BananaValue *
+					option_force_independent_output_painting =
+					  bananaGetOption (coreBananaIndex, 
+					  "force_independent_output_painting", s->screenNum);
+
+					if (option_force_independent_output_painting->b
+					    || !s->hasOverlappingOutputs)
+						(*s->paintScreen) (s, s->outputDev,
+						                   s->nOutputDev,
+						                   mask);
+					else
+						(*s->paintScreen) (s, &s->fullscreenOutput, 1, mask);
+
+					targetScreen = NULL;
+					targetOutput = &s->outputDev[0];
+
+					waitForVideoSync (s);
+
+					if (mask & COMP_SCREEN_DAMAGE_ALL_MASK)
+					{
+						glXSwapBuffers (d->display, s->output);
+					}
+					else
+					{
+						BoxPtr pBox;
+						int    nBox, y;
+
+						pBox = core.tmpRegion->rects;
+						nBox = core.tmpRegion->numRects;
+
+						if (s->copySubBuffer)
+						{
+							while (nBox--)
+							{
+								y = s->height - pBox->y2;
+
+								(*s->copySubBuffer) (d->display,
+								                     s->output,
+								                     pBox->x1, y,
+								                     pBox->x2 - pBox->x1,
+								                     pBox->y2 - pBox->y1);
+
+								pBox++;
+							}
 						}
 						else
-							(*s->preparePaintScreen) (s,
-							                          s->idle ? s->redrawTime :
-							                          timeDiff);
-
-						/* substract top most overlay window region */
-						if (s->overlayWindowCount)
 						{
-							for (w = s->reverseWindows; w; w = w->prev)
+							glEnable (GL_SCISSOR_TEST);
+							glDrawBuffer (GL_FRONT);
+
+							while (nBox--)
 							{
-								if (w->destroyed || w->invisible)
-									continue;
+								y = s->height - pBox->y2;
 
-								if (!w->redirected)
-									XSubtractRegion (s->damage, w->region,
-									                 s->damage);
+								glBitmap (0, 0, 0, 0,
+								          pBox->x1 - s->rasterX,
+								          y - s->rasterY,
+								          NULL);
 
+								s->rasterX = pBox->x1;
+								s->rasterY = y;
+
+								glScissor (pBox->x1, y,
+								           pBox->x2 - pBox->x1,
+								           pBox->y2 - pBox->y1);
+
+								glCopyPixels (pBox->x1, y,
+								              pBox->x2 - pBox->x1,
+								              pBox->y2 - pBox->y1,
+								              GL_COLOR);
+
+								pBox++;
+							}
+
+							glDrawBuffer (GL_BACK);
+							glDisable (GL_SCISSOR_TEST);
+							glFlush ();
+						}
+					}
+
+					s->lastRedraw = tv;
+
+					(*s->donePaintScreen) (s);
+
+					/* remove destroyed windows */
+					while (s->pendingDestroys)
+					{
+						CompWindow *w;
+
+						for (w = s->windows; w; w = w->next)
+						{
+							if (w->destroyed)
+							{
+								addWindowDamage (w);
+								removeWindow (w);
 								break;
 							}
-
-							if (s->damageMask & COMP_SCREEN_DAMAGE_ALL_MASK)
-							{
-								s->damageMask &= ~COMP_SCREEN_DAMAGE_ALL_MASK;
-								s->damageMask |= COMP_SCREEN_DAMAGE_REGION_MASK;
-							}
 						}
 
-						if (s->damageMask & COMP_SCREEN_DAMAGE_REGION_MASK)
-						{
-							XIntersectRegion (s->damage, &s->region,
-							                  core.tmpRegion);
-
-							if (core.tmpRegion->numRects  == 1        &&
-							    core.tmpRegion->rects->x1 == 0        &&
-							    core.tmpRegion->rects->y1 == 0        &&
-							    core.tmpRegion->rects->x2 == s->width &&
-							    core.tmpRegion->rects->y2 == s->height)
-							damageScreen (s);
-						}
-
-						EMPTY_REGION (s->damage);
-
-						mask = s->damageMask;
-						s->damageMask = 0;
-
-						if (s->clearBuffers)
-						{
-							if (mask & COMP_SCREEN_DAMAGE_ALL_MASK)
-								glClear (GL_COLOR_BUFFER_BIT);
-						}
-
-						const BananaValue *
-						option_force_independent_output_painting =
-						  bananaGetOption (coreBananaIndex, 
-						  "force_independent_output_painting", s->screenNum);
-
-						if (option_force_independent_output_painting->b
-						    || !s->hasOverlappingOutputs)
-							(*s->paintScreen) (s, s->outputDev,
-							                   s->nOutputDev,
-							                   mask);
-						else
-							(*s->paintScreen) (s, &s->fullscreenOutput, 1, mask);
-
-						targetScreen = NULL;
-						targetOutput = &s->outputDev[0];
-
-						waitForVideoSync (s);
-
-						if (mask & COMP_SCREEN_DAMAGE_ALL_MASK)
-						{
-							glXSwapBuffers (d->display, s->output);
-						}
-						else
-						{
-							BoxPtr pBox;
-							int    nBox, y;
-
-							pBox = core.tmpRegion->rects;
-							nBox = core.tmpRegion->numRects;
-
-							if (s->copySubBuffer)
-							{
-								while (nBox--)
-								{
-									y = s->height - pBox->y2;
-
-									(*s->copySubBuffer) (d->display,
-									                     s->output,
-									                     pBox->x1, y,
-									                     pBox->x2 - pBox->x1,
-									                     pBox->y2 - pBox->y1);
-
-									pBox++;
-								}
-							}
-							else
-							{
-								glEnable (GL_SCISSOR_TEST);
-								glDrawBuffer (GL_FRONT);
-
-								while (nBox--)
-								{
-									y = s->height - pBox->y2;
-
-									glBitmap (0, 0, 0, 0,
-									          pBox->x1 - s->rasterX,
-									          y - s->rasterY,
-									          NULL);
-
-									s->rasterX = pBox->x1;
-									s->rasterY = y;
-
-									glScissor (pBox->x1, y,
-									           pBox->x2 - pBox->x1,
-									           pBox->y2 - pBox->y1);
-
-									glCopyPixels (pBox->x1, y,
-									              pBox->x2 - pBox->x1,
-									              pBox->y2 - pBox->y1,
-									              GL_COLOR);
-
-									pBox++;
-								}
-
-								glDrawBuffer (GL_BACK);
-								glDisable (GL_SCISSOR_TEST);
-								glFlush ();
-							}
-						}
-
-						s->lastRedraw = tv;
-
-						(*s->donePaintScreen) (s);
-
-						/* remove destroyed windows */
-						while (s->pendingDestroys)
-						{
-							CompWindow *w;
-
-							for (w = s->windows; w; w = w->next)
-							{
-								if (w->destroyed)
-								{
-									addWindowDamage (w);
-									removeWindow (w);
-									break;
-								}
-							}
-
-							s->pendingDestroys--;
-						}
-
-						s->idle = FALSE;
+						s->pendingDestroys--;
 					}
+
+					s->idle = FALSE;
 				}
 			}
 		}
@@ -1279,8 +1260,7 @@ eventLoop (void)
 		}
 	}
 
-	for (d = core.displays; d; d = d->next)
-		compRemoveWatchFd (d->watchFdHandle);
+	compRemoveWatchFd (d->watchFdHandle);
 }
 
 static int errors = 0;
@@ -1340,48 +1320,44 @@ compCheckForError (Display *dpy)
 }
 
 void
-addScreenToDisplay (CompDisplay *display,
-                    CompScreen  *s)
+addScreenToDisplay (CompScreen  *s)
 {
 	CompScreen *prev;
 
-	for (prev = display->screens; prev && prev->next; prev = prev->next);
+	for (prev = display.screens; prev && prev->next; prev = prev->next);
 
 	if (prev)
 		prev->next = s;
 	else
-		display->screens = s;
+		display.screens = s;
 }
 
 static void
-freeDisplay (CompDisplay *d)
+freeDisplay (void)
 {
-	finiBananaValue (&d->plugin, BananaListString);
+	finiBananaValue (&display.plugin, BananaListString);
 
-	if (d->modMap)
-		XFreeModifiermap (d->modMap);
+	if (display.modMap)
+		XFreeModifiermap (display.modMap);
 
-	if (d->screenInfo)
-		XFree (d->screenInfo);
+	if (display.screenInfo)
+		XFree (display.screenInfo);
 
-	if (d->screenPrivateIndices)
-		free (d->screenPrivateIndices);
+	if (display.screenPrivateIndices)
+		free (display.screenPrivateIndices);
 
-	if (d->base.privates)
-		free (d->base.privates);
-
-	free (d);
+	if (display.base.privates)
+		free (display.base.privates);
 }
 
 static Bool
-aquireSelection (CompDisplay *d,
-                 int         screen,
+aquireSelection (int         screen,
                  const char  *name,
                  Atom        selection,
                  Window      owner,
                  Time        timestamp)
 {
-	Display *dpy = d->display;
+	Display *dpy = display.display;
 	Window  root = XRootWindow (dpy, screen);
 	XEvent  event;
 
@@ -1400,7 +1376,7 @@ aquireSelection (CompDisplay *d,
 	/* Send client message indicating that we are now the manager */
 	event.xclient.type         = ClientMessage;
 	event.xclient.window       = root;
-	event.xclient.message_type = d->managerAtom;
+	event.xclient.message_type = display.managerAtom;
 	event.xclient.format       = 32;
 	event.xclient.data.l[0]    = timestamp;
 	event.xclient.data.l[1]    = selection;
@@ -1416,7 +1392,7 @@ aquireSelection (CompDisplay *d,
 Bool
 addDisplay (const char *name)
 {
-	CompDisplay *d;
+	CompDisplay *d = &display;
 	CompPrivate *privates;
 	Display     *dpy;
 	Window	    focus;
@@ -1426,16 +1402,11 @@ addDisplay (const char *name)
 	int         xkbOpcode;
 	int         firstScreen, lastScreen;
 
-	d = malloc (sizeof (CompDisplay));
-	if (!d)
-		return FALSE;
-
 	if (displayPrivateLen)
 	{
 		privates = malloc (displayPrivateLen * sizeof (CompPrivate));
 		if (!privates)
 		{
-			free (d);
 			return FALSE;
 		}
 	}
@@ -1444,7 +1415,6 @@ addDisplay (const char *name)
 
 	compObjectInit (&d->base, privates, COMP_OBJECT_TYPE_DISPLAY);
 
-	d->next    = NULL;
 	d->screens = NULL;
 
 	d->watchFdHandle = 0;
@@ -1491,7 +1461,7 @@ addDisplay (const char *name)
 
 	XSetErrorHandler (errorHandler);
 
-	updateModifierMappings (d);
+	updateModifierMappings ();
 
 	d->handleEvent       = handleEvent;
 	d->handleFusilliEvent = handleFusilliEvent;
@@ -1768,8 +1738,6 @@ addDisplay (const char *name)
 	d->escapeKeyCode = XKeysymToKeycode (dpy, XStringToKeysym ("Escape"));
 	d->returnKeyCode = XKeysymToKeycode (dpy, XStringToKeysym ("Return"));
 
-	addDisplayToCore (d);
-
 	/* TODO: bailout properly when objectInitPlugins fails */
 	assert (objectInitPlugins (&d->base));
 
@@ -1868,7 +1836,7 @@ addDisplay (const char *name)
 
 		wmSnTimestamp = event.xproperty.time;
 
-		if (!aquireSelection (d, i, "window", wmSnAtom, newWmSnOwner,
+		if (!aquireSelection (i, "window", wmSnAtom, newWmSnOwner,
 		                      wmSnTimestamp))
 		{
 			XDestroyWindow (dpy, newWmSnOwner);
@@ -1899,7 +1867,7 @@ addDisplay (const char *name)
 			continue;
 		}
 
-		if (!aquireSelection (d, i, "compositing", cmSnAtom,
+		if (!aquireSelection (i, "compositing", cmSnAtom,
 		                      newCmSnOwner, wmSnTimestamp))
 		{
 			continue;
@@ -1931,7 +1899,7 @@ addDisplay (const char *name)
 			continue;
 		}
 
-		if (!addScreen (d, i, newWmSnOwner, wmSnAtom, wmSnTimestamp))
+		if (!addScreen (i, newWmSnOwner, wmSnAtom, wmSnTimestamp))
 		{
 			compLogMessage ("core", CompLogLevelError,
 			                "Failed to manage screen: %d", i);
@@ -1959,7 +1927,7 @@ addDisplay (const char *name)
 	const BananaValue *
 	option_audible_bell = bananaGetOption (coreBananaIndex, "audible_bell", -1);
 
-	setAudibleBell (d, option_audible_bell->b);
+	setAudibleBell (option_audible_bell->b);
 
 	XGetInputFocus (dpy, &focus, &revertTo);
 
@@ -1975,7 +1943,7 @@ addDisplay (const char *name)
 	{
 		CompWindow *w;
 
-		w = findWindowAtDisplay (d, focus);
+		w = findWindowAtDisplay (focus);
 		if (w)
 		{
 			moveInputFocusToWindow (w);
@@ -2161,58 +2129,48 @@ addDisplay (const char *name)
 }
 
 void
-removeDisplay (CompDisplay *d)
+removeDisplay (void)
 {
-	CompDisplay *p;
+	while (display.screens)
+		removeScreen (display.screens);
 
-	for (p = core.displays; p; p = p->next)
-		if (p->next == d)
-			break;
+	(*core.objectRemove) (&core.base, &display.base);
 
-	if (p)
-		p->next = d->next;
-	else
-		core.displays = NULL;
+	objectFiniPlugins (&display.base);
 
-	while (d->screens)
-		removeScreen (d->screens);
-
-	(*core.objectRemove) (&core.base, &d->base);
-
-	objectFiniPlugins (&d->base);
-
-	if (d->edgeDelayHandle)
+	if (display.edgeDelayHandle)
 	{
 		void *closure;
 
-		closure = compRemoveTimeout (d->edgeDelayHandle);
+		closure = compRemoveTimeout (display.edgeDelayHandle);
 		if (closure)
 			free (closure);
 	}
 
-	if (d->autoRaiseHandle)
-		compRemoveTimeout (d->autoRaiseHandle);
+	if (display.autoRaiseHandle)
+		compRemoveTimeout (display.autoRaiseHandle);
 
-	compRemoveTimeout (d->pingHandle);
+	compRemoveTimeout (display.pingHandle);
 
-	if (d->snDisplay)
-		sn_display_unref (d->snDisplay);
+	if (display.snDisplay)
+		sn_display_unref (display.snDisplay);
 
-	XSync (d->display, False);
-	XCloseDisplay (d->display);
+	XSync (display.display, False);
 
-	freeDisplay (d);
+	XCloseDisplay (display.display);
+
+	freeDisplay ();
 }
 
 Time
-getCurrentTimeFromDisplay (CompDisplay *d)
+getCurrentTimeFromDisplay (void)
 {
 	XEvent event;
 
-	XChangeProperty (d->display, d->screens->grabWindow,
+	XChangeProperty (display.display, display.screens->grabWindow,
 	                 XA_PRIMARY, XA_STRING, 8,
 	                 PropModeAppend, NULL, 0);
-	XWindowEvent (d->display, d->screens->grabWindow,
+	XWindowEvent (display.display, display.screens->grabWindow,
 	              PropertyChangeMask,
 	              &event);
 
@@ -2220,12 +2178,11 @@ getCurrentTimeFromDisplay (CompDisplay *d)
 }
 
 CompScreen *
-findScreenAtDisplay (CompDisplay *d,
-                     Window      root)
+findScreenAtDisplay (Window      root)
 {
 	CompScreen *s;
 
-	for (s = d->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		if (s->root == root)
 			return s;
@@ -2239,7 +2196,7 @@ getScreenFromScreenNum (int screenNum)
 {
 	CompScreen *screen;
 
-	for (screen = core.displays->screens; screen; screen = screen->next)
+	for (screen = display.screens; screen; screen = screen->next)
 		if (screen->screenNum == screenNum)
 			return screen;
 
@@ -2247,24 +2204,22 @@ getScreenFromScreenNum (int screenNum)
 }
 
 void
-forEachWindowOnDisplay (CompDisplay       *display,
-                        ForEachWindowProc proc,
+forEachWindowOnDisplay (ForEachWindowProc proc,
                         void              *closure)
 {
 	CompScreen *s;
 
-	for (s = display->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 		forEachWindowOnScreen (s, proc, closure);
 }
 
 CompWindow *
-findWindowAtDisplay (CompDisplay *d,
-                     Window      id)
+findWindowAtDisplay (Window      id)
 {
 	CompScreen *s;
 	CompWindow *w;
 
-	for (s = d->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		w = findWindowAtScreen (s, id);
 		if (w)
@@ -2275,13 +2230,12 @@ findWindowAtDisplay (CompDisplay *d,
 }
 
 CompWindow *
-findTopLevelWindowAtDisplay (CompDisplay *d,
-                             Window      id)
+findTopLevelWindowAtDisplay (Window      id)
 {
 	CompScreen *s;
 	CompWindow *w;
 
-	for (s = d->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		w = findTopLevelWindowAtScreen (s, id);
 		if (w)
@@ -2292,13 +2246,12 @@ findTopLevelWindowAtDisplay (CompDisplay *d,
 }
 
 static CompScreen *
-findScreenForSelection (CompDisplay *display,
-                        Window       owner,
+findScreenForSelection (Window       owner,
                         Atom         selection)
 {
 	CompScreen *s;
 
-	for (s = display->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		if (s->wmSnSelectionWindow == owner && s->wmSnAtom == selection)
 			return s;
@@ -2309,8 +2262,7 @@ findScreenForSelection (CompDisplay *display,
 
 /* from fvwm2, Copyright Matthias Clasen, Dominik Vogt */
 static Bool
-convertProperty (CompDisplay *display,
-                 CompScreen  *screen,
+convertProperty (CompScreen  *screen,
                  Window      w,
                  Atom        target,
                  Atom        property)
@@ -2321,21 +2273,21 @@ convertProperty (CompDisplay *display,
 	Atom conversionTargets[N_TARGETS];
 	long icccmVersion[] = { 2, 0 };
 
-	conversionTargets[0] = display->targetsAtom;
-	conversionTargets[1] = display->multipleAtom;
-	conversionTargets[2] = display->timestampAtom;
-	conversionTargets[3] = display->versionAtom;
+	conversionTargets[0] = display.targetsAtom;
+	conversionTargets[1] = display.multipleAtom;
+	conversionTargets[2] = display.timestampAtom;
+	conversionTargets[3] = display.versionAtom;
 
-	if (target == display->targetsAtom)
-		XChangeProperty (display->display, w, property,
+	if (target == display.targetsAtom)
+		XChangeProperty (display.display, w, property,
 		                 XA_ATOM, 32, PropModeReplace,
 		                 (unsigned char *) conversionTargets, N_TARGETS);
-	else if (target == display->timestampAtom)
-		XChangeProperty (display->display, w, property,
+	else if (target == display.timestampAtom)
+		XChangeProperty (display.display, w, property,
 		                 XA_INTEGER, 32, PropModeReplace,
 		                 (unsigned char *) &screen->wmSnTimestamp, 1);
-	else if (target == display->versionAtom)
-		XChangeProperty (display->display, w, property,
+	else if (target == display.versionAtom)
+		XChangeProperty (display.display, w, property,
 		                 XA_INTEGER, 32, PropModeReplace,
 		                 (unsigned char *) icccmVersion, 2);
 	else
@@ -2344,34 +2296,32 @@ convertProperty (CompDisplay *display,
 	/* Be sure the PropertyNotify has arrived so we
 	 * can send SelectionNotify
 	 */
-	XSync (display->display, FALSE);
+	XSync (display.display, FALSE);
 
 	return TRUE;
 }
 
 /* from fvwm2, Copyright Matthias Clasen, Dominik Vogt */
 void
-handleSelectionRequest (CompDisplay *display,
-                        XEvent      *event)
+handleSelectionRequest (XEvent      *event)
 {
 	XSelectionEvent reply;
 	CompScreen      *screen;
 
-	screen = findScreenForSelection (display,
-	                                 event->xselectionrequest.owner,
+	screen = findScreenForSelection (event->xselectionrequest.owner,
 	                                 event->xselectionrequest.selection);
 	if (!screen)
 		return;
 
 	reply.type      = SelectionNotify;
-	reply.display   = display->display;
+	reply.display   = display.display;
 	reply.requestor = event->xselectionrequest.requestor;
 	reply.selection = event->xselectionrequest.selection;
 	reply.target    = event->xselectionrequest.target;
 	reply.property  = None;
 	reply.time      = event->xselectionrequest.time;
 
-	if (event->xselectionrequest.target == display->multipleAtom)
+	if (event->xselectionrequest.target == display.multipleAtom)
 	{
 		if (event->xselectionrequest.property != None)
 		{
@@ -2380,11 +2330,11 @@ handleSelectionRequest (CompDisplay *display,
 			unsigned long num, rest;
 			unsigned char *data;
 
-			if (XGetWindowProperty (display->display,
+			if (XGetWindowProperty (display.display,
 			                        event->xselectionrequest.requestor,
 			                        event->xselectionrequest.property,
 			                        0, 256, FALSE,
-			                        display->atomPairAtom,
+			                        display.atomPairAtom,
 			                        &type, &format, &num, &rest,
 			                        &data) != Success)
 				return;
@@ -2397,7 +2347,7 @@ handleSelectionRequest (CompDisplay *display,
 			i = 0;
 			while (i < (int) num)
 			{
-				if (!convertProperty (display, screen,
+				if (!convertProperty (screen,
 				                      event->xselectionrequest.requestor,
 				                      adata[i], adata[i + 1]))
 					adata[i + 1] = None;
@@ -2405,10 +2355,10 @@ handleSelectionRequest (CompDisplay *display,
 				i += 2;
 			}
 
-			XChangeProperty (display->display,
+			XChangeProperty (display.display,
 			                 event->xselectionrequest.requestor,
 			                 event->xselectionrequest.property,
-			                 display->atomPairAtom,
+			                 display.atomPairAtom,
 			                 32, PropModeReplace, data, num);
 
 			if (data)
@@ -2420,27 +2370,25 @@ handleSelectionRequest (CompDisplay *display,
 		if (event->xselectionrequest.property == None)
 			event->xselectionrequest.property = event->xselectionrequest.target;
 
-		if (convertProperty (display, screen,
+		if (convertProperty (screen,
 		                     event->xselectionrequest.requestor,
 		                     event->xselectionrequest.target,
 		                     event->xselectionrequest.property))
 			reply.property = event->xselectionrequest.property;
 	}
 
-	XSendEvent (display->display,
+	XSendEvent (display.display,
 	            event->xselectionrequest.requestor,
 	            FALSE, 0L, (XEvent *) &reply);
 }
 
 void
-handleSelectionClear (CompDisplay *display,
-                      XEvent      *event)
+handleSelectionClear (XEvent      *event)
 {
 	/* We need to unmanage the screen on which we lost the selection */
 	CompScreen *screen;
 
-	screen = findScreenForSelection (display,
-	                                 event->xselectionclear.window,
+	screen = findScreenForSelection (event->xselectionclear.window,
 	                                 event->xselectionclear.selection);
 
 	if (screen)
@@ -2452,7 +2400,6 @@ warpPointer (CompScreen *s,
              int        dx,
              int        dy)
 {
-	CompDisplay *display = s->display;
 	XEvent      event;
 
 	pointerX += dx;
@@ -2468,14 +2415,14 @@ warpPointer (CompScreen *s,
 	else if (pointerY < 0)
 		pointerY = 0;
 
-	XWarpPointer (display->display,
+	XWarpPointer (display.display,
 	              None, s->root,
 	              0, 0, 0, 0,
 	              pointerX, pointerY);
 
-	XSync (display->display, FALSE);
+	XSync (display.display, FALSE);
 
-	while (XCheckMaskEvent (display->display,
+	while (XCheckMaskEvent (display.display,
 	                        LeaveWindowMask |
 	                        EnterWindowMask |
 	                        PointerMotionMask,
@@ -2493,7 +2440,7 @@ addDisplayKeyBinding (CompKeyBinding *key)
 {
 	CompScreen *s;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 		if (!addScreenKeyBinding (s, key))
 			break;
 
@@ -2501,7 +2448,7 @@ addDisplayKeyBinding (CompKeyBinding *key)
 	{
 		CompScreen *failed = s;
 
-		for (s = core.displays->screens; s && s != failed; s = s->next)
+		for (s = display.screens; s && s != failed; s = s->next)
 			removeScreenKeyBinding (s, key);
 
 		return FALSE;
@@ -2515,7 +2462,7 @@ addDisplayButtonBinding (CompButtonBinding *button)
 {
 	CompScreen *s;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 		if (!addScreenButtonBinding (s, button))
 			break;
 
@@ -2523,7 +2470,7 @@ addDisplayButtonBinding (CompButtonBinding *button)
 	{
 		CompScreen *failed = s;
 
-		for (s = core.displays->screens; s && s != failed; s = s->next)
+		for (s = display.screens; s && s != failed; s = s->next)
 			removeScreenButtonBinding (s, button);
 
 		return FALSE;
@@ -2537,7 +2484,7 @@ removeDisplayKeyBinding (CompKeyBinding *key)
 {
 	CompScreen *s;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 		removeScreenKeyBinding (s, key);
 }
 
@@ -2546,7 +2493,7 @@ removeDisplayButtonBinding (CompButtonBinding *button)
 {
 	CompScreen *s;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 		removeScreenButtonBinding (s, button);
 }
 
@@ -2556,7 +2503,7 @@ registerButton (const char        *s,
 {
 	if (s)
 	{
-		if (stringToButtonBinding (core.displays, s, button))
+		if (stringToButtonBinding (s, button))
 			button->active = addDisplayButtonBinding (button);
 		else
 			button->active = FALSE;
@@ -2571,7 +2518,7 @@ registerKey (const char        *s,
 {
 	if (s)
 	{
-		if (stringToKeyBinding (core.displays, s, key))
+		if (stringToKeyBinding (s, key))
 			key->active = addDisplayKeyBinding (key);
 		else
 			key->active = FALSE;
@@ -2587,7 +2534,7 @@ updateButton (const char        *s,
 	if (button->active)
 		removeDisplayButtonBinding (button);
 
-	if (stringToButtonBinding (core.displays, s, button))
+	if (stringToButtonBinding (s, button))
 		button->active = addDisplayButtonBinding (button);
 	else
 		button->active = FALSE;
@@ -2600,7 +2547,7 @@ updateKey (const char     *s,
 	if (key->active)
 		removeDisplayKeyBinding (key);
 
-	if (stringToKeyBinding (core.displays, s, key))
+	if (stringToKeyBinding (s, key))
 		key->active = addDisplayKeyBinding (key);
 	else
 		key->active = FALSE;
@@ -2612,9 +2559,8 @@ isKeyPressEvent (XEvent         *event,
 {
 	if (key->active)
 	{
-		unsigned int modMask = REAL_MOD_MASK & ~core.displays->ignoredModMask;
-		unsigned int bindMods = virtualToRealModMask (core.displays, 
-		                                              key->modifiers);
+		unsigned int modMask = REAL_MOD_MASK & ~display.ignoredModMask;
+		unsigned int bindMods = virtualToRealModMask (key->modifiers);
 
 		if (key->keycode == event->xkey.keycode    &&
 			(bindMods & modMask) == (event->xkey.state & modMask))
@@ -2630,9 +2576,8 @@ isButtonPressEvent (XEvent            *event,
 {
 	if (button->active)
 	{
-		unsigned int modMask = REAL_MOD_MASK & ~core.displays->ignoredModMask;
-		unsigned int bindMods = virtualToRealModMask (core.displays, 
-		                                              button->modifiers);
+		unsigned int modMask = REAL_MOD_MASK & ~display.ignoredModMask;
+		unsigned int bindMods = virtualToRealModMask (button->modifiers);
 
 		if (button->button == event->xbutton.button    &&
 			(bindMods & modMask) == (event->xbutton.state & modMask))
@@ -2643,8 +2588,7 @@ isButtonPressEvent (XEvent            *event,
 }
 
 void
-clearTargetOutput (CompDisplay  *display,
-                   unsigned int mask)
+clearTargetOutput (unsigned int mask)
 {
 	if (targetScreen)
 		clearScreenOutput (targetScreen,
@@ -2655,8 +2599,7 @@ clearTargetOutput (CompDisplay  *display,
 #define HOME_IMAGEDIR ".fusilli/images"
 
 Bool
-readImageFromFile (CompDisplay *display,
-                   const char  *name,
+readImageFromFile (const char  *name,
                    int         *width,
                    int	       *height,
                    void	       **data)
@@ -2664,7 +2607,7 @@ readImageFromFile (CompDisplay *display,
 	Bool status;
 	int  stride;
 
-	status = (*display->fileToImage) (display, NULL, name, width, height,
+	status = (*display.fileToImage) (NULL, name, width, height,
 	                                  &stride, data);
 	if (!status)
 	{
@@ -2679,7 +2622,7 @@ readImageFromFile (CompDisplay *display,
 			if (path)
 			{
 				sprintf (path, "%s/%s", home, HOME_IMAGEDIR);
-				status = (*display->fileToImage) (display, path, name,
+				status = (*display.fileToImage) (path, name,
 				                                  width, height, &stride,
 				                                  data);
 
@@ -2690,7 +2633,7 @@ readImageFromFile (CompDisplay *display,
 			}
 		}
 
-		status = (*display->fileToImage) (display, IMAGEDIR, name,
+		status = (*display.fileToImage) (IMAGEDIR, name,
 		                                  width, height, &stride, data);
 	}
 
@@ -2698,33 +2641,30 @@ readImageFromFile (CompDisplay *display,
 }
 
 Bool
-writeImageToFile (CompDisplay *display,
-                  const char  *path,
+writeImageToFile (const char  *path,
                   const char  *name,
                   const char  *format,
                   int         width,
                   int         height,
                   void        *data)
 {
-	return (*display->imageToFile) (display, path, name, format, width, height,
+	return (*display.imageToFile) (path, name, format, width, height,
 	                                width * 4, data);
 }
 
 Bool
-fileToImage (CompDisplay *display,
-             const char  *path,
+fileToImage (const char  *path,
              const char  *name,
              int         *width,
              int         *height,
              int         *stride,
              void        **data)
 {
-	return pngFileToImage (display, path, name, width, height, stride, data);
+	return pngFileToImage (path, name, width, height, stride, data);
 }
 
 Bool
-imageToFile (CompDisplay *display,
-             const char  *path,
+imageToFile (const char  *path,
              const char  *name,
              const char  *format,
              int         width,
@@ -2733,18 +2673,17 @@ imageToFile (CompDisplay *display,
              void        *data)
 {
 	if (strcasecmp (format, "png") == 0)
-		return pngImageToFile (display, path, name,
-		                       width, height, stride, data);
+		return pngImageToFile (path, name, width, height, stride, data);
 
 	return FALSE;
 }
 
 CompCursor *
-findCursorAtDisplay (CompDisplay *display)
+findCursorAtDisplay (void)
 {
 	CompScreen *s;
 
-	for (s = display->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 		if (s->cursors)
 			return s->cursors;
 

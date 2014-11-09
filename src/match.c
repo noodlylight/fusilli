@@ -30,8 +30,7 @@
 #include <fusilli-core.h>
 
 static void
-regexMatchExpFini (CompDisplay *d,
-                   CompPrivate private)
+regexMatchExpFini (CompPrivate private)
 {
 	regex_t *preg = (regex_t *) private.ptr;
 
@@ -43,8 +42,7 @@ regexMatchExpFini (CompDisplay *d,
 }
 
 static Bool
-regexMatchExpEvalTitle (CompDisplay *d,
-                        CompWindow  *w,
+regexMatchExpEvalTitle (CompWindow  *w,
                         CompPrivate private)
 {
 	regex_t *preg = (regex_t *) private.ptr;
@@ -64,8 +62,7 @@ regexMatchExpEvalTitle (CompDisplay *d,
 }
 
 static Bool
-regexMatchExpEvalRole (CompDisplay *d,
-                       CompWindow  *w,
+regexMatchExpEvalRole (CompWindow  *w,
                        CompPrivate private)
 {
 	regex_t *preg = (regex_t *) private.ptr;
@@ -85,8 +82,7 @@ regexMatchExpEvalRole (CompDisplay *d,
 }
 
 static Bool
-regexMatchExpEvalClass (CompDisplay *d,
-                        CompWindow  *w,
+regexMatchExpEvalClass (CompWindow  *w,
                         CompPrivate private)
 {
 	regex_t *preg = (regex_t *) private.ptr;
@@ -106,8 +102,7 @@ regexMatchExpEvalClass (CompDisplay *d,
 }
 
 static Bool
-regexMatchExpEvalName (CompDisplay *d,
-                       CompWindow  *w,
+regexMatchExpEvalName (CompWindow  *w,
                        CompPrivate private)
 {
 	regex_t *preg = (regex_t *) private.ptr;
@@ -127,20 +122,19 @@ regexMatchExpEvalName (CompDisplay *d,
 }
 
 static void
-matchResetOps (CompDisplay *display,
-               CompMatchOp *op,
+matchResetOps (CompMatchOp *op,
                int         nOp)
 {
 	while (nOp--)
 	{
 		switch (op->type) {
 		case CompMatchOpTypeGroup:
-			matchResetOps (display, op->group.op, op->group.nOp);
+			matchResetOps (op->group.op, op->group.nOp);
 			break;
 		case CompMatchOpTypeExp:
 			if (op->exp.e.fini)
 			{
-				(*op->exp.e.fini) (display, op->exp.e.priv);
+				(*op->exp.e.fini) (op->exp.e.priv);
 				op->exp.e.fini = NULL;
 			}
 
@@ -156,16 +150,16 @@ matchResetOps (CompDisplay *display,
 static void
 matchReset (CompMatch *match)
 {
-	if (match->display)
-		matchResetOps (match->display, match->op, match->nOp);
+	if (match->active)
+		matchResetOps (match->op, match->nOp);
 
-	match->display = NULL;
+	match->active = FALSE;
 }
 
 void
 matchInit (CompMatch *match)
 {
-	match->display = NULL;
+	match->active = FALSE;
 	match->op      = NULL;
 	match->nOp     = 0;
 }
@@ -650,32 +644,28 @@ matchToString (CompMatch *match)
 }
 
 static Bool
-matchEvalTypeExp (CompDisplay *display,
-                  CompWindow  *window,
+matchEvalTypeExp (CompWindow  *window,
                   CompPrivate private)
 {
 	return (private.uval & window->wmType);
 }
 
 static Bool
-matchEvalStateExp (CompDisplay *display,
-                   CompWindow  *window,
+matchEvalStateExp (CompWindow  *window,
                    CompPrivate private)
 {
 	return (private.uval & window->state);
 }
 
 static Bool
-matchEvalIdExp (CompDisplay *display,
-                CompWindow  *window,
+matchEvalIdExp (CompWindow  *window,
                 CompPrivate private)
 {
 	return (private.val == window->id);
 }
 
 static Bool
-matchEvalOverrideRedirectExp (CompDisplay *display,
-                              CompWindow  *window,
+matchEvalOverrideRedirectExp (CompWindow  *window,
                               CompPrivate private)
 {
 	Bool overrideRedirect = window->attrib.override_redirect;
@@ -684,8 +674,7 @@ matchEvalOverrideRedirectExp (CompDisplay *display,
 }
 
 static Bool
-matchEvalAlphaExp (CompDisplay *display,
-                   CompWindow  *window,
+matchEvalAlphaExp (CompWindow  *window,
                    CompPrivate private)
 {
 	return ((private.val && window->alpha) ||
@@ -725,8 +714,7 @@ regexMatchExpInit (CompMatchExp *exp,
 }
 
 static void
-matchInitExp (CompDisplay  *display,
-              CompMatchExp *exp,
+matchInitExp (CompMatchExp *exp,
               const char   *value)
 {
 	if (strncmp (value, "title=", 6) == 0)
@@ -800,18 +788,17 @@ matchInitExp (CompDisplay  *display,
 }
 
 static void
-matchUpdateOps (CompDisplay *display,
-                CompMatchOp *op,
+matchUpdateOps (CompMatchOp *op,
                 int         nOp)
 {
 	while (nOp--)
 	{
 		switch (op->type) {
 		case CompMatchOpTypeGroup:
-			matchUpdateOps (display, op->group.op, op->group.nOp);
+			matchUpdateOps (op->group.op, op->group.nOp);
 			break;
 		case CompMatchOpTypeExp:
-			matchInitExp (display, &op->exp.e, op->exp.value);
+			matchInitExp (&op->exp.e, op->exp.value);
 			break;
 		}
 
@@ -820,17 +807,15 @@ matchUpdateOps (CompDisplay *display,
 }
 
 void
-matchUpdate (CompDisplay *display,
-             CompMatch   *match)
+matchUpdate (CompMatch   *match)
 {
 	matchReset (match);
-	matchUpdateOps (display, match->op, match->nOp);
-	match->display = display;
+	matchUpdateOps (match->op, match->nOp);
+	match->active = TRUE;
 }
 
 static Bool
-matchEvalOps (CompDisplay *display,
-              CompMatchOp *op,
+matchEvalOps (CompMatchOp *op,
               int         nOp,
               CompWindow  *window)
 {
@@ -854,11 +839,11 @@ matchEvalOps (CompDisplay *display,
 
 		switch (op->type) {
 		case CompMatchOpTypeGroup:
-			value = matchEvalOps (display, op->group.op, op->group.nOp, window);
+			value = matchEvalOps (op->group.op, op->group.nOp, window);
 			break;
 		case CompMatchOpTypeExp:
 		default:
-			value = (*op->exp.e.eval) (display, window, op->exp.e.priv);
+			value = (*op->exp.e.eval) (window, op->exp.e.priv);
 			break;
 		}
 
@@ -880,8 +865,8 @@ Bool
 matchEval (CompMatch  *match,
            CompWindow *window)
 {
-	if (match->display)
-		return matchEvalOps (match->display, match->op, match->nOp, window);
+	if (match->active)
+		return matchEvalOps (match->op, match->nOp, window);
 
 	return FALSE;
 }
@@ -890,7 +875,6 @@ matchEval (CompMatch  *match,
 
 
 void
-matchPropertyChanged (CompDisplay *display,
-                      CompWindow  *w)
+matchPropertyChanged (CompWindow  *w)
 {
 }

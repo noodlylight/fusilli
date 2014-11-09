@@ -84,7 +84,7 @@ typedef struct _MinWindow {
         ((MinScreen *) (s)->base.privates[(md)->screenPrivateIndex].ptr)
 
 #define MIN_SCREEN(s) \
-        MinScreen *ms = GET_MIN_SCREEN (s, GET_MIN_DISPLAY (s->display))
+        MinScreen *ms = GET_MIN_SCREEN (s, GET_MIN_DISPLAY (&display))
 
 #define GET_MIN_WINDOW(w, ms) \
         ((MinWindow *) (w)->base.privates[(ms)->windowPrivateIndex].ptr)
@@ -92,7 +92,7 @@ typedef struct _MinWindow {
 #define MIN_WINDOW(w) \
         MinWindow *mw = GET_MIN_WINDOW  (w, \
                         GET_MIN_SCREEN  (w->screen, \
-                        GET_MIN_DISPLAY (w->screen->display)))
+                        GET_MIN_DISPLAY (&display)))
 
 static void
 minChangeNotify (const char        *optionName,
@@ -116,7 +116,7 @@ minChangeNotify (const char        *optionName,
 		matchFini (&ms->match);
 		matchInit (&ms->match);
 		matchAddFromString (&ms->match, optionValue->s);
-		matchUpdate (core.displays, &ms->match);
+		matchUpdate (&ms->match);
 	}
 }
 
@@ -160,9 +160,9 @@ minGetWindowState (CompWindow *w)
 	unsigned char *data;
 	int           retval = WithdrawnState;
 
-	result = XGetWindowProperty (w->screen->display->display, w->id,
-	                             w->screen->display->wmStateAtom, 0L, 1L, FALSE,
-	                             w->screen->display->wmStateAtom,
+	result = XGetWindowProperty (display.display, w->id,
+	                             display.wmStateAtom, 0L, 1L, FALSE,
+	                             display.wmStateAtom,
 	                             &actual, &format, &n, &left, &data);
 
 	if (result == Success && data)
@@ -520,16 +520,15 @@ minPaintWindow (CompWindow              *w,
 }
 
 static void
-minHandleEvent (CompDisplay *d,
-                XEvent      *event)
+minHandleEvent (XEvent      *event)
 {
 	CompWindow *w;
 
-	MIN_DISPLAY (d);
+	MIN_DISPLAY (&display);
 
 	switch (event->type) {
 	case MapNotify:
-		w = findWindowAtDisplay (d, event->xmap.window);
+		w = findWindowAtDisplay (event->xmap.window);
 		if (w)
 		{
 			MIN_WINDOW (w);
@@ -550,7 +549,7 @@ minHandleEvent (CompDisplay *d,
 		}
 		break;
 	case UnmapNotify:
-		w = findWindowAtDisplay (d, event->xunmap.window);
+		w = findWindowAtDisplay (event->xunmap.window);
 		if (w)
 		{
 			MIN_SCREEN (w->screen);
@@ -639,13 +638,13 @@ minHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (md, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (md, d, handleEvent, minHandleEvent);
+	UNWRAP (md, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (md, &display, handleEvent, minHandleEvent);
 
 	switch (event->type) {
 	case MapRequest:
-		w = findWindowAtDisplay (d, event->xmaprequest.window);
+		w = findWindowAtDisplay (event->xmaprequest.window);
 		if (w && w->hints && w->hints->initial_state == IconicState)
 		{
 			MIN_WINDOW (w);
@@ -762,7 +761,7 @@ minInitDisplay (CompPlugin  *p,
 	if (!md)
 		return FALSE;
 
-	md->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	md->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (md->screenPrivateIndex < 0)
 	{
 		free (md);
@@ -784,7 +783,7 @@ minFiniDisplay (CompPlugin  *p,
 {
 	MIN_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, md->screenPrivateIndex);
+	freeScreenPrivateIndex (md->screenPrivateIndex);
 
 	UNWRAP (md, d, handleEvent);
 
@@ -797,7 +796,7 @@ minInitScreen (CompPlugin *p,
 {
 	MinScreen *ms;
 
-	MIN_DISPLAY (s->display);
+	MIN_DISPLAY (&display);
 
 	ms = malloc (sizeof (MinScreen));
 	if (!ms)
@@ -826,7 +825,7 @@ minInitScreen (CompPlugin *p,
 
 	matchInit (&ms->match);
 	matchAddFromString (&ms->match, option_window_match->s);
-	matchUpdate (core.displays, &ms->match);
+	matchUpdate (&ms->match);
 
 	WRAP (ms, s, preparePaintScreen, minPreparePaintScreen);
 	WRAP (ms, s, donePaintScreen, minDonePaintScreen);

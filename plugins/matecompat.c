@@ -85,7 +85,7 @@ runDispatch (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s   = findScreenAtDisplay (core.displays, xid);
+	s   = findScreenAtDisplay (xid);
 
 	if (s)
 	{
@@ -108,7 +108,7 @@ panelAction (BananaArgument     *arg,
 	XEvent     event;
 	Time       time;
 
-	MATE_DISPLAY (core.displays);
+	MATE_DISPLAY (&display);
 
 	BananaValue *root = getArgNamed ("root", arg, nArg);
 
@@ -117,7 +117,7 @@ panelAction (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s   = findScreenAtDisplay (core.displays, xid);
+	s   = findScreenAtDisplay (xid);
 
 	if (!s)
 		return;
@@ -131,7 +131,7 @@ panelAction (BananaArgument     *arg,
 
 	/* we need to ungrab the keyboard here, otherwise the panel main
 	   menu won't popup as it wants to grab the keyboard itself */
-	XUngrabKeyboard (core.displays->display, time);
+	XUngrabKeyboard (display.display, time);
 
 	event.type                 = ClientMessage;
 	event.xclient.window       = s->root;
@@ -143,7 +143,7 @@ panelAction (BananaArgument     *arg,
 	event.xclient.data.l[3]    = 0;
 	event.xclient.data.l[4]    = 0;
 
-	XSendEvent (core.displays->display, s->root, FALSE, StructureNotifyMask,
+	XSendEvent (display.display, s->root, FALSE, StructureNotifyMask,
 	            &event);
 }
 
@@ -151,7 +151,7 @@ static Bool
 showMainMenu (BananaArgument     *arg,
               int                nArg)
 {
-	MATE_DISPLAY (core.displays);
+	MATE_DISPLAY (&display);
 
 	panelAction (arg, nArg, md->panelMainMenuAtom);
 
@@ -162,7 +162,7 @@ static Bool
 showRunDialog (BananaArgument     *arg,
                int                nArg)
 {
-	MATE_DISPLAY (core.displays);
+	MATE_DISPLAY (&display);
 
 	panelAction (arg, nArg, md->panelRunDialogAtom);
 
@@ -170,10 +170,9 @@ showRunDialog (BananaArgument     *arg,
 }
 
 static void
-mateHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+mateHandleEvent (XEvent      *event)
 {
-	MATE_DISPLAY (d);
+	MATE_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
@@ -264,9 +263,9 @@ mateHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (md, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (md, d, handleEvent, mateHandleEvent);
+	UNWRAP (md, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (md, &display, handleEvent, mateHandleEvent);
 }
 
 static CompBool

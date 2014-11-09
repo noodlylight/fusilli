@@ -94,18 +94,17 @@ commandsChangeNotify (const char        *optionName,
 }
 
 static void
-commandsHandleEvent (CompDisplay *d,
-                     XEvent      *event)
+commandsHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	COMMANDS_DISPLAY (d);
+	COMMANDS_DISPLAY (&display);
 
 	int i;
 
 	switch (event->type) {
 	case KeyPress:
-		s = findScreenAtDisplay (d, event->xkey.root);
+		s = findScreenAtDisplay (event->xkey.root);
 		for (i = 0; i <= NUM_COMMANDS - 1; i++)
 		{
 			if (isKeyPressEvent (event, &run_command_key[i]))
@@ -122,7 +121,7 @@ commandsHandleEvent (CompDisplay *d,
 		}
 		break;
 	case ButtonPress:
-		s = findScreenAtDisplay (d, event->xbutton.root);
+		s = findScreenAtDisplay (event->xbutton.root);
 		for (i = 0; i <= NUM_COMMANDS - 1; i++)
 		{
 			if (isButtonPressEvent (event, &run_command_button[i]))
@@ -144,9 +143,9 @@ commandsHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (cd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (cd, d, handleEvent, commandsHandleEvent);
+	UNWRAP (cd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (cd, &display, handleEvent, commandsHandleEvent);
 }
 
 static CompBool

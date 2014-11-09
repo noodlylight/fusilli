@@ -123,7 +123,7 @@ typedef struct _ResizeScreen {
         ((ResizeScreen *) (s)->base.privates[(rd)->screenPrivateIndex].ptr)
 
 #define RESIZE_SCREEN(s) \
-        ResizeScreen *rs = GET_RESIZE_SCREEN (s, GET_RESIZE_DISPLAY (s->display))
+        ResizeScreen *rs = GET_RESIZE_SCREEN (s, GET_RESIZE_DISPLAY (&display))
 
 static void
 resizeGetPaintRectangle (CompDisplay *d,
@@ -320,7 +320,7 @@ resizeInitiate (BananaArgument   *arg,
 	CompWindow *w;
 	Window     xid;
 
-	RESIZE_DISPLAY (core.displays);
+	RESIZE_DISPLAY (&display);
 
 	BananaValue *window = getArgNamed ("window", arg, nArg);
 
@@ -329,7 +329,7 @@ resizeInitiate (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w = findWindowAtDisplay (core.displays, xid);
+	w = findWindowAtDisplay (xid);
 	if (w && (w->actions & CompWindowActionResizeMask))
 	{
 		unsigned int mask;
@@ -500,7 +500,7 @@ resizeInitiate (BananaArgument   *arg,
 
 			/* using the paint rectangle is enough here
 			   as we don't have any stretch yet */
-			resizeGetPaintRectangle (core.displays, &box);
+			resizeGetPaintRectangle (&display, &box);
 			resizeDamageRectangle (w->screen, &box);
 
 			if (initiated_by_key != NULL && initiated_by_key->b)
@@ -542,7 +542,7 @@ static Bool
 resizeTerminate (BananaArgument   *arg,
                  int              nArg)
 {
-	RESIZE_DISPLAY (core.displays);
+	RESIZE_DISPLAY (&display);
 
 	if (rd->w)
 	{
@@ -582,9 +582,9 @@ resizeTerminate (BananaArgument   *arg,
 				BoxRec box;
 
 				if (rd->mode == RESIZE_MODE_STRETCH)
-					resizeGetStretchRectangle (core.displays, &box);
+					resizeGetStretchRectangle (&display, &box);
 				else
-					resizeGetPaintRectangle (core.displays, &box);
+					resizeGetPaintRectangle (&display, &box);
 
 				resizeDamageRectangle (w->screen, &box);
 			}
@@ -614,7 +614,7 @@ resizeTerminate (BananaArgument   *arg,
 		}
 
 		if (!(mask & (CWWidth | CWHeight)))
-			resizeFinishResizing (core.displays);
+			resizeFinishResizing (&display);
 
 		if (rs->grabIndex)
 		{
@@ -659,7 +659,7 @@ resizeHandleKeyEvent (CompScreen *s,
                       KeyCode    keycode)
 {
 	RESIZE_SCREEN (s);
-	RESIZE_DISPLAY (s->display);
+	RESIZE_DISPLAY (&display);
 
 	if (rs->grabIndex && rd->w)
 	{
@@ -682,7 +682,7 @@ resizeHandleKeyEvent (CompScreen *s,
 
 			if (rd->mask & rKeys[i].warpMask)
 			{
-				XWarpPointer (s->display->display, None, None, 0, 0, 0, 0,
+				XWarpPointer (display.display, None, None, 0, 0, 0, 0,
 				              rKeys[i].dx * widthInc,
 				              rKeys[i].dy * heightInc);
 			}
@@ -724,7 +724,7 @@ resizeHandleMotionEvent (CompScreen *s,
 		int    i;
 		int    workAreaSnapDistance = 15;
 
-		RESIZE_DISPLAY (s->display);
+		RESIZE_DISPLAY (&display);
 
 		w = rd->savedGeometry.width;
 		h = rd->savedGeometry.height;
@@ -1059,9 +1059,9 @@ resizeHandleMotionEvent (CompScreen *s,
 		if (rd->mode != RESIZE_MODE_NORMAL)
 		{
 			if (rd->mode == RESIZE_MODE_STRETCH)
-				resizeGetStretchRectangle (s->display, &box);
+				resizeGetStretchRectangle (&display, &box);
 			else
-				resizeGetPaintRectangle (s->display, &box);
+				resizeGetPaintRectangle (&display, &box);
 
 			resizeDamageRectangle (s, &box);
 		}
@@ -1078,29 +1078,28 @@ resizeHandleMotionEvent (CompScreen *s,
 		if (rd->mode != RESIZE_MODE_NORMAL)
 		{
 			if (rd->mode == RESIZE_MODE_STRETCH)
-				resizeGetStretchRectangle (s->display, &box);
+				resizeGetStretchRectangle (&display, &box);
 			else
-				resizeGetPaintRectangle (s->display, &box);
+				resizeGetPaintRectangle (&display, &box);
 
 			resizeDamageRectangle (s, &box);
 		}
 		else
 		{
-			resizeUpdateWindowSize (s->display);
+			resizeUpdateWindowSize (&display);
 		}
 
-		resizeUpdateWindowProperty (s->display);
-		resizeSendResizeNotify (s->display);
+		resizeUpdateWindowProperty (&display);
+		resizeSendResizeNotify (&display);
 	}
 }
 
 static void
-resizeHandleEvent (CompDisplay *d,
-                   XEvent      *event)
+resizeHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	RESIZE_DISPLAY (d);
+	RESIZE_DISPLAY (&display);
 
 	switch (event->type) {
 	case ButtonPress:
@@ -1110,7 +1109,7 @@ resizeHandleEvent (CompDisplay *d,
 
 			arg[0].name = "window";
 			arg[0].type = BananaInt;
-			arg[0].value.i = d->activeWindow;
+			arg[0].value.i = display.activeWindow;
 
 			arg[1].name = "modifiers";
 			arg[1].type = BananaInt;
@@ -1128,7 +1127,7 @@ resizeHandleEvent (CompDisplay *d,
 		}
 		break;
 	case KeyPress:
-		if (event->xkey.keycode == d->escapeKeyCode)
+		if (event->xkey.keycode == display.escapeKeyCode)
 		{
 			BananaArgument arg;
 
@@ -1144,7 +1143,7 @@ resizeHandleEvent (CompDisplay *d,
 
 			arg[0].name = "window";
 			arg[0].type = BananaInt;
-			arg[0].value.i = d->activeWindow;
+			arg[0].value.i = display.activeWindow;
 
 			arg[1].name = "modifiers";
 			arg[1].type = BananaInt;
@@ -1164,12 +1163,12 @@ resizeHandleEvent (CompDisplay *d,
 
 			resizeInitiate (&arg[0], 5);
 		}
-		s = findScreenAtDisplay (d, event->xkey.root);
+		s = findScreenAtDisplay (event->xkey.root);
 		if (s)
 			resizeHandleKeyEvent (s, event->xkey.keycode);
 		break;
 	case ButtonRelease:
-		s = findScreenAtDisplay (d, event->xbutton.root);
+		s = findScreenAtDisplay (event->xbutton.root);
 		if (s)
 		{
 			RESIZE_SCREEN (s);
@@ -1185,25 +1184,25 @@ resizeHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 			resizeHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case EnterNotify:
 	case LeaveNotify:
-		s = findScreenAtDisplay (d, event->xcrossing.root);
+		s = findScreenAtDisplay (event->xcrossing.root);
 		if (s)
 			resizeHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case ClientMessage:
-		if (event->xclient.message_type == d->wmMoveResizeAtom)
+		if (event->xclient.message_type == display.wmMoveResizeAtom)
 		{
 			CompWindow *w;
 
 			if (event->xclient.data.l[2] <= WmMoveResizeSizeLeft ||
 				event->xclient.data.l[2] == WmMoveResizeSizeKeyboard)
 			{
-				w = findWindowAtDisplay (d, event->xclient.window);
+				w = findWindowAtDisplay (event->xclient.window);
 				if (w)
 				{
 					if (event->xclient.data.l[2] == WmMoveResizeSizeKeyboard)
@@ -1236,7 +1235,7 @@ resizeHandleEvent (CompDisplay *d,
 						Window       root, child;
 						int          xRoot, yRoot, i;
 
-						XQueryPointer (d->display, w->screen->root,
+						XQueryPointer (display.display, w->screen->root,
 						           &root, &child, &xRoot, &yRoot,
 						           &i, &i, &mods);
 
@@ -1307,11 +1306,11 @@ resizeHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (rd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (rd, d, handleEvent, resizeHandleEvent);
+	UNWRAP (rd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (rd, &display, handleEvent, resizeHandleEvent);
 
-	if (event->type == d->syncEvent + XSyncAlarmNotify)
+	if (event->type == display.syncEvent + XSyncAlarmNotify)
 	{
 		if (rd->w)
 		{
@@ -1320,7 +1319,7 @@ resizeHandleEvent (CompDisplay *d,
 			sa = (XSyncAlarmNotifyEvent *) event;
 
 			if (rd->w->syncAlarm == sa->alarm)
-				resizeUpdateWindowSize (d);
+				resizeUpdateWindowSize (&display);
 		}
 	}
 }
@@ -1332,7 +1331,7 @@ resizeWindowResizeNotify (CompWindow *w,
                           int        dwidth,
                           int        dheight)
 {
-	RESIZE_DISPLAY (w->screen->display);
+	RESIZE_DISPLAY (&display);
 	RESIZE_SCREEN (w->screen);
 
 	UNWRAP (rs, w->screen, windowResizeNotify);
@@ -1340,7 +1339,7 @@ resizeWindowResizeNotify (CompWindow *w,
 	WRAP (rs, w->screen, windowResizeNotify, resizeWindowResizeNotify);
 
 	if (rd->w == w && !rs->grabIndex)
-		resizeFinishResizing (w->screen->display);
+		resizeFinishResizing (&display);
 }
 
 static void
@@ -1354,7 +1353,7 @@ resizePaintRectangle (CompScreen              *s,
 	BoxRec        box;
 	CompTransform sTransform = *transform;
 
-	resizeGetPaintRectangle (s->display, &box);
+	resizeGetPaintRectangle (&display, &box);
 
 	glPushMatrix ();
 
@@ -1400,7 +1399,7 @@ resizePaintOutput (CompScreen              *s,
 	Bool status;
 
 	RESIZE_SCREEN (s);
-	RESIZE_DISPLAY (s->display);
+	RESIZE_DISPLAY (&display);
 
 	if (rd->w && (s == rd->w->screen))
 	{
@@ -1450,7 +1449,7 @@ resizePaintWindow (CompWindow              *w,
 	Bool       status;
 
 	RESIZE_SCREEN (s);
-	RESIZE_DISPLAY (s->display);
+	RESIZE_DISPLAY (&display);
 
 	if (w == rd->w && rd->mode == RESIZE_MODE_STRETCH)
 	{
@@ -1473,7 +1472,7 @@ resizePaintWindow (CompWindow              *w,
 		if (w->alpha || fragment.opacity != OPAQUE)
 			mask |= PAINT_WINDOW_TRANSLUCENT_MASK;
 
-		resizeGetPaintRectangle (s->display, &box);
+		resizeGetPaintRectangle (&display, &box);
 		resizeGetStretchScale (w, &box, &xScale, &yScale);
 
 		xOrigin = w->attrib.x - w->input.left;
@@ -1512,13 +1511,13 @@ resizeDamageWindowRect (CompWindow *w,
 	Bool status = FALSE;
 
 	RESIZE_SCREEN (w->screen);
-	RESIZE_DISPLAY (w->screen->display);
+	RESIZE_DISPLAY (&display);
 
 	if (w == rd->w && rd->mode == RESIZE_MODE_STRETCH)
 	{
 		BoxRec box;
 
-		resizeGetStretchRectangle (w->screen->display, &box);
+		resizeGetStretchRectangle (&display, &box);
 		resizeDamageRectangle (w->screen, &box);
 
 		status = TRUE;
@@ -1542,7 +1541,7 @@ resizeInitDisplay (CompPlugin  *p,
 	if (!rd)
 		return FALSE;
 
-	rd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	rd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (rd->screenPrivateIndex < 0)
 	{
 		free (rd);
@@ -1577,7 +1576,7 @@ resizeFiniDisplay (CompPlugin  *p,
 {
 	RESIZE_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, rd->screenPrivateIndex);
+	freeScreenPrivateIndex (rd->screenPrivateIndex);
 
 	UNWRAP (rd, d, handleEvent);
 
@@ -1593,7 +1592,7 @@ resizeInitScreen (CompPlugin *p,
 {
 	ResizeScreen *rs;
 
-	RESIZE_DISPLAY (s->display);
+	RESIZE_DISPLAY (&display);
 
 	rs = malloc (sizeof (ResizeScreen));
 	if (!rs)
@@ -1601,21 +1600,17 @@ resizeInitScreen (CompPlugin *p,
 
 	rs->grabIndex = 0;
 
-	rs->leftCursor  = XCreateFontCursor (s->display->display, XC_left_side);
-	rs->rightCursor = XCreateFontCursor (s->display->display, XC_right_side);
-	rs->upCursor    = XCreateFontCursor (s->display->display,
-	                                 XC_top_side);
-	rs->upLeftCursor	= XCreateFontCursor (s->display->display,
-	                                 XC_top_left_corner);
-	rs->upRightCursor	= XCreateFontCursor (s->display->display,
-	                                 XC_top_right_corner);
-	rs->downCursor	= XCreateFontCursor (s->display->display,
-	                                 XC_bottom_side);
-	rs->downLeftCursor	= XCreateFontCursor (s->display->display,
-	                                 XC_bottom_left_corner);
-	rs->downRightCursor = XCreateFontCursor (s->display->display,
-	                                 XC_bottom_right_corner);
-	rs->middleCursor    = XCreateFontCursor (s->display->display, XC_fleur);
+	Display *dpy = display.display;
+
+	rs->leftCursor      = XCreateFontCursor (dpy, XC_left_side);
+	rs->rightCursor     = XCreateFontCursor (dpy, XC_right_side);
+	rs->upCursor        = XCreateFontCursor (dpy, XC_top_side);
+	rs->upLeftCursor    = XCreateFontCursor (dpy, XC_top_left_corner);
+	rs->upRightCursor   = XCreateFontCursor (dpy, XC_top_right_corner);
+	rs->downCursor      = XCreateFontCursor (dpy, XC_bottom_side);
+	rs->downLeftCursor  = XCreateFontCursor (dpy, XC_bottom_left_corner);
+	rs->downRightCursor = XCreateFontCursor (dpy, XC_bottom_right_corner);
+	rs->middleCursor    = XCreateFontCursor (dpy, XC_fleur);
 
 	rs->cursor[0] = rs->leftCursor;
 	rs->cursor[1] = rs->rightCursor;
@@ -1638,24 +1633,26 @@ resizeFiniScreen (CompPlugin *p,
 {
 	RESIZE_SCREEN (s);
 
+	Display *dpy = display.display;
+
 	if (rs->leftCursor)
-		XFreeCursor (s->display->display, rs->leftCursor);
+		XFreeCursor (dpy, rs->leftCursor);
 	if (rs->rightCursor)
-		XFreeCursor (s->display->display, rs->rightCursor);
+		XFreeCursor (dpy, rs->rightCursor);
 	if (rs->upCursor)
-		XFreeCursor (s->display->display, rs->upCursor);
+		XFreeCursor (dpy, rs->upCursor);
 	if (rs->downCursor)
-		XFreeCursor (s->display->display, rs->downCursor);
+		XFreeCursor (dpy, rs->downCursor);
 	if (rs->middleCursor)
-		XFreeCursor (s->display->display, rs->middleCursor);
+		XFreeCursor (dpy, rs->middleCursor);
 	if (rs->upLeftCursor)
-		XFreeCursor (s->display->display, rs->upLeftCursor);
+		XFreeCursor (dpy, rs->upLeftCursor);
 	if (rs->upRightCursor)
-		XFreeCursor (s->display->display, rs->upRightCursor);
+		XFreeCursor (dpy, rs->upRightCursor);
 	if (rs->downLeftCursor)
-		XFreeCursor (s->display->display, rs->downLeftCursor);
+		XFreeCursor (dpy, rs->downLeftCursor);
 	if (rs->downRightCursor)
-		XFreeCursor (s->display->display, rs->downRightCursor);
+		XFreeCursor (dpy, rs->downRightCursor);
 
 	UNWRAP (rs, s, windowResizeNotify);
 	UNWRAP (rs, s, paintOutput);

@@ -92,7 +92,7 @@ typedef struct _ZoomScreen {
         ((ZoomScreen *) (s)->base.privates[(zd)->screenPrivateIndex].ptr)
 
 #define ZOOM_SCREEN(s) \
-        ZoomScreen *zs = GET_ZOOM_SCREEN (s, GET_ZOOM_DISPLAY (s->display))
+        ZoomScreen *zs = GET_ZOOM_SCREEN (s, GET_ZOOM_DISPLAY (&display))
 
 static int
 adjustZoomVelocity (ZoomScreen *zs)
@@ -144,7 +144,7 @@ zoomInEvent (CompScreen *s)
 	arg[5].name    = "y2";
 	arg[5].value.i = zs->current[zs->zoomOutput].y2;
 
-	(*s->display->handleFusilliEvent) (s->display, "zoom", "in", arg, 6);
+	(*display.handleFusilliEvent) ("zoom", "in", arg, 6);
 }
 
 static void
@@ -162,7 +162,7 @@ zoomOutEvent (CompScreen *s)
 	arg[1].name    = "output";
 	arg[1].value.i = zs->zoomOutput;
 
-	(*s->display->handleFusilliEvent) (s->display, "zoom", "out", arg, 2);
+	(*display.handleFusilliEvent) ("zoom", "out", arg, 2);
 }
 
 static void
@@ -485,7 +485,7 @@ zoomIn (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		float   w, h, x0, y0;
@@ -551,7 +551,7 @@ zoomInitiate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		int   output, x1, y1;
@@ -622,7 +622,7 @@ zoomOut (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		int output;
@@ -671,7 +671,7 @@ zoomTerminate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		ZOOM_SCREEN (s);
 
@@ -723,7 +723,7 @@ zoomInitiatePan (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		int output;
@@ -763,7 +763,7 @@ zoomTerminatePan (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		ZOOM_SCREEN (s);
 
@@ -870,16 +870,15 @@ zoomHandleMotionEvent (CompScreen *s,
 }
 
 static void
-zoomHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+zoomHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	ZOOM_DISPLAY (d);
+	ZOOM_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
-		if (event->xkey.keycode == d->escapeKeyCode)
+		if (event->xkey.keycode == display.escapeKeyCode)
 		{
 			BananaArgument arg;
 
@@ -955,22 +954,22 @@ zoomHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 			zoomHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case EnterNotify:
 	case LeaveNotify:
-		s = findScreenAtDisplay (d, event->xcrossing.root);
+		s = findScreenAtDisplay (event->xcrossing.root);
 		if (s)
 			zoomHandleMotionEvent (s, pointerX, pointerY);
 	default:
 		break;
 	}
 
-	UNWRAP (zd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (zd, d, handleEvent, zoomHandleEvent);
+	UNWRAP (zd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (zd, &display, handleEvent, zoomHandleEvent);
 }
 
 /*static const CompMetadataOptionInfo zoomDisplayOptionInfo[] = {
@@ -990,7 +989,7 @@ zoomInitDisplay (CompPlugin  *p,
 	if (!zd)
 		return FALSE;
 
-	zd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	zd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (zd->screenPrivateIndex < 0)
 	{
 		free (zd);
@@ -1010,7 +1009,7 @@ zoomFiniDisplay (CompPlugin  *p,
 {
 	ZOOM_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, zd->screenPrivateIndex);
+	freeScreenPrivateIndex (zd->screenPrivateIndex);
 
 	UNWRAP (zd, d, handleEvent);
 
@@ -1023,7 +1022,7 @@ zoomInitScreen (CompPlugin *p,
 {
 	ZoomScreen *zs;
 
-	ZOOM_DISPLAY (s->display);
+	ZOOM_DISPLAY (&display);
 
 	zs = malloc (sizeof (ZoomScreen));
 	if (!zs)
@@ -1040,7 +1039,7 @@ zoomInitScreen (CompPlugin *p,
 	zs->adjust = FALSE;
 
 	zs->panGrabIndex = 0;
-	zs->panCursor = XCreateFontCursor (s->display->display, XC_fleur);
+	zs->panCursor = XCreateFontCursor (display.display, XC_fleur);
 
 	zs->scale = 0.0f;
 
@@ -1063,7 +1062,7 @@ zoomFiniScreen (CompPlugin *p,
 	ZOOM_SCREEN (s);
 
 	if (zs->panCursor)
-		XFreeCursor (s->display->display, zs->panCursor);
+		XFreeCursor (display.display, zs->panCursor);
 
 	UNWRAP (zs, s, preparePaintScreen);
 	UNWRAP (zs, s, donePaintScreen);

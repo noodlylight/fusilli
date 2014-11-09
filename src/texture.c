@@ -211,7 +211,7 @@ readImageToTexture (CompScreen   *screen,
 	int  width, height;
 	Bool status;
 
-	if (!readImageFromFile (screen->display, imageFileName,
+	if (!readImageFromFile (imageFileName,
 	                        &width, &height, &image))
 		return FALSE;
 
@@ -292,7 +292,7 @@ bindPixmapToTexture (CompScreen  *screen,
 	attribs[i++] = None;
 
 	makeScreenCurrent (screen);
-	texture->pixmap = (*screen->createPixmap) (screen->display->display,
+	texture->pixmap = (*screen->createPixmap) (display.display,
 	                                   config->fbConfig, pixmap,
 	                                   attribs);
 	if (!texture->pixmap)
@@ -304,7 +304,7 @@ bindPixmapToTexture (CompScreen  *screen,
 	}
 
 	if (!target)
-		(*screen->queryDrawable) (screen->display->display,
+		(*screen->queryDrawable) (display.display,
 		                      texture->pixmap,
 		                      GLX_TEXTURE_TARGET_EXT,
 		                      &target);
@@ -347,7 +347,7 @@ bindPixmapToTexture (CompScreen  *screen,
 		                "pixmap 0x%x can't be bound to texture",
 		                (int) pixmap);
 
-		(*screen->destroyPixmap) (screen->display->display, texture->pixmap);
+		(*screen->destroyPixmap) (display.display, texture->pixmap);
 		texture->pixmap = None;
 
 		return FALSE;
@@ -360,7 +360,7 @@ bindPixmapToTexture (CompScreen  *screen,
 
 	if (!strictBinding)
 	{
-		(*screen->bindTexImage) (screen->display->display,
+		(*screen->bindTexImage) (display.display,
 		                     texture->pixmap,
 		                     GLX_FRONT_LEFT_EXT,
 		                     NULL);
@@ -393,7 +393,7 @@ releasePixmapFromTexture (CompScreen  *screen,
 		{
 			glBindTexture (texture->target, texture->name);
 
-			(*screen->releaseTexImage) (screen->display->display,
+			(*screen->releaseTexImage) (display.display,
 			                    texture->pixmap,
 			                    GLX_FRONT_LEFT_EXT);
 		}
@@ -401,7 +401,7 @@ releasePixmapFromTexture (CompScreen  *screen,
 		glBindTexture (texture->target, 0);
 		glDisable (texture->target);
 
-		(*screen->destroyPixmap) (screen->display->display, texture->pixmap);
+		(*screen->destroyPixmap) (display.display, texture->pixmap);
 
 		texture->pixmap = None;
 	}
@@ -418,7 +418,7 @@ enableTexture (CompScreen    *screen,
 
 	if (strictBinding && texture->pixmap)
 	{
-		(*screen->bindTexImage) (screen->display->display,
+		(*screen->bindTexImage) (display.display,
 		                     texture->pixmap,
 		                     GLX_FRONT_LEFT_EXT,
 		                     NULL);
@@ -438,9 +438,9 @@ enableTexture (CompScreen    *screen,
 			texture->filter = GL_NEAREST;
 		}
 	}
-	else if (texture->filter != screen->display->textureFilter)
+	else if (texture->filter != display.textureFilter)
 	{
-		if (screen->display->textureFilter == GL_LINEAR_MIPMAP_LINEAR)
+		if (display.textureFilter == GL_LINEAR_MIPMAP_LINEAR)
 		{
 			if (screen->textureNonPowerOfTwo && screen->fbo && texture->mipmap)
 			{
@@ -471,12 +471,12 @@ enableTexture (CompScreen    *screen,
 		{
 			glTexParameteri (texture->target,
 			                 GL_TEXTURE_MIN_FILTER,
-			                 screen->display->textureFilter);
+			                 display.textureFilter);
 			glTexParameteri (texture->target,
 			                 GL_TEXTURE_MAG_FILTER,
-			                 screen->display->textureFilter);
+			                 display.textureFilter);
 
-			texture->filter = screen->display->textureFilter;
+			texture->filter = display.textureFilter;
 		}
 	}
 
@@ -499,7 +499,7 @@ disableTexture (CompScreen  *screen,
 	{
 		glBindTexture (texture->target, texture->name);
 
-		(*screen->releaseTexImage) (screen->display->display,
+		(*screen->releaseTexImage) (display.display,
 		                         texture->pixmap,
 		                         GLX_FRONT_LEFT_EXT);
 	}

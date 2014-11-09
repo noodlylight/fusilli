@@ -275,8 +275,6 @@ initCore (void)
 
 	compObjectInit (&core.base, 0, COMP_OBJECT_TYPE_CORE);
 
-	core.displays = NULL;
-
 	core.tmpRegion = XCreateRegion ();
 	if (!core.tmpRegion)
 		return FALSE;
@@ -365,9 +363,6 @@ finiCore (void)
 	}
 #endif
 
-	while (core.displays)
-		removeDisplay (core.displays);
-
 	if (core.watchPollFds)
 		free (core.watchPollFds);
 
@@ -376,19 +371,8 @@ finiCore (void)
 
 	XDestroyRegion (core.outputRegion);
 	XDestroyRegion (core.tmpRegion);
-}
 
-void
-addDisplayToCore (CompDisplay *d)
-{
-	CompDisplay *prev;
-
-	for (prev = core.displays; prev && prev->next; prev = prev->next);
-
-	if (prev)
-		prev->next = d;
-	else
-		core.displays = d;
+	removeDisplay ();
 }
 
 CompFileWatchHandle

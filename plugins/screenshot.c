@@ -63,7 +63,7 @@ typedef struct _ShotScreen {
         ((ShotScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
 
 #define SHOT_SCREEN(s) \
-        ShotScreen *ss = GET_SHOT_SCREEN (s, GET_SHOT_DISPLAY (s->display))
+        ShotScreen *ss = GET_SHOT_SCREEN (s, GET_SHOT_DISPLAY (&display))
 
 static Bool
 shotInitiate (BananaArgument     *arg,
@@ -79,7 +79,7 @@ shotInitiate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	s = findScreenAtDisplay (core.displays, xid);
+	s = findScreenAtDisplay (xid);
 	if (s)
 	{
 		SHOT_SCREEN (s);
@@ -115,7 +115,7 @@ shotTerminate (BananaArgument     *arg,
 	else
 		xid = 0;
 
-	for (s = core.displays->screens; s; s = s->next)
+	for (s = display.screens; s; s = s->next)
 	{
 		SHOT_SCREEN (s);
 
@@ -366,7 +366,7 @@ shotPaintScreen (CompScreen   *s,
 
 						app = option_launch_app->s;
 
-						if (!writeImageToFile (s->display, dir, name, "png",
+						if (!writeImageToFile (dir, name, "png",
 						                       w, h, buffer))
 						{
 							compLogMessage ("screenshot", CompLogLevelError,
@@ -495,12 +495,11 @@ shotHandleMotionEvent (CompScreen *s,
 }
 
 static void
-shotHandleEvent (CompDisplay *d,
-                 XEvent      *event)
+shotHandleEvent (XEvent      *event)
 {
 	CompScreen *s;
 
-	SHOT_DISPLAY (d);
+	SHOT_DISPLAY (&display);
 
 	switch (event->type) {
 	case ButtonPress:
@@ -528,22 +527,22 @@ shotHandleEvent (CompDisplay *d,
 		}
 		break;
 	case MotionNotify:
-		s = findScreenAtDisplay (d, event->xmotion.root);
+		s = findScreenAtDisplay (event->xmotion.root);
 		if (s)
 			shotHandleMotionEvent (s, pointerX, pointerY);
 		break;
 	case EnterNotify:
 	case LeaveNotify:
-		s = findScreenAtDisplay (d, event->xcrossing.root);
+		s = findScreenAtDisplay (event->xcrossing.root);
 		if (s)
 			shotHandleMotionEvent (s, pointerX, pointerY);
 	default:
 		break;
 	}
 
-	UNWRAP (sd, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (sd, d, handleEvent, shotHandleEvent);
+	UNWRAP (sd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (sd, &display, handleEvent, shotHandleEvent);
 }
 
 static Bool
@@ -556,7 +555,7 @@ shotInitDisplay (CompPlugin  *p,
 	if (!sd)
 		return FALSE;
 
-	sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	sd->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (sd->screenPrivateIndex < 0)
 	{
 		free (sd);
@@ -576,7 +575,7 @@ shotFiniDisplay (CompPlugin  *p,
 {
 	SHOT_DISPLAY (d);
 
-	freeScreenPrivateIndex (d, sd->screenPrivateIndex);
+	freeScreenPrivateIndex (sd->screenPrivateIndex);
 
 	UNWRAP (sd, d, handleEvent);
 
@@ -589,7 +588,7 @@ shotInitScreen (CompPlugin *p,
 {
 	ShotScreen *ss;
 
-	SHOT_DISPLAY (s->display);
+	SHOT_DISPLAY (&display);
 
 	ss = malloc (sizeof (ShotScreen));
 	if (!ss)

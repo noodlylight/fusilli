@@ -86,7 +86,7 @@ typedef struct _ObsWindow
         ((ObsScreen *) (s)->base.privates[(od)->screenPrivateIndex].ptr)
 
 #define OBS_SCREEN(s) \
-        ObsScreen *os = GET_OBS_SCREEN (s, GET_OBS_DISPLAY (s->display))
+        ObsScreen *os = GET_OBS_SCREEN (s, GET_OBS_DISPLAY (&display))
 
 #define GET_OBS_WINDOW(w, os) \
         ((ObsWindow *) (w)->base.privates[(os)->windowPrivateIndex].ptr)
@@ -94,7 +94,7 @@ typedef struct _ObsWindow
 #define OBS_WINDOW(w) \
         ObsWindow *ow = GET_OBS_WINDOW  (w, \
                         GET_OBS_SCREEN  (w->screen, \
-                        GET_OBS_DISPLAY (w->screen->display)))
+                        GET_OBS_DISPLAY (&display)))
 
 static void
 changePaintModifier (CompWindow *w,
@@ -180,7 +180,7 @@ alterPaintModifier (BananaArgument   *arg,
 	else
 		xid = 0;
 
-	w   = findTopLevelWindowAtDisplay (core.displays, xid);
+	w   = findTopLevelWindowAtDisplay (xid);
 
 	if (w)
 	{
@@ -199,10 +199,9 @@ alterPaintModifier (BananaArgument   *arg,
 }
 
 static void
-obsHandleEvent (CompDisplay *d,
-                XEvent      *event)
+obsHandleEvent (XEvent      *event)
 {
-	OBS_DISPLAY (d);
+	OBS_DISPLAY (&display);
 
 	int i;
 
@@ -216,7 +215,7 @@ obsHandleEvent (CompDisplay *d,
 
 				arg[0].name = "window";
 				arg[0].type = BananaInt;
-				arg[0].value.i = d->activeWindow;
+				arg[0].value.i = display.activeWindow;
 
 				arg[1].name = "modifier";
 				arg[1].type = BananaInt;
@@ -235,7 +234,7 @@ obsHandleEvent (CompDisplay *d,
 
 				arg[0].name = "window";
 				arg[0].type = BananaInt;
-				arg[0].value.i = d->activeWindow;
+				arg[0].value.i = display.activeWindow;
 
 				arg[1].name = "modifier";
 				arg[1].type = BananaInt;
@@ -295,9 +294,9 @@ obsHandleEvent (CompDisplay *d,
 		break;
 	}
 
-	UNWRAP (od, d, handleEvent);
-	(*d->handleEvent) (d, event);
-	WRAP (od, d, handleEvent, obsHandleEvent);
+	UNWRAP (od, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (od, &display, handleEvent, obsHandleEvent);
 }
 
 static Bool
@@ -385,19 +384,18 @@ obsDrawWindow (CompWindow           *w,
 }
 
 static void
-obsMatchPropertyChanged (CompDisplay *d,
-                         CompWindow  *w)
+obsMatchPropertyChanged (CompWindow  *w)
 {
 	int i;
 
-	OBS_DISPLAY (d);
+	OBS_DISPLAY (&display);
 
 	for (i = 0; i < MODIFIER_COUNT; i++)
 		updatePaintModifier (w, i);
 
-	UNWRAP (od, d, matchPropertyChanged);
-	(*d->matchPropertyChanged) (d, w);
-	WRAP (od, d, matchPropertyChanged, obsMatchPropertyChanged);
+	UNWRAP (od, &display, matchPropertyChanged);
+	(*display.matchPropertyChanged) (w);
+	WRAP (od, &display, matchPropertyChanged, obsMatchPropertyChanged);
 }
 
 static Bool
@@ -426,7 +424,7 @@ obsInitDisplay (CompPlugin  *p,
 	if (!od)
 		return FALSE;
 
-	od->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	od->screenPrivateIndex = allocateScreenPrivateIndex ();
 	if (od->screenPrivateIndex < 0)
 	{
 		free (od);
@@ -449,7 +447,7 @@ obsFiniDisplay (CompPlugin  *p,
 
 	UNWRAP (od, d, matchPropertyChanged);
 
-	freeScreenPrivateIndex (d, od->screenPrivateIndex);
+	freeScreenPrivateIndex (od->screenPrivateIndex);
 
 	free (od);
 }
@@ -460,7 +458,7 @@ obsInitScreen (CompPlugin *p,
 {
 	ObsScreen  *os;
 
-	OBS_DISPLAY (s->display);
+	OBS_DISPLAY (&display);
 
 	os = malloc (sizeof (ObsScreen));
 	if (!os)
@@ -500,7 +498,7 @@ obsInitScreen (CompPlugin *p,
 		{
 			matchInit (&os->match[i][j]);
 			matchAddFromString (&os->match[i][j], opt->list.item[j].s);
-			matchUpdate (core.displays, &os->match[i][j]);
+			matchUpdate (&os->match[i][j]);
 
 			os->value[i][j] = opt2->list.item[j].i;
 		}
@@ -678,7 +676,7 @@ obsChangeNotify (const char        *optionName,
 			{
 				matchInit (&os->match[i][j]);
 				matchAddFromString (&os->match[i][j], option_matches->list.item[j].s);
-				matchUpdate (core.displays, &os->match[i][j]);
+				matchUpdate (&os->match[i][j]);
 				os->value[i][j] = option_values->list.item[j].i;
 			}
 
