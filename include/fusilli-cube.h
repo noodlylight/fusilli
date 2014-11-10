@@ -21,6 +21,7 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author: David Reveman <davidr@novell.com>
+ *         Michail Bitzes <noodlylight@gmail.com>
  */
 
 #ifndef _FUSILLI_CUBE_H

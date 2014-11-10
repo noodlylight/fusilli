@@ -1,20 +1,20 @@
 /*
- * Copyright © 2014 Michael Bitches
+ * Copyright © 2014 Michail Bitzes
  *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without
  * fee, provided that the above copyright notice appear in all copies
  * and that both that copyright notice and this permission notice
  * appear in supporting documentation, and that the name of
- * Michael Bitches not be used in advertising or publicity pertaining to
+ * Michail Bitzes not be used in advertising or publicity pertaining to
  * distribution of the software without specific, written prior permission.
- * Michael Bitches makes no representations about the suitability of this
+ * Michail Bitzes makes no representations about the suitability of this
  * software for any purpose. It is provided "as is" without express or
  * implied warranty.
  *
- * MICHAEL BITCHES DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+ * MICHAIL BITZES DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN
- * NO EVENT SHALL MICHAEL BITCHES BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+ * NO EVENT SHALL MICHAIL BITZES BE LIABLE FOR ANY SPECIAL, INDIRECT OR
  * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
  * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION

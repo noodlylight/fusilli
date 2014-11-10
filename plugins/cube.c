@@ -22,6 +22,7 @@
  *
  * Author: David Reveman <davidr@novell.com>
  *         Mirco Müller <macslow@bangang.de> (Skydome support)
+ *         Michail Bitzes <noodlylight@gmail.com>
  */
 
 #include <string.h>

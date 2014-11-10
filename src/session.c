@@ -21,6 +21,7 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author: Radek Doulik <rodo@novell.com>
+ *         Michail Bitzes <noodlylight@gmail.com>
  */
 
 #ifdef HAVE_CONFIG_H

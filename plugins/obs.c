@@ -21,6 +21,7 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author: Danny Baumann <dannybaumann@web.de>
+ *         Michail Bitzes <noodlylight@gmail.com>
  */
 #include <string.h>
 

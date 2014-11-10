@@ -17,6 +17,7 @@
  * Boston, MA 02111-1307, USA.
  *
  * Author: David Reveman <davidr@novell.com>
+ *         Michail Bitzes <noodlylight@gmail.com>
  */
 
 #ifdef HAVE_CONFIG_H

@@ -15,8 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
-# Authors: Michael Bitches (noodlylight@gmail.com)
-# Copyright (C) 2014 Michael Bitches
+# Authors: Michail Bitzes (noodlylight@gmail.com)
+# Copyright (C) 2014 Michail Bitzes
 
 import pygtk
 pygtk.require("2.0")
