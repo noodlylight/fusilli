@@ -2661,7 +2661,12 @@ fileToImage (const char  *path,
              int         *stride,
              void        **data)
 {
-	return pngFileToImage (path, name, width, height, stride, data);
+	if (pngFileToImage (path, name, width, height, stride, data))
+		return TRUE;
+	else if (JPEGFileToImage (path, name, width, height, stride, data))
+		return TRUE;
+	else
+		return FALSE;
 }
 
 Bool
@@ -2675,8 +2680,11 @@ imageToFile (const char  *path,
 {
 	if (strcasecmp (format, "png") == 0)
 		return pngImageToFile (path, name, width, height, stride, data);
-
-	return FALSE;
+	else if (strcasecmp (format, "jpeg") == 0 || 
+	         strcasecmp (format, "jpg") == 0)
+		return JPEGImageToFile (path, name, width, height, stride, data);
+	else
+		return FALSE;
 }
 
 CompCursor *

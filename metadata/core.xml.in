@@ -410,5 +410,19 @@
 				</option>
 			</subgroup>
 		</group>
+
+		<group>
+			<_short>Advanced</_short>
+
+			<subgroup>
+				<option name="jpeg_quality" type="int">
+					<_short>JPEG Compression Quality</_short>
+					<_long>Quality of compression when saving JPEG images</_long>
+					<default>80</default>
+					<min>0</min>
+					<max>100</max>
+				</option>
+			</subgroup>
+		</group>
 	</plugin>
 </fusilli>

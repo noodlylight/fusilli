@@ -3271,6 +3271,23 @@ pngFileToImage (const char  *path,
                 int         *stride,
                 void        **data);
 
+/* jpeg.c */
+Bool
+JPEGImageToFile (const char  *path,
+                 const char  *name,
+                 int         width,
+                 int         height,
+                 int         stride,
+                 void        *data);
+
+Bool
+JPEGFileToImage (const char  *path,
+                 const char  *name,
+                 int         *width,
+                 int         *height,
+                 int         *stride,
+                 void        **data);
+
 /* metadata.c */
 
 #define STRINGIFY(x) #x

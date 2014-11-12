@@ -9,12 +9,13 @@ AM_CPPFLAGS =			     \
 
 bin_PROGRAMS = fusilli
 
-fusilli_LDADD = @FUSILLI_LIBS@ @LIBPNG_LIBS@ @GL_LIBS@ -lm -ldl
+fusilli_LDADD = @FUSILLI_LIBS@ @LIBPNG_LIBS@ @GL_LIBS@ -lm -ldl -ljpeg
 fusilli_LDFLAGS = -export-dynamic -pthread
 fusilli_SOURCES =   \
 	main.c	   \
 	privates.c \
 	png.c      \
+	jpeg.c     \
 	object.c   \
 	core.c	   \
 	texture.c  \
