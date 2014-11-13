@@ -129,7 +129,10 @@ FUSILLI_REQUIRES="x11        \
 		 sm	    \
 		 libxml-2.0 \
 		 libxslt    \
-		 libstartup-notification-1.0 >= 0.7"
+		 libstartup-notification-1.0 >= 0.7 \
+     cairo-xlib-xrender \
+     pangocairo \
+     cairo >= 1.0"
 
 PKG_CHECK_MODULES(FUSILLI, $FUSILLI_REQUIRES)
 AC_SUBST(FUSILLI_REQUIRES)

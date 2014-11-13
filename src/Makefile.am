@@ -31,5 +31,6 @@ fusilli_SOURCES =   \
 	matrix.c   \
 	cursor.c   \
 	match.c    \
-	banana.c
+	banana.c   \
+	text.c
 

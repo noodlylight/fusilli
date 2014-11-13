@@ -18,10 +18,8 @@
  *
  */
 
-#ifndef _COMPIZ_TEXT_H
-#define _COMPIZ_TEXT_H
-
-#define TEXT_ABIVERSION 20090103
+#ifndef _FUSILLI_TEXT_H
+#define _FUSILLI_TEXT_H
 
 /**
  * Flags to be passed into the flags field of CompTextAttrib
@@ -29,41 +27,41 @@
 #define CompTextFlagStyleBold      (1 << 0) /**< render the text in bold */
 #define CompTextFlagStyleItalic    (1 << 1) /**< render the text italic */
 #define CompTextFlagEllipsized     (1 << 2) /**< ellipsize the text if the
-					         specified maximum size is too
-						 small */
+                                                 specified maximum size is too
+                                                 small */
 #define CompTextFlagWithBackground (1 << 3) /**< render a rounded rectangle as
-					          background behind the text */
+                                                 background behind the text */
 #define CompTextFlagNoAutoBinding  (1 << 4) /**< do not automatically bind the
-					         rendered text pixmap to a
-						 texture */
+                                                 rendered text pixmap to a
+                                                 texture */
 
 /**
  * Input data structure that specifies how the text is to be rendered
  */
 typedef struct _CompTextAttrib {
-    char           *family;    /**< font family */
-    int            size;       /**< font size in points */
-    unsigned short color[4];   /**< font color (RGBA) */
+	char           *family;    /**< font family */
+	int            size;       /**< font size in points */
+	unsigned short color[4];   /**< font color (RGBA) */
 
-    unsigned int   flags;      /**< rendering flags, see above */
+	unsigned int   flags;      /**< rendering flags, see above */
 
-    int            maxWidth;   /**< maximum width of the generated pixmap */
-    int            maxHeight;  /**< maximum height of the generated pixmap */
+	int            maxWidth;   /**< maximum width of the generated pixmap */
+	int            maxHeight;  /**< maximum height of the generated pixmap */
 
-    int            bgHMargin;  /**< horizontal margin in pixels
-				    (offset of text into background) */
-    int            bgVMargin;  /**< vertical margin */
-    unsigned short bgColor[4]; /**< background color (RGBA) */
+	int            bgHMargin;  /**< horizontal margin in pixels
+	                                (offset of text into background) */
+	int            bgVMargin;  /**< vertical margin */
+	unsigned short bgColor[4]; /**< background color (RGBA) */
 } CompTextAttrib;
 
 /**
  * Output data structure that represents the rendered text
  */
 typedef struct _CompTextData {
-    CompTexture  *texture; /**< texture the text pixmap is bound to */
-    Pixmap       pixmap;   /**< text pixmap */
-    unsigned int width;    /**< pixmap width */
-    unsigned int height;   /**< pixmap height */
+	CompTexture  *texture; /**< texture the text pixmap is bound to */
+	Pixmap       pixmap;   /**< text pixmap */
+	unsigned int width;    /**< pixmap width */
+	unsigned int height;   /**< pixmap height */
 } CompTextData;
 
 /**
@@ -75,27 +73,27 @@ typedef struct _CompTextData {
  *
  * @return        valid text data on success, NULL on failure
  */
-typedef CompTextData *
-(*RenderTextProc) (CompScreen           *s,
-		   const char           *text,
-		   const CompTextAttrib *attrib);
+CompTextData *
+textRenderText (CompScreen           *s,
+                const char           *text,
+                const CompTextAttrib *attrib);
 
 /**
  * Prototype of window title-to-pixmap rendering function
  *
  * @param s                   screen the text is rendered on
- * @param window              XID of the window whose title should be rendered
+ * @param w                   CompWindow of the window whose title should be rendered
  * @param withViewportNumber  also render the viewport number behind
  *                            the window title
  * @param attrib              text rendering attributes
  *
  * @return                    valid text data on success, NULL on failure
  */
-typedef CompTextData *
-(*RenderWindowTitleProc) (CompScreen           *s,
-			  Window               window,
-			  Bool                 withViewportNumber,
-			  const CompTextAttrib *attrib);
+CompTextData *
+textRenderWindowTitle (CompScreen           *s,
+                       CompWindow           *w,
+                       Bool                 withViewportNumber,
+                       const CompTextAttrib *attrib);
 
 /**
  * Prototype of function drawing text data on screen
@@ -114,11 +112,12 @@ typedef CompTextData *
  * @param y      y position in current OpenGL coordinates
  * @param alpha  opacity for the drawn text (0.0 - transparent, 1.0 - opaque)
  */
-typedef void (*DrawTextProc) (CompScreen         *s,
-			      const CompTextData *data,
-			      float              x,
-			      float              y,
-			      float              alpha);
+void
+textDrawText (CompScreen         *s,
+              const CompTextData *data,
+              float              x,
+              float              y,
+              float              alpha);
 
 /**
  * Prototype of text data cleanup function
@@ -126,18 +125,8 @@ typedef void (*DrawTextProc) (CompScreen         *s,
  * @param s     screen the data was generated for
  * @param data  data structure
  */
-typedef void (*FiniTextDataProc) (CompScreen   *s,
-				  CompTextData *data);
-
-/**
- * Function pointer set that provides access to the
- * above defined functions.
- */
-typedef struct _TextFunc {
-    RenderTextProc        renderText;
-    RenderWindowTitleProc renderWindowTitle;
-    DrawTextProc          drawText;
-    FiniTextDataProc      finiTextData;
-} TextFunc;
+void
+textFiniTextData (CompScreen   *s,
+                  CompTextData *data);
 
 #endif

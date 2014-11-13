@@ -5,5 +5,6 @@ fusilliinclude_HEADERS = \
 	fusilli-core.h       \
 	fusilli-cube.h       \
 	fusilli-scale.h      \
+	fusilli-text.h       \
 	decoration.h
 
