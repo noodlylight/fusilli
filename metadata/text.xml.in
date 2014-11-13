@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<compiz>
+	<plugin name="text">
+		<_short>Text</_short>
+		<_long>Render text to texture</_long>
+		<category>Image Loading</category>
+		<display>
+			<option name="abi" type="int" read_only="true"/>
+			<option name="index" type="int" read_only="true"/>
+		</display>
+	</plugin>
+</compiz>
