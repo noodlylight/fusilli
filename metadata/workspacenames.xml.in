@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<compiz>
+    <plugin name="workspacenames" useBcop="true">
+	<_short>Workspace Naming</_short>
+	<_long>Allows assigning descriptions to workspaces</_long>
+	<category>Window Management</category>
+	<deps>
+	    <relation type="after">
+		<plugin>text</plugin>
+	    </relation>
+	</deps>
+	<screen>
+	    <group>
+		<_short>Names</_short>
+		<subgroup>
+		    <_short>Workspace Names</_short>
+		    <option name="viewports" type="list">
+			<_short>Viewport</_short>
+			<_long>Number of viewport to be named</_long>
+			<type>int</type>
+			<min>1</min>
+			<max>50</max>
+		    </option>
+		    <option name="names" type="list">
+			<_short>Name</_short>
+			<_long>Viewport name</_long>
+			<type>string</type>
+		    </option>
+		</subgroup>
+	    </group>
+	    <group>
+		<_short>Appearance</_short>
+		<option name="display_time" type="float">
+		    <_short>Display Time</_short>
+		    <_long>Timeout (in s) of the name display</_long>
+		    <min>0.1</min>
+		    <max>5.0</max>
+		    <precision>0.05</precision>
+		    <default>0.5</default>
+		</option>
+		<option name="fade_time" type="float">
+		    <_short>Fade Time</_short>
+		    <_long>Time (in s) the name display fades out after being shown.</_long>
+		    <min>0.0</min>
+		    <max>5.0</max>
+		    <precision>0.05</precision>
+		    <default>0.25</default>
+		</option>
+		<subgroup>
+		    <_short>Text Display</_short>
+		    <option name="bold_text" type="bool">
+			<_short>Bold Font</_short>
+			<_long>Selects if the text should be displayed in bold font or not.</_long>
+			<default>false</default>
+		    </option>
+		    <option name="text_font_size" type="int">
+			<_short>Font Size</_short>
+			<_long>Font size for the text display.</_long>
+			<default>16</default>
+			<min>6</min>
+			<max>96</max>
+		    </option>
+		    <option name="text_placement" type="int">
+			<_short>Text Placement</_short>
+			<_long>Selects where to place the text.</_long>
+			<default>0</default>
+			<min>0</min>
+			<max>2</max>
+			<desc>
+			    <value>0</value>
+			    <_name>Centered on screen</_name>
+			</desc>
+			<desc>
+			    <value>1</value>
+			    <_name>Top of screen</_name>
+			</desc>
+			<desc>
+			    <value>2</value>
+			    <_name>Bottom of screen</_name>
+			</desc>
+		    </option>
+		</subgroup>
+		<subgroup>
+		    <_short>Colors</_short>
+		    <option name="back_color" type="color">
+			<_short>Background Color</_short>
+			<_long>Background color for the text display.</_long>
+			<default>
+			    <red>0x0000</red>
+			    <green>0x0000</green>
+			    <blue>0x0000</blue>
+			    <alpha>0x9999</alpha>
+			</default>
+		    </option>
+		    <option name="font_color" type="color">
+			<_short>Font Color</_short>
+			<_long>Font color for the text display.</_long>
+			<default>
+			    <red>0xffff</red>
+			    <green>0xffff</green>
+			    <blue>0xffff</blue>
+			    <alpha>0xffff</alpha>
+			</default>
+		    </option>
+		</subgroup>
+	    </group>
+	</screen>	
+    </plugin>
+</compiz>
