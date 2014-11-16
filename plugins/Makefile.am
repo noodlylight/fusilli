@@ -62,18 +62,11 @@ libmatecompat_la_SOURCES = matecompat.c
 if USE_LIBRSVG
 libsvg_la_DEPENDENCIES = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libsvg_la_LDFLAGS = -module -avoid-version -no-undefined
-libsvg_la_LIBADD =				       \
+libsvg_la_LIBADD =                                               \
 	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
 	@LIBRSVG_LIBS@
 libsvg_la_SOURCES = svg.c
 libsvg_module = libsvg.la
-endif
-
-if ANNOTATE_PLUGIN
-libannotate_la_LDFLAGS = -module -avoid-version -no-undefined
-libannotate_la_LIBADD = @ANNOTATE_LIBS@
-libannotate_la_SOURCES = annotate.c
-libannotate_module = libannotate.la
 endif
 
 if USE_GLIB
@@ -83,44 +76,40 @@ libglib_la_SOURCES = glib.c
 libglib_module = libglib.la
 endif
 
-AM_CPPFLAGS =					\
-	@FUSILLI_CFLAGS@				\
-	@LIBPNG_CFLAGS@				\
-	@LIBRSVG_CFLAGS@			\
-	@ANNOTATE_CFLAGS@			\
-	@GLIB_CFLAGS@				\
-	-DALL_LINGUAS="\"@ALL_LINGUAS@\""	\
-	-DLOCALEDIR="\"@datadir@/locale\""	\
-	-DPLUGINDIR=\"$(plugindir)\"		\
-	-DIMAGEDIR=\"$(imagedir)\"		\
-	-I$(top_srcdir)/include                 \
-	-I$(top_builddir)/include               \
+AM_CPPFLAGS =                           \
+	@FUSILLI_CFLAGS@                    \
+	@LIBRSVG_CFLAGS@                    \
+	@GLIB_CFLAGS@                       \
+	-DALL_LINGUAS="\"@ALL_LINGUAS@\""   \
+	-DLOCALEDIR="\"@datadir@/locale\""  \
+	-DPLUGINDIR=\"$(plugindir)\"        \
+	-DIMAGEDIR=\"$(imagedir)\"          \
+	-I$(top_srcdir)/include             \
+	-I$(top_builddir)/include           \
 	-DMETADATADIR=\"$(metadatadir)\"
 
 moduledir = $(plugindir)
 
-module_LTLIBRARIES =		\
-	$(libglib_module)	\
-	libdecoration.la	\
-	libwobbly.la		\
-	libfade.la		\
-	libminimize.la		\
-	libcube.la		\
-	librotate.la		\
-	libzoom.la		\
-	libscale.la		\
-	libmove.la		\
-	libresize.la		\
-	libplace.la             \
-	libswitcher.la		\
-	libwater.la		\
-	libscreenshot.la	\
-	libclone.la		\
-	libblur.la		\
-	libobs.la		\
-	libcommands.la		\
-	libmatecompat.la	\
-	$(libsvg_module)	\
-	$(libannotate_module)	\
-	$(libfs_module)
+module_LTLIBRARIES =      \
+	$(libglib_module)     \
+	libdecoration.la      \
+	libwobbly.la          \
+	libfade.la            \
+	libminimize.la        \
+	libcube.la            \
+	librotate.la          \
+	libzoom.la            \
+	libscale.la           \
+	libmove.la            \
+	libresize.la          \
+	libplace.la           \
+	libswitcher.la        \
+	libwater.la           \
+	libscreenshot.la      \
+	libclone.la           \
+	libblur.la            \
+	libobs.la             \
+	libcommands.la        \
+	libmatecompat.la      \
+	$(libsvg_module)
 

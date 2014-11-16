@@ -19,6 +19,7 @@ AC_SUBST(FUSILLI_VERSION_MINOR)
 AC_SUBST(FUSILLI_VERSION_MICRO)
 
 AM_INIT_AUTOMAKE([1.7 foreign])
+AM_SILENT_RULES([yes])
 AC_CONFIG_HEADER([config.h])
 AC_PROG_INTLTOOL([0.23])
 AM_MAINTAINER_MODE
@@ -107,11 +108,6 @@ AC_C_BIGENDIAN
 plugindir=$libdir/fusilli
 AC_SUBST(plugindir)
 
-AC_ARG_WITH(default-plugins, [  --with-default-plugins=PLUGINS ],
-		       [default_plugins="$withval"],
-		       [default_plugins=""])
-AC_SUBST(default_plugins)
-
 imagedir=$datadir/fusilli
 AC_SUBST(imagedir)
 
@@ -119,20 +115,20 @@ metadatadir=$datadir/fusilli
 AC_SUBST(metadatadir)
 
 FUSILLI_REQUIRES="x11        \
-		 xcomposite \
-		 xext       \
-		 xfixes	    \
-		 xdamage    \
-		 xrandr	    \
-		 xinerama   \
-		 ice	    \
-		 sm	    \
-		 libxml-2.0 \
-		 libxslt    \
-		 libstartup-notification-1.0 >= 0.7 \
-     cairo-xlib-xrender \
-     pangocairo \
-     cairo >= 1.0"
+                  xcomposite \
+                  xext       \
+                  xfixes     \
+                  xdamage    \
+                  xrandr     \
+                  xinerama   \
+                  ice        \
+                  sm         \
+                  libxml-2.0 \
+                  libxslt    \
+                  libstartup-notification-1.0 >= 0.7 \
+                  cairo-xlib-xrender \
+                  pangocairo \
+                  cairo >= 1.0"
 
 PKG_CHECK_MODULES(FUSILLI, $FUSILLI_REQUIRES)
 AC_SUBST(FUSILLI_REQUIRES)
@@ -152,14 +148,14 @@ fi
 
 AC_MSG_CHECKING(for GL_CFLAGS)
 AC_ARG_WITH(gl-cflags, [  --with-gl-cflags=CFLAGS ],
-		       [GL_CFLAGS="$withval"],
-		       [GL_CFLAGS=""])
+                       [GL_CFLAGS="$withval"],
+                       [GL_CFLAGS=""])
 
 AC_MSG_RESULT($GL_CFLAGS)
 AC_MSG_CHECKING(for GL_LIBS)
 AC_ARG_WITH(gl-libs, [  --with-gl-libs=LIBS ],
-		     [GL_LIBS="$withval"],
-		     [GL_LIBS="-lGL"])
+                     [GL_LIBS="$withval"],
+                     [GL_LIBS="-lGL"])
 AC_MSG_RESULT($GL_LIBS)
 
 AC_SUBST(GL_CFLAGS)
@@ -199,19 +195,6 @@ if test "$use_inotify" = yes; then
   AC_DEFINE(USE_INOTIFY, 1, [Build with inotify])
 fi
 
-AC_ARG_ENABLE(annotate,
-  [  --disable-annotate      Disable annotate plugin],
-  [use_annotate=$enableval], [use_annotate=yes])
-
-if test "x$use_annotate" = "xyes"; then
-  PKG_CHECK_MODULES(ANNOTATE, cairo-xlib-xrender, [use_annotate=yes], [use_annotate=no])
-fi
-
-AM_CONDITIONAL(ANNOTATE_PLUGIN, test "x$use_annotate" = "xyes")
-if test "$use_annotate" = yes; then
-  AC_DEFINE(USE_ANNOTATE, 1, [Build annotate plugin])
-fi
-
 AC_ARG_ENABLE(librsvg,
   [  --disable-librsvg       Disable svg support],
   [use_librsvg=$enableval], [use_librsvg=yes])
@@ -235,12 +218,12 @@ AC_ARG_ENABLE(marco,
 
 if test "x$use_gtk" = "xyes"; then
   PKG_CHECK_MODULES(GTK_WINDOW_DECORATOR,
-		    xrender >= 0.8.4        \
-		    gtk+-2.0 >= 2.8.0       \
-		    libwnck-1.0 >= 2.19.4   \
-		    libxml-2.0              \
-		    pangocairo,
-		    [use_gtk=yes], [use_gtk=no])
+                    xrender >= 0.8.4        \
+                    gtk+-2.0 >= 2.8.0       \
+                    libwnck-1.0 >= 2.19.4   \
+                    libxml-2.0              \
+                    pangocairo,
+                    [use_gtk=yes], [use_gtk=no])
   if test "x$use_gtk" = "xyes"; then
     if test "x$use_marco" = "xyes"; then
       PKG_CHECK_MODULES(MARCO, 
@@ -262,7 +245,7 @@ LIBS="$LIBS -lm -ldl"
 
 AM_CONDITIONAL(USE_GTK, test "x$use_gtk" = "xyes")
 if test "$use_gtk" = yes; then
-  AC_DEFINE(USE_GTK, 1, [Build gtk window decorator])
+  AC_DEFINE(USE_GTK, 1, [Build fusilli-decorator-gtk])
 fi
 
 AM_CONDITIONAL(USE_MARCO, test "x$use_marco" = "xyes")
@@ -307,8 +290,8 @@ if test "x$use_kde4" = "xyes"; then
 
   if test -d "$kde4libs"; then
     PKG_CHECK_MODULES(KDE4_WINDOW_DECORATOR,
-		      dbus-1 xdamage xext xcomposite QtCore >= 4.5.0 QtGui QtDBus,
-			[use_kde4=yes], [use_kde4=no])
+                      dbus-1 xdamage xext xcomposite QtCore >= 4.5.0 QtGui QtDBus,
+                      [use_kde4=yes], [use_kde4=no])
 
     KDE4_CFLAGS="-I$kde4incs"
     KDE4_LIBS="-L$kde4libs -lkdecore -lkdecorations -lkdeui -lplasma"
@@ -345,15 +328,6 @@ if test "$use_fsm" = yes; then
   AC_DEFINE(USE_FSM, 1, [Build fsm])
 fi
 
-AC_ARG_WITH(max-desktops,
-  [  --with-max-desktops     Max reasonable desktops],
-  [MAX_DESKTOPS=$withval],
-  [MAX_DESKTOPS=36])
-
-if test -n "$MAX_DESKTOPS"; then
-  AC_DEFINE_UNQUOTED(MAX_DESKTOPS, $MAX_DESKTOPS, [Max reasonable desktops])
-fi
-
 AC_OUTPUT([
 fusilli.pc
 fusilli-cube.pc
@@ -377,13 +351,12 @@ fsm/Makefile
 echo ""
 echo "the following optional plugins will be compiled:"
 echo "  glib:     $use_glib"
-echo "  annotate: $use_annotate"
 echo "  svg:      $use_librsvg"
 echo ""
 echo "and the following optional features will be compiled:"
-echo "  inotify:  $use_inotify"
-echo "  gtk:      $use_gtk"
-echo "  marco:    $use_marco"
-echo "  kde4:     $use_kde4"
-echo "  fsm:      $use_fsm"
+echo "  inotify:                 $use_inotify"
+echo "  fusilli-decorator-gtk:   $use_gtk"
+echo "       marco themes:       $use_marco"
+echo "  kde4-window-decorator:   $use_kde4"
+echo "  fsm:                     $use_fsm"
 echo ""

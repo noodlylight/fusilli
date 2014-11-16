@@ -1,16 +1,16 @@
 if USE_KDE4
 
-BUILDSOURCES =		      \
-	decorator.moc.cpp     \
-	window.moc.cpp        \
+BUILDSOURCES =              \
+	decorator.moc.cpp       \
+	window.moc.cpp          \
 	paintredirector.moc.cpp \
-	kwinadaptor.moc.cpp   \
-	kwinadaptor.cpp       \
+	kwinadaptor.moc.cpp     \
+	kwinadaptor.cpp         \
 	kwinadaptor.h
 
 kde4_window_decorator_DEPENDENCIES = \
 	$(top_builddir)/libfusillidecoration/libfusillidecoration.la
-kde4_window_decorator_LDADD   =			       \
+kde4_window_decorator_LDADD   =       \
 	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
 	@KDE4_WINDOW_DECORATOR_LIBS@ @KDE4_LIBS@ -ldl
 
@@ -18,15 +18,15 @@ nodist_kde4_window_decorator_SOURCES = \
 	$(BUILDSOURCES)
 
 dist_kde4_window_decorator_SOURCES = \
-	main.cpp	       \
-	utils.cpp	       \
-	utils.h		       \
-	decorator.cpp	       \
-	decorator.h	       \
-	window.cpp	       \
-	window.h	       \
-	options.cpp	       \
-	options.h              \
+	main.cpp                \
+	utils.cpp               \
+	utils.h                 \
+	decorator.cpp           \
+	decorator.h             \
+	window.cpp              \
+	window.h                \
+	options.cpp             \
+	options.h               \
 	kdecoration_plugins.cpp \
 	kdecoration_plugins.h   \
 	switcher.cpp            \
