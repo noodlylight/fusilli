@@ -193,6 +193,9 @@ class ListWidget():
         self.GTKListStore.append(rowValue)
         self.GTKTreeView.set_cursor(option.CurrentRow - 1)
 
+        if autoSaveMode:
+            banana.WriteConfigFile()
+
     def Edit(self, widget):
         model, treeiter = self.GTKTreeSelection.get_selected()
         if treeiter != None:
@@ -833,14 +836,20 @@ class Banana():
         #<min></min>
         min_ = option.findall("min")
         if len(min_) == 1:
-            min_ = float(min_[0].text)
+            if option.attrib.get("type") == "int" or option.attrib.get("type") == "list_int":
+                min_ = int(min_[0].text)
+            elif option.attrib.get("type") == "float" or option.attrib.get("type") == "list_float":
+                min_ = float(min_[0].text)
         else:
             min_ = 0.0
 
         #<max></max>
         max_ = option.findall("max")
         if len(max_) == 1:
-            max_ = float(max_[0].text)
+            if option.attrib.get("type") == "int" or option.attrib.get("type") == "list_int":
+                max_ = int(max_[0].text)
+            elif option.attrib.get("type") == "float" or option.attrib.get("type") == "list_float":
+                max_ = float(max_[0].text)
         else:
             max_ = 0.0
 
@@ -1050,7 +1059,10 @@ class Banana():
                             curValue = []
                             items = option.findall("item")
                             for item in items:
-                                curValue.append(item.text)
+                                if item.text == None:
+                                    curValue.append("")
+                                else:
+                                    curValue.append(item.text)
 
                         if screenNum == None:
                             curOption.Value = curValue
