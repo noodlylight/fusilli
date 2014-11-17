@@ -59,6 +59,9 @@ libcommands_la_SOURCES = commands.c
 libmatecompat_la_LDFLAGS = -module -avoid-version -no-undefined
 libmatecompat_la_SOURCES = matecompat.c
 
+libwsnames_la_LDFLAGS = -module -avoid-version -no-undefined
+libwsnames_la_SOURCES = wsnames.c
+
 if USE_LIBRSVG
 libsvg_la_DEPENDENCIES = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libsvg_la_LDFLAGS = -module -avoid-version -no-undefined
@@ -111,5 +114,6 @@ module_LTLIBRARIES =      \
 	libobs.la             \
 	libcommands.la        \
 	libmatecompat.la      \
+	libwsnames.la         \
 	$(libsvg_module)
 

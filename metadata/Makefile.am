@@ -22,6 +22,7 @@ xml_in_files =         \
 	switcher.xml.in    \
 	water.xml.in       \
 	wobbly.xml.in      \
+	wsnames.xml.in     \
 	zoom.xml.in
 
 xml_files    = $(xml_in_files:.xml.in=.xml)
