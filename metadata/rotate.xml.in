@@ -138,6 +138,7 @@
 					<_short>Rotate Left</_short>
 					<_long>Rotate left</_long>
 					<hint>button</hint>
+					<default>&lt;ClickOnDesktop&gt;Button4</default>
 				</option>
 
 				<option name="rotate_right_key" type="string">
@@ -151,6 +152,7 @@
 					<_short>Rotate Right</_short>
 					<_long>Rotate right</_long>
 					<hint>button</hint>
+					<default>&lt;ClickOnDesktop&gt;Button5</default>
 				</option>
 
 				<option name="rotate_left_window_key" type="string">

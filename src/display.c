@@ -2502,6 +2502,14 @@ void
 registerButton (const char        *s,
                 CompButtonBinding *button)
 {
+	if (strstr(s, "<ClickOnDesktop>") == s)
+	{
+		button->clickOnDesktop = TRUE;
+		s += strlen ("<ClickOnDesktop>");
+	}
+	else
+		button->clickOnDesktop = FALSE;
+
 	if (s)
 	{
 		if (stringToButtonBinding (s, button))
@@ -2532,6 +2540,14 @@ void
 updateButton (const char        *s,
               CompButtonBinding *button)
 {
+	if (strstr(s, "<ClickOnDesktop>") == s)
+	{
+		button->clickOnDesktop = TRUE;
+		s += strlen ("<ClickOnDesktop>");
+	}
+	else
+		button->clickOnDesktop = FALSE;
+
 	if (button->active)
 		removeDisplayButtonBinding (button);
 
@@ -2577,6 +2593,14 @@ isButtonPressEvent (XEvent            *event,
 {
 	if (button->active)
 	{
+		if (button->clickOnDesktop)
+		{
+			CompWindow *w;
+			w = findWindowAtDisplay (event->xbutton.window);
+			if (!w || (w->type & CompWindowTypeDesktopMask) == 0)
+				return FALSE;
+		}
+
 		unsigned int modMask = REAL_MOD_MASK & ~display.ignoredModMask;
 		unsigned int bindMods = virtualToRealModMask (button->modifiers);
 

@@ -526,6 +526,7 @@ typedef struct _CompButtonBinding {
 	int          button;
 	unsigned int modifiers;
 	Bool         active;
+	Bool         clickOnDesktop;
 } CompButtonBinding;
 
 typedef union _CompMatchOp CompMatchOp;
