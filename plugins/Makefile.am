@@ -1,3 +1,6 @@
+libannotate_la_LDFLAGS = -module -avoid-version -no-undefined
+libannotate_la_SOURCES = annotate.c
+
 libfade_la_LDFLAGS = -module -avoid-version -no-undefined
 libfade_la_SOURCES = fade.c
 
@@ -95,6 +98,7 @@ moduledir = $(plugindir)
 
 module_LTLIBRARIES =      \
 	$(libglib_module)     \
+	libannotate.la        \
 	libdecoration.la      \
 	libwobbly.la          \
 	libfade.la            \
