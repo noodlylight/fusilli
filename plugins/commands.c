@@ -46,27 +46,6 @@ typedef struct _CommandsDisplay {
 #define COMMANDS_DISPLAY(d) \
         CommandsDisplay *cd = GET_COMMANDS_DISPLAY (d)
 
-/*static Bool
-runCommandDispatch (BananaArgument     *arg,
-                    int                nArg)
-{
-	CompScreen *s;
-	Window     xid;
-
-	xid = getIntOptionNamed (option, nOption, "root", 0);
-
-	if (s)
-	{
-		int index = COMMANDS_DISPLAY_OPTION_COMMAND0 + action->priv.val;
-
-		COMMANDS_DISPLAY (d);
-
-		runCommand (s, cd->opt[index].value.s);
-	}
-
-	return TRUE;
-}*/
-
 static void
 commandsChangeNotify (const char        *optionName,
                       BananaType        optionType,
