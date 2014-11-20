@@ -2595,10 +2595,41 @@ isButtonPressEvent (XEvent            *event,
 	{
 		if (button->clickOnDesktop)
 		{
+			/* copied from GET_DATA macro from vpswitch.c
+			 * Copyright (c) 2007 Dennis Kasprzyk <onestone@opencompositing.org>
+			 * Copyright (c) 2007 Robert Carr <racarr@opencompositing.org>
+			 * Copyright (c) 2007 Danny Baumann <maniac@opencompositing.org>
+			 * Copyright (c) 2007 Michael Vogt <mvo@ubuntu.com>
+			 *
+			 * This program is free software; you can redistribute it and/or
+			 * modify it under the terms of the GNU General Public License
+			 * as published by the Free Software Foundation; either version 2
+			 * of the License, or (at your option) any later version.
+			 *
+			 * This program is distributed in the hope that it will be useful,
+			 * but WITHOUT ANY WARRANTY; without even the implied warranty of
+			 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+			 * GNU General Public License for more details.
+			 *
+			 */
+			CompScreen *s;
 			CompWindow *w;
-			w = findWindowAtDisplay (event->xbutton.window);
-			if (!w || (w->type & CompWindowTypeDesktopMask) == 0)
+			Window     xid;
+
+			xid = event->xbutton.root;
+			s = findScreenAtDisplay (xid);
+			if (!s)
 				return FALSE;
+
+			xid = event->xbutton.window;
+			if (xid == s->grabWindow)
+				xid = display.below;
+
+			w = findWindowAtDisplay (xid);
+			if ((!w || (w->type & CompWindowTypeDesktopMask) == 0) &&
+			    xid != s->root)
+				return FALSE;
+			/* end copying */
 		}
 
 		unsigned int modMask = REAL_MOD_MASK & ~display.ignoredModMask;

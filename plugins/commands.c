@@ -135,6 +135,12 @@ commandsHandleEvent (XEvent      *event)
 				c = bananaGetOption (bananaIndex, optionName, -1);
 
 				runCommand (s, c->s);
+
+				//prevent click from reaching other apps
+				//in compiz, it was in event.c
+				if (!display.screens->maxGrab)
+					XAllowEvents (display.display, AsyncPointer,
+					              event->xbutton.time);
 			}
 		}
 
