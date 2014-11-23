@@ -51,6 +51,9 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
+#define DBUS_API_SUBJECT_TO_CHANGE
+#include <dbus/dbus.h>
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -652,6 +655,9 @@ struct _CompCore {
 
 	SessionEventProc sessionEvent;
 	LogMessageProc   logMessage;
+
+	DBusConnection    *dbusConnection;
+	CompWatchFdHandle dbusWatchFdHandle;
 };
 
 int

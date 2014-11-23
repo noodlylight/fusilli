@@ -128,7 +128,8 @@ FUSILLI_REQUIRES="x11        \
                   libstartup-notification-1.0 >= 0.7 \
                   cairo-xlib-xrender \
                   pangocairo \
-                  cairo >= 1.0"
+                  cairo >= 1.0 \
+                  dbus-1"
 
 PKG_CHECK_MODULES(FUSILLI, $FUSILLI_REQUIRES)
 AC_SUBST(FUSILLI_REQUIRES)

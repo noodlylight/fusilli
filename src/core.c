@@ -269,6 +269,87 @@ inotifyRemoveFile (CompFileWatch *fileWatch)
 
 #endif
 
+static Bool
+dbusProcessMessages (void *data)
+{
+	DBusDispatchStatus status;
+
+	do
+	{
+		dbus_connection_read_write_dispatch (core.dbusConnection, 0);
+		status = dbus_connection_get_dispatch_status (core.dbusConnection);
+	}
+	while (status == DBUS_DISPATCH_DATA_REMAINS);
+
+	return TRUE;
+}
+
+static void
+initDbus (void)
+{
+	DBusError error;
+	dbus_bool_t status;
+	int fd, ret;
+
+	dbus_error_init (&error);
+
+	core.dbusConnection = dbus_bus_get (DBUS_BUS_SESSION, &error);
+
+	if (dbus_error_is_set (&error))
+	{
+		compLogMessage ("core", CompLogLevelError,
+		                "dbus_bus_get error: %s", error.message);
+
+		dbus_error_free (&error);
+
+		core.dbusConnection = NULL;
+	}
+
+	ret = dbus_bus_request_name (core.dbusConnection,
+	                             "org.fusilli",
+	                             DBUS_NAME_FLAG_REPLACE_EXISTING |
+	                             DBUS_NAME_FLAG_ALLOW_REPLACEMENT,
+	                             &error);
+
+	if (dbus_error_is_set (&error))
+	{
+		compLogMessage ("core", CompLogLevelError,
+		                "dbus_bus_request_name error: %s", error.message);
+
+		dbus_error_free (&error);
+
+		core.dbusConnection = NULL;
+	}
+
+	dbus_error_free (&error);
+
+	if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
+	{
+		compLogMessage ("core", CompLogLevelError,
+		                "dbus_bus_request_name reply is not primary owner");
+
+		core.dbusConnection = NULL;
+	}
+
+	if (core.dbusConnection != NULL)
+	{
+		status = dbus_connection_get_unix_fd (core.dbusConnection, &fd);
+
+		if (!status)
+		{
+			compLogMessage ("core", CompLogLevelError,
+			                "dbus_connection_get_unix_fd failed");
+
+			core.dbusConnection = NULL;
+		}
+
+		core.dbusWatchFdHandle = compAddWatchFd (fd,
+		                            POLLIN | POLLPRI | POLLHUP | POLLERR,
+		                            dbusProcessMessages,
+		                            0);
+	}
+}
+
 CompBool
 initCore (void)
 {
@@ -327,6 +408,8 @@ initCore (void)
 	}
 #endif
 
+	initDbus ();
+
 	corePlugin = loadPlugin ("core");
 	if (!corePlugin)
 	{
@@ -363,6 +446,10 @@ finiCore (void)
 		close (fd);
 	}
 #endif
+
+	compRemoveWatchFd (core.dbusWatchFdHandle);
+
+	dbus_bus_release_name (core.dbusConnection, "org.fusilli", NULL);
 
 	if (core.watchPollFds)
 		free (core.watchPollFds);
