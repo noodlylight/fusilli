@@ -470,6 +470,7 @@ class BananaOption():
         elif self.OptionType == "list_int" and self.CurrentRow != None:
             if len(self.Desc) > 0:
                 listiter = self.GTKListStore.get_iter_first()
+                value = self.GetValueAtRow()
                 while listiter != None:
                     if value == self.GTKListStore.get_value(listiter, 0):
                         break
