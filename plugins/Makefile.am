@@ -39,6 +39,9 @@ libdecoration_la_SOURCES = decoration.c
 libswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libswitcher_la_SOURCES = switcher.c
 
+libwallpaper_la_LDFLAGS = -module -avoid-version -no-undefined
+libwallpaper_la_SOURCES = wallpaper.c
+
 libwater_la_LDFLAGS = -module -avoid-version -no-undefined
 libwater_la_SOURCES = water.c
 
@@ -111,6 +114,7 @@ module_LTLIBRARIES =      \
 	libresize.la          \
 	libplace.la           \
 	libswitcher.la        \
+	libwallpaper.la       \
 	libwater.la           \
 	libscreenshot.la      \
 	libclone.la           \

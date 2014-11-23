@@ -20,6 +20,7 @@ xml_in_files =         \
 	screenshot.xml.in  \
 	svg.xml.in         \
 	switcher.xml.in    \
+	wallpaper.xml.in   \
 	water.xml.in       \
 	wobbly.xml.in      \
 	wsnames.xml.in     \

@@ -3,6 +3,9 @@
  *
  * wallpaper.c
  *
+ * Copyright (c) 2014 Michail Bitzes <noodlylight@gmail.com>
+ *                    Fusilli port
+ *
  * Copyright (c) 2008 Dennis Kasprzyk <onestone@opencompositing.org>
  *
  * Rewrite of wallpaper.c
@@ -28,958 +31,794 @@
 #include <X11/extensions/Xrender.h>
 #include <X11/extensions/shape.h>
 
-#include <compiz-core.h>
+#include <fusilli-core.h>
 
-#include "wallpaper_options.h"
+static int bananaIndex;
 
-static int WallpaperDisplayPrivateIndex;
+static int displayPrivateIndex;
 
-typedef struct _WallpaperBackground
-{
-    char           *image;
-    int            imagePos;
-    int            fillType;
-    unsigned short color1[4];
-    unsigned short color2[4];
+#define BG_FILL_TYPE_SOLID_FILL            0
+#define BG_FILL_TYPE_VERTICAL_GRADIENT     1
+#define BG_FILL_TYPE_HORIZONTAL_GRADIENT   2
 
-    CompTexture    imgTex;
-    unsigned int   width;
-    unsigned int   height;
+#define BG_IMAGE_POS_SCALE_AND_CROP  0
+#define BG_IMAGE_POS_SCALED          1
+#define BG_IMAGE_POS_CENTERED        2
+#define BG_IMAGE_POS_TILED           3
+#define BG_IMAGE_POS_CENTER_TILED    4
 
-    CompTexture    fillTex;
+typedef struct _WallpaperBackground {
+	char           *image;
+	int            imagePos;
+	int            fillType;
+	unsigned short color1[4];
+	unsigned short color2[4];
+
+	CompTexture    imgTex;
+	unsigned int   width;
+	unsigned int   height;
+
+	CompTexture    fillTex;
 } WallpaperBackground;
 
-typedef struct _WallpaperDisplay
-{
-    HandleEventProc handleEvent;
+typedef struct _WallpaperDisplay {
+	HandleEventProc handleEvent;
 
-    int screenPrivateIndex;
+	int screenPrivateIndex;
 
-    /* _COMPIZ_WALLPAPER_SUPPORTED atom is used to indicate that
-     * the wallpaper plugin or a plugin providing similar functionality is
-     * active so that desktop managers can respond appropriately */
-    Atom compizWallpaperAtom;
+	/* _COMPIZ_WALLPAPER_SUPPORTED atom is used to indicate that
+	 * the wallpaper plugin or a plugin providing similar functionality is
+	 * active so that desktop managers can respond appropriately */
+	Atom compizWallpaperAtom;
 } WallpaperDisplay;
 
-typedef struct _WallpaperScreen
-{
-    PaintOutputProc      paintOutput;
-    DrawWindowProc       drawWindow;
-    DamageWindowRectProc damageWindowRect;
+typedef struct _WallpaperScreen {
+	PaintOutputProc      paintOutput;
+	DrawWindowProc       drawWindow;
+	DamageWindowRectProc damageWindowRect;
 
-    WallpaperBackground  *backgrounds;
-    unsigned int         nBackgrounds;
+	WallpaperBackground  *backgrounds;
+	unsigned int         nBackgrounds;
 
-    Bool                 propSet;
-    Window               fakeDesktop;
+	Bool                 propSet;
+	Window               fakeDesktop;
 
-    CompWindow           *desktop;
+	CompWindow           *desktop;
 } WallpaperScreen;
 
-#define WALLPAPER_DISPLAY(d) PLUGIN_DISPLAY(d, Wallpaper, w)
-#define WALLPAPER_SCREEN(s) PLUGIN_SCREEN(s, Wallpaper, w)
+#define GET_WALLPAPER_DISPLAY(d) \
+        ((WallpaperDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
 
-typedef void (*MultiListStructProc) (void *object,
-				     void *closure);
+#define WALLPAPER_DISPLAY(d) \
+        WallpaperDisplay *wd = GET_WALLPAPER_DISPLAY (d)
 
-static void *
-processMultiList (unsigned int        structSize,
-		  void                *currData,
-		  unsigned int        *numReturn,
-		  MultiListStructProc init,
-		  MultiListStructProc fini,
-		  void                *closure,
-		  unsigned int        numOptions,
-		  ...)
-{
-    CompOption     *option;
-    CompListValue  **options;
-    unsigned int   *offsets;
-    unsigned int   i, j, nElements = 0;
-    unsigned int   oldSize;
-    char           *rv, *value, *newVal, *setVal;
-    va_list        ap;
-    Bool           changed;
+#define GET_WALLPAPER_SCREEN(s, wd) \
+        ((WallpaperScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
 
-    CompOptionValue zeroVal, *optVal;
-
-    char           **stringValue, **stringValue2;
-    CompMatch      *matchValue;
-
-    if (!numReturn)
-	return NULL;
-    oldSize = *numReturn;
-
-    options = malloc (sizeof (CompOption *) * numOptions);
-    if (!options)
-	return currData;
-
-    offsets = malloc (sizeof (unsigned int) * numOptions);
-    if (!offsets)
-    {
-	free (options);
-	return currData;
-    }
-
-    newVal = malloc (structSize);
-    if (!newVal)
-    {
-	free (options);
-	free (offsets);
-	return currData;
-    }
-
-    va_start (ap, numOptions);
-
-    for (i = 0; i < numOptions; i++)
-    {
-	option = va_arg (ap, CompOption *);
-	offsets[i] = va_arg (ap, unsigned int);
-	
-	if (option->type != CompOptionTypeList)
-	{
-	    free (options);
-	    free (offsets);
-	    free (newVal);
-	    va_end (ap);
-	    return currData;
-	}
-	
-	options[i] = &option->value.list;
-	nElements = MAX (nElements, options[i]->nValue);
-    }
-    va_end (ap);
-
-    for (j = nElements; j < oldSize; j++)
-    {
-	(*fini) (((char *)currData) + (j * structSize), closure);
-	for (i = 0; i < numOptions; i++)
-	{
-	    value = ((char *)currData) + (j * structSize) + offsets[i];
-	    switch (options[i]->type)
-	    {
-	    case CompOptionTypeString:
-		stringValue = (char **) value;
-		if (*stringValue)
-		    free (*stringValue);
-		break;
-            case CompOptionTypeMatch:
-		matchValue = (CompMatch *) value;
-		matchFini (matchValue);
-		break;
-	    default:
-		break;
-	    }
-	}
-    }
-
-    if (!nElements)
-    {
-	free (options);
-	free (offsets);
-	free (newVal);
-	free (currData);
-	*numReturn = 0;
-	return NULL;
-    }
-
-    if (oldSize)
-	rv = realloc (currData, nElements * structSize);
-    else
-        rv = malloc (nElements * structSize);
-
-    if (!rv)
-    {
-	free (options);
-	free (offsets);
-	free (newVal);
-	return currData;
-    }
-
-    if (nElements > oldSize)
-	memset (rv + (oldSize * structSize), 0,
-		(nElements - oldSize) * structSize);
-
-    memset (&zeroVal, 0, sizeof (CompOptionValue));
-
-    for (j = 0; j < nElements; j++)
-    {
-	changed = (j >= oldSize);
-	memset (newVal, 0, structSize);
-	for (i = 0; i < numOptions; i++)
-	{
-	    value = rv + (j * structSize) + offsets[i];
-	    setVal = newVal + offsets[i];
-
-	    if (j < options[i]->nValue)
-		optVal = &options[i]->value[j];
-	    else
-		optVal = &zeroVal;
-
-	    if (j < options[i]->nValue)
-	    {
-		switch (options[i]->type)
-		{
-		case CompOptionTypeBool:
-		    memcpy (setVal, &optVal->b, sizeof (Bool));
-		    changed |= memcmp (value, setVal, sizeof (Bool));
-		    break;
-		case CompOptionTypeInt:
-		    memcpy (setVal, &optVal->i, sizeof (int));
-		    changed |= memcmp (value, setVal, sizeof (int));
-		    break;
-		case CompOptionTypeFloat:
-		    memcpy (setVal, &optVal->f, sizeof (float));
-		    changed |= memcmp (value, setVal, sizeof (float));
-		    break;
-		case CompOptionTypeString:
-		    stringValue = (char **) setVal;
-		    if (optVal->s)
-			*stringValue = strdup (optVal->s);
-		    else
-			*stringValue = strdup ("");
-		    stringValue2 = (char **) value;
-		    if (!*stringValue2 || strcmp (*stringValue, *stringValue2))
-			changed = TRUE;
-		    break;
-		case CompOptionTypeColor:
-		    memcpy (setVal, optVal->c, sizeof (unsigned short) * 4);
-		    changed |= memcmp (value, setVal,
-				       sizeof (unsigned short) * 4);
-		    break;
-                case CompOptionTypeMatch:
-		    matchValue = (CompMatch *) setVal;
-		    matchInit (matchValue);
-		    matchCopy (matchValue, &optVal->match);
-		    changed |= matchEqual ((CompMatch *) value,
-					   (CompMatch *) setVal);
-		    break;
-		default:
-		    break;
-		}
-	    }
-	}
-	
-	if (changed)
-	{
-	    setVal = rv + (j * structSize);
-	    (*fini) (setVal, closure);
-	}
-	else
-	    setVal = newVal;
-	
-	for (i = 0; i < numOptions; i++)
-	{
-	    value = setVal + offsets[i];
-	    switch (options[i]->type)
-	    {
-	    case CompOptionTypeString:
-		stringValue = (char **) value;
-		if (*stringValue)
-		    free (*stringValue);
-		break;
-            case CompOptionTypeMatch:
-		matchValue = (CompMatch *) value;
-		matchFini (matchValue);
-		break;
-	    default:
-		break;
-	    }
-	}
-	
-	if (changed)
-	{
-	    memcpy (rv + (j * structSize), newVal, structSize);
-	    (*init) (rv + (j * structSize), closure);
-	}
-	
-    }
-
-    free (options);
-    free (offsets);
-    free (newVal);
-    *numReturn = nElements;
-    return rv;
-}
+#define WALLPAPER_SCREEN(s) \
+        WallpaperScreen *ws = GET_WALLPAPER_SCREEN (s, GET_WALLPAPER_DISPLAY (&display))
 
 static Visual *
 findArgbVisual (Display *dpy,
-		int     screen)
+                int     screen)
 {
-    XVisualInfo		*xvi;
-    XVisualInfo		template;
-    int			nvi;
-    int			i;
-    XRenderPictFormat	*format;
-    Visual		*visual;
+	XVisualInfo       *xvi;
+	XVisualInfo       template;
+	int               nvi;
+	int               i;
+	XRenderPictFormat *format;
+	Visual            *visual;
 
-    template.screen = screen;
-    template.depth  = 32;
-    template.class  = TrueColor;
+	template.screen = screen;
+	template.depth  = 32;
+	template.class  = TrueColor;
 
-    xvi = XGetVisualInfo (dpy,
-			  VisualScreenMask |
-			  VisualDepthMask  |
-			  VisualClassMask,
-			  &template,
-			  &nvi);
-    if (!xvi)
-	return 0;
+	xvi = XGetVisualInfo (dpy,
+	                      VisualScreenMask |
+	                      VisualDepthMask  |
+	                      VisualClassMask,
+	                      &template,
+	                      &nvi);
+	if (!xvi)
+		return 0;
 
-    visual = 0;
-    for (i = 0; i < nvi; i++)
-    {
-	format = XRenderFindVisualFormat (dpy, xvi[i].visual);
-	if (format->type == PictTypeDirect && format->direct.alphaMask)
+	visual = 0;
+	for (i = 0; i < nvi; i++)
 	{
-	    visual = xvi[i].visual;
-	    break;
+		format = XRenderFindVisualFormat (dpy, xvi[i].visual);
+		if (format->type == PictTypeDirect && format->direct.alphaMask)
+		{
+			visual = xvi[i].visual;
+			break;
+		}
 	}
-    }
 
-    XFree (xvi);
+	XFree (xvi);
 
-    return visual;
+	return visual;
 }
 
 static void
 createFakeDesktopWindow (CompScreen *s)
 {
-    Display              *dpy = s->display->display;
-    XSizeHints           xsh;
-    XWMHints             xwmh;
-    XSetWindowAttributes attr;
-    Visual               *visual;
-    XserverRegion        region;
+	Display              *dpy = display.display;
+	XSizeHints           xsh;
+	XWMHints             xwmh;
+	XSetWindowAttributes attr;
+	Visual               *visual;
+	XserverRegion        region;
 
-    WALLPAPER_SCREEN (s);
+	WALLPAPER_SCREEN (s);
 
-    visual = findArgbVisual (dpy, s->screenNum);
-    if (!visual)
-	return;
+	visual = findArgbVisual (dpy, s->screenNum);
+	if (!visual)
+		return;
 
-    xsh.flags       = PSize | PPosition | PWinGravity;
-    xsh.width       = 1;
-    xsh.height      = 1;
-    xsh.win_gravity = StaticGravity;
+	xsh.flags       = PSize | PPosition | PWinGravity;
+	xsh.width       = 1;
+	xsh.height      = 1;
+	xsh.win_gravity = StaticGravity;
 
-    xwmh.flags = InputHint;
-    xwmh.input = 0;
+	xwmh.flags = InputHint;
+	xwmh.input = 0;
 
-    attr.background_pixel = 0;
-    attr.border_pixel     = 0;
-    attr.colormap	  = XCreateColormap (dpy, s->root, visual, AllocNone);
+	attr.background_pixel = 0;
+	attr.border_pixel     = 0;
+	attr.colormap         = XCreateColormap (dpy, s->root, visual, AllocNone);
 
-    ws->fakeDesktop = XCreateWindow (dpy, s->root, -1, -1, 1, 1, 0, 32,
-				     InputOutput, visual,
-				     CWBackPixel | CWBorderPixel | CWColormap,
-				     &attr);
+	ws->fakeDesktop = XCreateWindow (dpy, s->root, -1, -1, 1, 1, 0, 32,
+	                                 InputOutput, visual,
+	                                 CWBackPixel | CWBorderPixel | CWColormap,
+	                                 &attr);
 
-    XSetWMProperties (dpy, ws->fakeDesktop, NULL, NULL,
-		      programArgv, programArgc, &xsh, &xwmh, NULL);
+	XSetWMProperties (dpy, ws->fakeDesktop, NULL, NULL,
+	                  programArgv, programArgc, &xsh, &xwmh, NULL);
 
-    XChangeProperty (dpy, ws->fakeDesktop, s->display->winStateAtom,
-		     XA_ATOM, 32, PropModeReplace,
-		     (unsigned char *) &s->display->winStateSkipPagerAtom, 1);
+	XChangeProperty (dpy, ws->fakeDesktop, display.winStateAtom,
+	                 XA_ATOM, 32, PropModeReplace,
+	                 (unsigned char *) &display.winStateSkipPagerAtom, 1);
 
-    XChangeProperty (dpy, ws->fakeDesktop, s->display->winTypeAtom,
-		     XA_ATOM, 32, PropModeReplace,
-		     (unsigned char *) &s->display->winTypeDesktopAtom, 1);
+	XChangeProperty (dpy, ws->fakeDesktop, display.winTypeAtom,
+	                 XA_ATOM, 32, PropModeReplace,
+	                 (unsigned char *) &display.winTypeDesktopAtom, 1);
 
-    region = XFixesCreateRegion (dpy, NULL, 0);
+	region = XFixesCreateRegion (dpy, NULL, 0);
 
-    XFixesSetWindowShapeRegion (dpy, ws->fakeDesktop, ShapeInput, 0, 0, region);
+	XFixesSetWindowShapeRegion (dpy, ws->fakeDesktop, ShapeInput, 0, 0, region);
 
-    XFixesDestroyRegion (dpy, region);
+	XFixesDestroyRegion (dpy, region);
 
-    XMapWindow (dpy, ws->fakeDesktop);
-    XLowerWindow (dpy, ws->fakeDesktop);
+	XMapWindow (dpy, ws->fakeDesktop);
+	XLowerWindow (dpy, ws->fakeDesktop);
 }
 
 static void
 destroyFakeDesktopWindow (CompScreen *s)
 {
-    WALLPAPER_SCREEN (s);
+	WALLPAPER_SCREEN (s);
 
-    if (ws->fakeDesktop != None)
-	XDestroyWindow (s->display->display, ws->fakeDesktop);
+	if (ws->fakeDesktop != None)
+		XDestroyWindow (display.display, ws->fakeDesktop);
 
-    ws->fakeDesktop = None;
+	ws->fakeDesktop = None;
 }
 
 static void
 updateProperty(CompScreen *s)
 {
-    WALLPAPER_SCREEN (s);
+	WALLPAPER_SCREEN (s);
 
-    if (!ws->nBackgrounds)
-    {
-	WALLPAPER_DISPLAY (s->display);
+	if (!ws->nBackgrounds)
+	{
+		WALLPAPER_DISPLAY (&display);
 
-	if (ws->propSet)
-	    XDeleteProperty (s->display->display,
-			     s->root, wd->compizWallpaperAtom);
-	ws->propSet = FALSE;
-    }
-    else if (!ws->propSet)
-    {
-	WALLPAPER_DISPLAY (s->display);
-	unsigned char sd = 1;
+		if (ws->propSet)
+			XDeleteProperty (display.display,
+			                 s->root, wd->compizWallpaperAtom);
+		ws->propSet = FALSE;
+	}
+	else if (!ws->propSet)
+	{
+		WALLPAPER_DISPLAY (&display);
+		unsigned char sd = 1;
 
-	XChangeProperty (s->display->display, s->root,
-			 wd->compizWallpaperAtom, XA_CARDINAL,
-			 8, PropModeReplace, &sd, 1);
-	ws->propSet = TRUE;
-    }
+		XChangeProperty (display.display, s->root,
+		                 wd->compizWallpaperAtom, XA_CARDINAL,
+		                 8, PropModeReplace, &sd, 1);
+		ws->propSet = TRUE;
+	}
 }
 
 static void
-initBackground (void *object,
-		void *closure)
+initBackground (WallpaperBackground *back,
+                CompScreen          *s)
 {
-    CompScreen          *s = (CompScreen *) closure;
-    WallpaperBackground *back = (WallpaperBackground *) object;
-    unsigned int        c[2];
-    unsigned short      *color;
+	unsigned int        c[2];
+	unsigned short      *color;
 
-    initTexture (s, &back->imgTex);
-    initTexture (s, &back->fillTex);
+	initTexture (s, &back->imgTex);
+	initTexture (s, &back->fillTex);
 
-    if (back->image && strlen (back->image))
-    {
-	if (!readImageToTexture (s, &back->imgTex, back->image,
-				 &back->width, &back->height))
+	if (back->image && strlen (back->image))
 	{
-	    compLogMessage ("wallpaper", CompLogLevelWarn,
-			    "Failed to load image: %s", back->image);
+		if (!readImageToTexture (s, &back->imgTex, back->image,
+		                         &back->width, &back->height))
+		{
+			compLogMessage ("wallpaper", CompLogLevelWarn,
+			                "Failed to load image: %s", back->image);
 
-	    back->width  = 0;
-	    back->height = 0;
+			back->width  = 0;
+			back->height = 0;
 
-	    finiTexture (s, &back->imgTex);
-	    initTexture (s, &back->imgTex);
+			finiTexture (s, &back->imgTex);
+			initTexture (s, &back->imgTex);
+		}
 	}
 
-    }
-	
-    color = back->color1;
-    c[0] = ((color[3] << 16) & 0xff000000) |
-	    ((color[0] * color[3] >> 8) & 0xff0000) |
-	    ((color[1] * color[3] >> 16) & 0xff00) |
-	    ((color[2] * color[3] >> 24) & 0xff);
-	
-    color = back->color2;
-    c[1] = ((color[3] << 16) & 0xff000000) |
+	color = back->color1;
+	c[0] = ((color[3] << 16) & 0xff000000) |
 	    ((color[0] * color[3] >> 8) & 0xff0000) |
 	    ((color[1] * color[3] >> 16) & 0xff00) |
 	    ((color[2] * color[3] >> 24) & 0xff);
 
-    if (back->fillType == BgFillTypeVerticalGradient)
-    {
-	imageBufferToTexture (s, &back->fillTex, (char *) &c, 1, 2);
-	back->fillTex.matrix.xx = 0.0;
-    }
-    else if (back->fillType == BgFillTypeHorizontalGradient)
-    {
-	imageBufferToTexture (s, &back->fillTex, (char *) &c, 2, 1);
-	back->fillTex.matrix.yy = 0.0;
-    }
-    else
-    {
-	imageBufferToTexture (s, &back->fillTex, (char *) &c, 1, 1);
-	back->fillTex.matrix.xx = 0.0;
-	back->fillTex.matrix.yy = 0.0;
-    }
+	color = back->color2;
+	c[1] = ((color[3] << 16) & 0xff000000) |
+	    ((color[0] * color[3] >> 8) & 0xff0000) |
+	    ((color[1] * color[3] >> 16) & 0xff00) |
+	    ((color[2] * color[3] >> 24) & 0xff);
+
+	if (back->fillType == BG_FILL_TYPE_VERTICAL_GRADIENT)
+	{
+		imageBufferToTexture (s, &back->fillTex, (char *) &c, 1, 2);
+		back->fillTex.matrix.xx = 0.0;
+	}
+	else if (back->fillType == BG_FILL_TYPE_HORIZONTAL_GRADIENT)
+	{
+		imageBufferToTexture (s, &back->fillTex, (char *) &c, 2, 1);
+		back->fillTex.matrix.yy = 0.0;
+	}
+	else
+	{
+		imageBufferToTexture (s, &back->fillTex, (char *) &c, 1, 1);
+		back->fillTex.matrix.xx = 0.0;
+		back->fillTex.matrix.yy = 0.0;
+	}
 }
 
 static void
-finiBackground (void *object,
-		void *closure)
+finiBackground (WallpaperBackground *back,
+                CompScreen          *s)
 {
-    CompScreen          *s = (CompScreen *) closure;
-    WallpaperBackground *back = (WallpaperBackground *) object;
-	
-    finiTexture (s, &back->imgTex);
-    finiTexture (s, &back->fillTex);
-}
-
-
-static void
-updateBackgrounds (CompScreen *s)
-{
-    WALLPAPER_SCREEN (s);
-
-    ws->backgrounds =
-	processMultiList (sizeof (WallpaperBackground),
-			  ws->backgrounds, &ws->nBackgrounds,
-			  initBackground, finiBackground, s, 5,
-			  wallpaperGetBgImageOption (s),
-			  offsetof (WallpaperBackground, image),
-			  wallpaperGetBgImagePosOption (s),
-			  offsetof (WallpaperBackground, imagePos),
-			  wallpaperGetBgFillTypeOption (s),
-			  offsetof (WallpaperBackground, fillType),
-			  wallpaperGetBgColor1Option (s),
-			  offsetof (WallpaperBackground, color1),
-			  wallpaperGetBgColor2Option (s),
-			  offsetof (WallpaperBackground, color2));
+	finiTexture (s, &back->imgTex);
+	finiTexture (s, &back->fillTex);
 }
 
 static void
 freeBackgrounds (CompScreen *s)
 {
-    WALLPAPER_SCREEN (s);
+	WALLPAPER_SCREEN (s);
 
-    unsigned int i;
+	unsigned int i;
 
-    if (!ws->backgrounds || !ws->nBackgrounds)
-	return;
+	if (!ws->backgrounds || !ws->nBackgrounds)
+		return;
 
-    for (i = 0; i < ws->nBackgrounds; i++)
-	finiBackground (&ws->backgrounds[i], s);
+	for (i = 0; i < ws->nBackgrounds; i++)
+		finiBackground (&ws->backgrounds[i], s);
 
-    free (ws->backgrounds);
+	free (ws->backgrounds);
 
-    ws->backgrounds  = NULL;
-    ws->nBackgrounds = 0;
+	ws->backgrounds  = NULL;
+	ws->nBackgrounds = 0;
 }
 
-
-/* Installed as a handler for the images setting changing through bcop */
 static void
-wallpaperBackgroundsChanged (CompScreen             *s,
-			     CompOption             *o,
-			     WallpaperScreenOptions num)
+updateBackgrounds (CompScreen *s)
 {
-    updateBackgrounds (s);
-    updateProperty (s);
-    damageScreen (s);
+	WALLPAPER_SCREEN (s);
+	int min, i;
+
+	freeBackgrounds (s);
+
+	const BananaValue *
+	option_bg_image = bananaGetOption (bananaIndex,
+	                                   "bg_image",
+	                                   s->screenNum);
+
+	const BananaValue *
+	option_bg_image_pos = bananaGetOption (bananaIndex,
+	                                       "bg_image_pos",
+	                                       s->screenNum);
+
+	const BananaValue *
+	option_bg_fill_type = bananaGetOption (bananaIndex,
+	                                       "bg_fill_type",
+	                                       s->screenNum);
+
+	const BananaValue *
+	option_bg_color1 = bananaGetOption (bananaIndex,
+	                                    "bg_color1",
+	                                    s->screenNum);
+
+	const BananaValue *
+	option_bg_color2 = bananaGetOption (bananaIndex,
+	                                    "bg_color2",
+	                                    s->screenNum);
+
+	min = MIN (option_bg_image->list.nItem, option_bg_image_pos->list.nItem);
+	min = MIN (min, option_bg_fill_type->list.nItem);
+	min = MIN (min, option_bg_color1->list.nItem);
+	min = MIN (min, option_bg_color2->list.nItem);
+
+	ws->backgrounds = malloc (min * sizeof (WallpaperBackground));
+	ws->nBackgrounds = min;
+
+	for (i = 0; i < ws->nBackgrounds; i++)
+	{
+		ws->backgrounds[i].image = strdup (option_bg_image->list.item[i].s);
+		ws->backgrounds[i].imagePos = option_bg_image_pos->list.item[i].i;
+		ws->backgrounds[i].fillType = option_bg_fill_type->list.item[i].i;
+
+		stringToColor (option_bg_color1->list.item[i].s,
+		               ws->backgrounds[i].color1);
+
+		stringToColor (option_bg_color2->list.item[i].s, 
+		               ws->backgrounds[i].color2);
+
+		initBackground (&ws->backgrounds[i], s);
+	}
 }
 
 static WallpaperBackground *
 getBackgroundForViewport (CompScreen *s)
 {
-    WALLPAPER_SCREEN(s);
-    int x, y;
+	WALLPAPER_SCREEN(s);
+	int x, y;
 
-    if (!ws->nBackgrounds)
-	return NULL;
+	if (!ws->nBackgrounds)
+		return NULL;
 
-    x = s->x - (s->windowOffsetX / s->width);
-    x %= s->hsize;
-    if (x < 0)
-	x += s->hsize;
+	x = s->x - (s->windowOffsetX / s->width);
+	x %= s->hsize;
+	if (x < 0)
+		x += s->hsize;
 
-    y = s->y - (s->windowOffsetY / s->height);
-    y %= s->vsize;
-    if (y < 0)
-	y += s->vsize;
+	y = s->y - (s->windowOffsetY / s->height);
+	y %= s->vsize;
+	if (y < 0)
+		y += s->vsize;
 
-    return &ws->backgrounds[(x + (y * s->hsize)) % ws->nBackgrounds];
+	return &ws->backgrounds[(x + (y * s->hsize)) % ws->nBackgrounds];
 }
 
 static void
-wallpaperHandleEvent (CompDisplay *d,
-		      XEvent      *event)
+wallpaperHandleEvent (XEvent      *event)
 {
-    CompScreen *s;
-    WALLPAPER_DISPLAY (d);
+	CompScreen *s;
+	WALLPAPER_DISPLAY (&display);
 
-    UNWRAP (wd, d, handleEvent);
-    (*d->handleEvent) (d, event);
-    WRAP (wd, d, handleEvent, wallpaperHandleEvent);
+	UNWRAP (wd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (wd, &display, handleEvent, wallpaperHandleEvent);
 
-    for (s = d->screens; s; s = s->next)
-    {
-	WALLPAPER_SCREEN (s);
+	for (s = display.screens; s; s = s->next)
+	{
+		WALLPAPER_SCREEN (s);
 
-	if (!s->desktopWindowCount && ws->fakeDesktop == None
-	    && ws->nBackgrounds)
-	    createFakeDesktopWindow (s);
+		if (!s->desktopWindowCount && ws->fakeDesktop == None
+		    && ws->nBackgrounds)
+			createFakeDesktopWindow (s);
 
-	if ((s->desktopWindowCount > 1 || !ws->nBackgrounds)
-	    && ws->fakeDesktop != None)
-	    destroyFakeDesktopWindow (s);
-    }
+		if ((s->desktopWindowCount > 1 || !ws->nBackgrounds)
+		     && ws->fakeDesktop != None)
+			destroyFakeDesktopWindow (s);
+	}
 }
 
 static Bool
 wallpaperPaintOutput (CompScreen              *s,
-		      const ScreenPaintAttrib *sAttrib,
-		      const CompTransform     *transform,
-		      Region                  region,
-		      CompOutput              *output,
-		      unsigned int            mask)
+                      const ScreenPaintAttrib *sAttrib,
+                      const CompTransform     *transform,
+                      Region                  region,
+                      CompOutput              *output,
+                      unsigned int            mask)
 {
-    Bool status;
+	Bool status;
 
-    WALLPAPER_SCREEN (s);
+	WALLPAPER_SCREEN (s);
 
-    ws->desktop = NULL;
+	ws->desktop = NULL;
 
-    UNWRAP (ws, s, paintOutput);
-    status = (*s->paintOutput) (s, sAttrib, transform, region, output, mask);
-    WRAP (ws, s, paintOutput, wallpaperPaintOutput);
+	UNWRAP (ws, s, paintOutput);
+	status = (*s->paintOutput) (s, sAttrib, transform, region, output, mask);
+	WRAP (ws, s, paintOutput, wallpaperPaintOutput);
 
-    return status;
+	return status;
 }
 
 static Bool
 wallpaperDrawWindow (CompWindow           *w,
-		     const CompTransform  *transform,
-		     const FragmentAttrib *attrib,
-		     Region               region,
-		     unsigned int         mask)
+                     const CompTransform  *transform,
+                     const FragmentAttrib *attrib,
+                     Region               region,
+                     unsigned int         mask)
 {
-    Bool           status;
-    CompScreen     *s = w->screen;
-    FragmentAttrib fA = *attrib;
+	Bool           status;
+	CompScreen     *s = w->screen;
+	FragmentAttrib fA = *attrib;
 
-    WALLPAPER_SCREEN (w->screen);
+	WALLPAPER_SCREEN (w->screen);
 
-    if ((!ws->desktop || ws->desktop == w) && ws->nBackgrounds && w->alpha &&
-	w->type & CompWindowTypeDesktopMask)
-    {
-	REGION              tmpRegion;
-        CompMatrix          tmpMatrix;
-	int	            saveFilter, filterIdx;
-	WallpaperBackground *back = getBackgroundForViewport (s);
-	
-	if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
-	    region = &infiniteRegion;
-
-	tmpRegion.rects	 = &tmpRegion.extents;
-	tmpRegion.numRects = 1;
-	
-	if (mask & PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK)
-	    filterIdx = SCREEN_TRANS_FILTER;
-	else if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
-	    filterIdx = WINDOW_TRANS_FILTER;
-	else
-	    filterIdx = NOTHING_TRANS_FILTER;
-	
-	saveFilter = s->filter[filterIdx];
-
-	s->filter[filterIdx] = COMP_TEXTURE_FILTER_GOOD;
-	
-	if (attrib->opacity != OPAQUE)
-	    mask |= PAINT_WINDOW_BLEND_MASK;
-
-	w->vCount = w->indexCount = 0;
-	
-	tmpMatrix = back->fillTex.matrix;
-
-	if (back->fillType == BgFillTypeVerticalGradient)
+	if ((!ws->desktop || ws->desktop == w) && ws->nBackgrounds && w->alpha &&
+	                                      w->type & CompWindowTypeDesktopMask)
 	{
-	    tmpMatrix.yy /= (float) s->height / 2.0;
-	}
-	else if (back->fillType == BgFillTypeHorizontalGradient)
-	{
-	    tmpMatrix.xx /= (float) s->width / 2.0;
-	}
+		REGION              tmpRegion;
+		CompMatrix          tmpMatrix;
+		int            saveFilter, filterIdx;
+		WallpaperBackground *back = getBackgroundForViewport (s);
 
-	(*w->screen->addWindowGeometry) (w, &tmpMatrix, 1,
-					 &s->region, region);
+		if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
+			region = &infiniteRegion;
 
-	if (w->vCount)
-	    (*w->screen->drawWindowTexture) (w, &back->fillTex,
-					     &fA, mask);
-	
-	mask |= PAINT_WINDOW_BLEND_MASK;
+		tmpRegion.rects    = &tmpRegion.extents;
+		tmpRegion.numRects = 1;
 
-	if (back->width && back->height)
-	{
-	    Region reg = &s->region;
-	    float  s1, s2;
-	    int    x, y, xi;
-
-	    w->vCount = w->indexCount = 0;
-	    tmpMatrix = back->imgTex.matrix;
-
-
-	    if (back->imagePos == BgImagePosScaleAndCrop)
-	    {
-		s1 = (float) s->width / back->width;
-		s2 = (float) s->height / back->height;
-		
-		s1 = MAX (s1, s2);
-
-		tmpMatrix.xx /= s1;
-		tmpMatrix.yy /= s1;
-		
-		x = (s->width - ((int)back->width * s1)) / 2.0;
-		tmpMatrix.x0 -= x * tmpMatrix.xx;
-		y = (s->height - ((int)back->height * s1)) / 2.0;
-		tmpMatrix.y0 -= y * tmpMatrix.yy;
-	    }
-	    else if (back->imagePos == BgImagePosScaled)
-	    {
-		s1 = (float) s->width / back->width;
-		s2 = (float) s->height / back->height;
-		tmpMatrix.xx /= s1;
-		tmpMatrix.yy /= s2;
-	    }
-	    else if (back->imagePos == BgImagePosCentered)
-	    {
-		x = (s->width - (int)back->width) / 2;
-		y = (s->height - (int)back->height) / 2;
-		tmpMatrix.x0 -= x * tmpMatrix.xx;
-		tmpMatrix.y0 -= y * tmpMatrix.yy;
-		
-		reg = &tmpRegion;
-		
-		tmpRegion.extents.x1 = MAX (0, x);
-		tmpRegion.extents.y1 = MAX (0, y);
-		tmpRegion.extents.x2 = MIN (s->width, x + back->width);
-		tmpRegion.extents.y2 = MIN (s->height, y + back->height);
-	    }
-
-	    if (back->imagePos == BgImagePosTiled ||
-		back->imagePos == BgImagePosCenterTiled)
-	    {
-		if (back->imagePos == BgImagePosCenterTiled)
-		{
-		    x = (s->width - (int)back->width) / 2;
-		    y = (s->height - (int)back->height) / 2;
-
-		    if (x > 0)
-			x = (x % (int)back->width) - (int)back->width;
-		    if (y > 0)
-			y = (y % (int)back->height) - (int)back->height;
-		}
+		if (mask & PAINT_WINDOW_ON_TRANSFORMED_SCREEN_MASK)
+			filterIdx = SCREEN_TRANS_FILTER;
+		else if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
+			filterIdx = WINDOW_TRANS_FILTER;
 		else
-		{
-		    x = 0;
-		    y = 0;
-		}
-		
-		reg = &tmpRegion;
-		
-		while (y < s->height)
-		{
-		    xi = x;
-		    while (xi < s->width)
-		    {
-			tmpMatrix = back->imgTex.matrix;
-			tmpMatrix.x0 -= xi * tmpMatrix.xx;
-			tmpMatrix.y0 -= y * tmpMatrix.yy;
-			
-			tmpRegion.extents.x1 = MAX (0, xi);
-			tmpRegion.extents.y1 = MAX (0, y);
-			tmpRegion.extents.x2 = MIN (s->width, xi + back->width);
-			tmpRegion.extents.y2 = MIN (s->height,
-						    y + back->height);
+		filterIdx = NOTHING_TRANS_FILTER;
 
-			(*w->screen->addWindowGeometry) (w, &tmpMatrix, 1,
-							 reg, region);
+		saveFilter = s->filter[filterIdx];
 
-			xi += (int)back->width;
-		    }
-		    y += (int)back->height;
+		s->filter[filterIdx] = COMP_TEXTURE_FILTER_GOOD;
+
+		if (attrib->opacity != OPAQUE)
+			mask |= PAINT_WINDOW_BLEND_MASK;
+
+		w->vCount = w->indexCount = 0;
+
+		tmpMatrix = back->fillTex.matrix;
+
+		if (back->fillType == BG_FILL_TYPE_VERTICAL_GRADIENT)
+		{
+			tmpMatrix.yy /= (float) s->height / 2.0;
 		}
-	    }
-	    else
-	    {
+		else if (back->fillType == BG_FILL_TYPE_HORIZONTAL_GRADIENT)
+		{
+			tmpMatrix.xx /= (float) s->width / 2.0;
+		}
+
 		(*w->screen->addWindowGeometry) (w, &tmpMatrix, 1,
-						 reg, region);
-	    }
+		                                 &s->region, region);
 
-	    if (w->vCount)
-	        (*w->screen->drawWindowTexture) (w, &back->imgTex,
-						 &fA, mask);
+		if (w->vCount)
+			(*w->screen->drawWindowTexture) (w, &back->fillTex, &fA, mask);
 
-	    s->filter[filterIdx] = saveFilter;
+		mask |= PAINT_WINDOW_BLEND_MASK;
+
+		if (back->width && back->height)
+		{
+			Region reg = &s->region;
+			float  s1, s2;
+			int    x, y, xi;
+
+			w->vCount = w->indexCount = 0;
+			tmpMatrix = back->imgTex.matrix;
+
+
+			if (back->imagePos == BG_IMAGE_POS_SCALE_AND_CROP)
+			{
+				s1 = (float) s->width / back->width;
+				s2 = (float) s->height / back->height;
+
+				s1 = MAX (s1, s2);
+
+				tmpMatrix.xx /= s1;
+				tmpMatrix.yy /= s1;
+
+				x = (s->width - ((int)back->width * s1)) / 2.0;
+				tmpMatrix.x0 -= x * tmpMatrix.xx;
+				y = (s->height - ((int)back->height * s1)) / 2.0;
+				tmpMatrix.y0 -= y * tmpMatrix.yy;
+			}
+			else if (back->imagePos == BG_IMAGE_POS_SCALED)
+			{
+				s1 = (float) s->width / back->width;
+				s2 = (float) s->height / back->height;
+				tmpMatrix.xx /= s1;
+				tmpMatrix.yy /= s2;
+			}
+			else if (back->imagePos == BG_IMAGE_POS_CENTERED)
+			{
+				x = (s->width - (int)back->width) / 2;
+				y = (s->height - (int)back->height) / 2;
+				tmpMatrix.x0 -= x * tmpMatrix.xx;
+				tmpMatrix.y0 -= y * tmpMatrix.yy;
+
+				reg = &tmpRegion;
+
+				tmpRegion.extents.x1 = MAX (0, x);
+				tmpRegion.extents.y1 = MAX (0, y);
+				tmpRegion.extents.x2 = MIN (s->width, x + back->width);
+				tmpRegion.extents.y2 = MIN (s->height, y + back->height);
+			}
+
+			if (back->imagePos == BG_IMAGE_POS_TILED ||
+			    back->imagePos == BG_IMAGE_POS_CENTER_TILED)
+			{
+				if (back->imagePos == BG_IMAGE_POS_CENTER_TILED)
+				{
+					x = (s->width - (int)back->width) / 2;
+					y = (s->height - (int)back->height) / 2;
+
+					if (x > 0)
+						x = (x % (int)back->width) - (int)back->width;
+					if (y > 0)
+						y = (y % (int)back->height) - (int)back->height;
+				}
+				else
+				{
+					x = 0;
+					y = 0;
+				}
+
+				reg = &tmpRegion;
+
+				while (y < s->height)
+				{
+					xi = x;
+					while (xi < s->width)
+					{
+						tmpMatrix = back->imgTex.matrix;
+						tmpMatrix.x0 -= xi * tmpMatrix.xx;
+						tmpMatrix.y0 -= y * tmpMatrix.yy;
+						
+						tmpRegion.extents.x1 = MAX (0, xi);
+						tmpRegion.extents.y1 = MAX (0, y);
+						tmpRegion.extents.x2 = MIN (s->width, xi + back->width);
+						tmpRegion.extents.y2 = MIN (s->height, y + back->height);
+
+						(*w->screen->addWindowGeometry) (w, &tmpMatrix, 1,
+						                                       reg, region);
+
+						xi += (int)back->width;
+					}
+					y += (int)back->height;
+				}
+			}
+			else
+			{
+				(*w->screen->addWindowGeometry) (w, &tmpMatrix, 1,
+				                                       reg, region);
+			}
+
+			if (w->vCount)
+				(*w->screen->drawWindowTexture) (w, &back->imgTex, &fA, mask);
+
+			s->filter[filterIdx] = saveFilter;
+		}
+
+		ws->desktop = w;
+		fA.opacity  = OPAQUE;
 	}
-	
-	ws->desktop = w;
-	fA.opacity  = OPAQUE;
-    }
 
-    UNWRAP (ws, w->screen, drawWindow);
-    status = (*w->screen->drawWindow) (w, transform, &fA, region, mask);
-    WRAP (ws, w->screen, drawWindow, wallpaperDrawWindow);
+	UNWRAP (ws, w->screen, drawWindow);
+	status = (*w->screen->drawWindow) (w, transform, &fA, region, mask);
+	WRAP (ws, w->screen, drawWindow, wallpaperDrawWindow);
 
-    return status;
+	return status;
 }
 
 static Bool
 wallpaperDamageWindowRect (CompWindow *w,
-			   Bool       initial,
-			   BoxPtr     rect)
+                           Bool       initial,
+                           BoxPtr     rect)
 {
-    Bool status;
+	Bool status;
 
-    WALLPAPER_SCREEN (w->screen);
+	WALLPAPER_SCREEN (w->screen);
 
-    if (w->id == ws->fakeDesktop)
-	damageScreen (w->screen);
+	if (w->id == ws->fakeDesktop)
+		damageScreen (w->screen);
 
-    UNWRAP (ws, w->screen, damageWindowRect);
-    status = (*w->screen->damageWindowRect) (w, initial, rect);
-    WRAP (ws, w->screen, damageWindowRect, wallpaperDamageWindowRect);
+	UNWRAP (ws, w->screen, damageWindowRect);
+	status = (*w->screen->damageWindowRect) (w, initial, rect);
+	WRAP (ws, w->screen, damageWindowRect, wallpaperDamageWindowRect);
 
-    return status;
+	return status;
 }
 
 static Bool
 wallpaperInitDisplay (CompPlugin * p,
-		      CompDisplay *d)
+                      CompDisplay *d)
 {
-    WallpaperDisplay * wd;
+	WallpaperDisplay *wd;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+	wd = malloc (sizeof (WallpaperDisplay));
+	if (!wd)
+		return FALSE;
 
-    wd = malloc (sizeof (WallpaperDisplay));
-    if (!wd)
-	return FALSE;
+	wd->screenPrivateIndex = allocateScreenPrivateIndex ();
+	if (wd->screenPrivateIndex < 0)
+	{
+		free (wd);
+		return FALSE;
+	}
 
-    wd->screenPrivateIndex = allocateScreenPrivateIndex (d);
-    if (wd->screenPrivateIndex < 0)
-    {
+	wd->compizWallpaperAtom = XInternAtom (display.display,
+	                                       "_COMPIZ_WALLPAPER_SUPPORTED", 0);
+
+	d->base.privates[displayPrivateIndex].ptr = wd;
+
+	WRAP (wd, d, handleEvent, wallpaperHandleEvent);
+
+	return TRUE;
+}
+
+static void 
+wallpaperFiniDisplay (CompPlugin  *p,
+                      CompDisplay *d)
+{
+	WALLPAPER_DISPLAY (d);
+
+	freeScreenPrivateIndex (wd->screenPrivateIndex);
+
+	UNWRAP (wd, d, handleEvent);
+
 	free (wd);
-	return FALSE;
-    }
-
-    wd->compizWallpaperAtom = XInternAtom (d->display,
-					   "_COMPIZ_WALLPAPER_SUPPORTED", 0);
-
-    d->base.privates[WallpaperDisplayPrivateIndex].ptr = wd;
-
-    WRAP (wd, d, handleEvent, wallpaperHandleEvent);
-
-    return TRUE;
-
 }
 
-static void wallpaperFiniDisplay (CompPlugin * p,
-				  CompDisplay *d)
+static Bool
+wallpaperInitScreen (CompPlugin *p,
+                     CompScreen *s)
 {
-    WALLPAPER_DISPLAY (d);
+	WallpaperScreen *ws;
+	WALLPAPER_DISPLAY (&display);
 
-    freeScreenPrivateIndex (d, wd->screenPrivateIndex);
+	ws = malloc (sizeof (WallpaperScreen));
+	if (!ws)
+		return FALSE;
 
-    UNWRAP (wd, d, handleEvent);
+	ws->backgrounds  = NULL;
+	ws->nBackgrounds = 0;
 
-    free (wd);
+	ws->propSet = FALSE;
+
+	ws->fakeDesktop = None;
+
+	s->base.privates[wd->screenPrivateIndex].ptr = ws;
+
+	updateBackgrounds (s);
+	updateProperty (s);
+	damageScreen (s);
+
+	if (!s->desktopWindowCount && ws->nBackgrounds)
+		createFakeDesktopWindow (s);
+
+	WRAP (ws, s, paintOutput, wallpaperPaintOutput);
+	WRAP (ws, s, drawWindow, wallpaperDrawWindow);
+	WRAP (ws, s, damageWindowRect, wallpaperDamageWindowRect);
+
+	return TRUE;
 }
 
-static Bool wallpaperInitScreen (CompPlugin *p,
-				 CompScreen *s)
+static void 
+wallpaperFiniScreen (CompPlugin *p,
+                     CompScreen *s)
 {
-    WallpaperScreen *ws;
-    WALLPAPER_DISPLAY (s->display);
+	WALLPAPER_SCREEN (s);
+	WALLPAPER_DISPLAY (&display);
 
-    ws = malloc (sizeof (WallpaperScreen));
-    if (!ws)
-	return FALSE;
+	if (ws->propSet)
+		XDeleteProperty (display.display, s->root, wd->compizWallpaperAtom);
 
-    ws->backgrounds  = NULL;
-    ws->nBackgrounds = 0;
+	if (ws->fakeDesktop != None)
+		destroyFakeDesktopWindow (s);
 
-    ws->propSet = FALSE;
+	freeBackgrounds (s);
 
-    ws->fakeDesktop = None;
+	UNWRAP (ws, s, paintOutput);
+	UNWRAP (ws, s, drawWindow);
+	UNWRAP (ws, s, damageWindowRect);
 
-    wallpaperSetBgImageNotify (s, wallpaperBackgroundsChanged);
-    wallpaperSetBgImagePosNotify (s, wallpaperBackgroundsChanged);
-    wallpaperSetBgFillTypeNotify (s, wallpaperBackgroundsChanged);
-    wallpaperSetBgColor1Notify (s, wallpaperBackgroundsChanged);
-    wallpaperSetBgColor2Notify (s, wallpaperBackgroundsChanged);
-
-    s->base.privates[wd->screenPrivateIndex].ptr = ws;
-
-    updateBackgrounds (s);
-    updateProperty (s);
-    damageScreen (s);
-
-    if (!s->desktopWindowCount && ws->nBackgrounds)
-	createFakeDesktopWindow (s);
-
-    WRAP (ws, s, paintOutput, wallpaperPaintOutput);
-    WRAP (ws, s, drawWindow, wallpaperDrawWindow);
-    WRAP (ws, s, damageWindowRect, wallpaperDamageWindowRect);
-
-    return TRUE;
-
-}
-
-static void wallpaperFiniScreen (CompPlugin *p,
-				 CompScreen *s)
-{
-    WALLPAPER_SCREEN (s);
-    WALLPAPER_DISPLAY (s->display);
-
-    if (ws->propSet)
-	XDeleteProperty (s->display->display, s->root, wd->compizWallpaperAtom);
-
-    if (ws->fakeDesktop != None)
-	destroyFakeDesktopWindow (s);
-
-    freeBackgrounds (s);
-
-    UNWRAP (ws, s, paintOutput);
-    UNWRAP (ws, s, drawWindow);
-    UNWRAP (ws, s, damageWindowRect);
-
-    free (ws);
+	free (ws);
 }
 
 static CompBool
 wallpaperInitObject (CompPlugin *p,
-		     CompObject *o)
+                     CompObject *o)
 {
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) wallpaperInitDisplay,
-	(InitPluginObjectProc) wallpaperInitScreen
-    };
+	static InitPluginObjectProc dispTab[] = {
+		(InitPluginObjectProc) 0, /* InitCore */
+		(InitPluginObjectProc) wallpaperInitDisplay,
+		(InitPluginObjectProc) wallpaperInitScreen
+	};
 
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
+	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
 }
 
 static void
 wallpaperFiniObject (CompPlugin *p,
-		     CompObject *o)
+                     CompObject *o)
 {
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) wallpaperFiniDisplay,
-	(FiniPluginObjectProc) wallpaperFiniScreen
-    };
+	static FiniPluginObjectProc dispTab[] = {
+		(FiniPluginObjectProc) 0, /* FiniCore */
+		(FiniPluginObjectProc) wallpaperFiniDisplay,
+		(FiniPluginObjectProc) wallpaperFiniScreen
+	};
 
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
+	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
+}
+
+static void
+wallpaperChangeNotify (const char        *optionName,
+                       BananaType        optionType,
+                       const BananaValue *optionValue,
+                       int               screenNum)
+{
+	CompScreen *s;
+
+	if (screenNum != -1)
+		s = getScreenFromScreenNum (screenNum);
+	else
+		return;
+
+	updateBackgrounds (s);
+	updateProperty (s);
+	damageScreen (s);
+
 }
 
 static Bool
 wallpaperInit (CompPlugin *p)
 {
-    WallpaperDisplayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (WallpaperDisplayPrivateIndex < 0)
-	return FALSE;
-    return TRUE;
+	if (getCoreABI() != CORE_ABIVERSION)
+	{
+		compLogMessage ("annotate", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
+
+		return FALSE;
+	}
+
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("wallpaper");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, wallpaperChangeNotify);
+
+	return TRUE;
 }
 
 static void
 wallpaperFini (CompPlugin *p)
 {
-    freeDisplayPrivateIndex (WallpaperDisplayPrivateIndex);
+	freeDisplayPrivateIndex (displayPrivateIndex);
+
+	bananaUnloadPlugin (bananaIndex);
 }
 
-static CompPluginVTable wallpaperVTable=
-{
-    "wallpaper",
-    0,
-    wallpaperInit,
-    wallpaperFini,
-    wallpaperInitObject,
-    wallpaperFiniObject,
-    0,
-    0
+static CompPluginVTable wallpaperVTable = {
+	"wallpaper",
+	wallpaperInit,
+	wallpaperFini,
+	wallpaperInitObject,
+	wallpaperFiniObject,
 };
 
-CompPluginVTable* getCompPluginInfo (void)
+CompPluginVTable*
+getCompPluginInfo20140724 (void)
 {
-    return &wallpaperVTable;
+	return &wallpaperVTable;
 }
 

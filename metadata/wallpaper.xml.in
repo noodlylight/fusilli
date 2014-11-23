@@ -1,30 +1,33 @@
-<compiz>
-	<plugin name="wallpaper" useBcop="true">
+<?xml version="1.0" encoding="UTF-8"?>
+<fusilli>
+	<plugin name="wallpaper">
 		<_short>Wallpaper</_short>
 		<_long>Draw the desktop wallpaper</_long>
 		<category>Utility</category>
 		<deps>
 			<relation type="after">
 				<plugin>svg</plugin>
-				<plugin>png</plugin>
-				<plugin>imgjpeg</plugin>
 			</relation>
 		</deps>
-		<screen>
-			<subgroup>
+
+		<group>
+			<_short>General</_short>
+
+			<subgroup multilist="true">
 				<_short>Backgrounds</_short>
-				<option name="bg_image" type="list">
+
+				<option name="bg_image" type="list_string" per_screen="true">
 					<_short>Image</_short>
-					<_long>Image file.</_long>
-					<type>string</type>
+					<_long>Image file</_long>
 					<hints>file;image;</hints>
 				</option>
-				<option name="bg_image_pos" type="list">
+
+				<option name="bg_image_pos" type="list_int" per_screen="true">
 					<_short>Position</_short>
-					<_long>Image position.</_long>
-					<type>int</type>
+					<_long>Image position</_long>
 					<min>0</min>
 					<max>4</max>
+					<default>2</default>
 					<desc>
 						<value>0</value>
 						<_name>Scale and Crop</_name>
@@ -46,12 +49,13 @@
 						<_name>Center Tiled</_name>
 					</desc>
 				</option>
-				<option name="bg_fill_type" type="list">
+
+				<option name="bg_fill_type" type="list_int" per_screen="true">
 					<_short>Fill type</_short>
-					<_long>Background fill type.</_long>
-					<type>int</type>
+					<_long>Background fill type</_long>
 					<min>0</min>
 					<max>2</max>
+					<default>2</default>
 					<desc>
 						<value>0</value>
 						<_name>Solid fill</_name>
@@ -65,20 +69,25 @@
 						<_name>Horizontal gradient</_name>
 					</desc>
 				</option>
-				<option name="bg_color1" type="list">
+
+				<option name="bg_color1" type="list_string" per_screen="true">
 					<_short>Color 1</_short>
-					<_long>Fill or first gradient color.</_long>
-					<type>color</type>
+					<_long>Fill or first gradient color</_long>
+					<default>#ffffffff</default>
+					<hint>color</hint>
 				</option>
-				<option name="bg_color2" type="list">
+
+				<option name="bg_color2" type="list_string" per_screen="true">
 					<_short>Color 2</_short>
-					<_long>Second gradient color.</_long>
-					<type>color</type>
+					<_long>Second gradient color</_long>
+					<default>#000000ff</default>
+					<hint>color</hint>
 				</option>
+
 			</subgroup>
-		</screen>
+		</group>
 	</plugin>
-</compiz>
+</fusilli>
 
 	
 	
