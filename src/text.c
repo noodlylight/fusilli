@@ -367,6 +367,8 @@ textRenderWindowTitle (CompScreen           *s,
 			defaultViewportForWindow (w, &vx, &vy);
 			viewport = vy * w->screen->hsize + vx + 1;
 			bytes = asprintf (&text, "%s -[%d]-", title, viewport);
+			if (bytes == -1) //error occured in asprintf, the contents of text are now undefined
+				text = NULL;
 			free (title);
 		}
 	}

@@ -31,7 +31,6 @@
 
 #include <cairo/cairo-xlib.h>
 #include <librsvg/rsvg.h>
-#include <librsvg/rsvg-cairo.h>
 
 #include <X11/Xatom.h>
 #include <X11/extensions/shape.h>
@@ -464,7 +463,7 @@ updateWindowSvgContext (CompWindow *w,
 		updateWindowSvgMatrix (w);
 	}
 }
-
+#if 0
 static Bool
 svgSet (BananaArgument     *arg,
         int                nArg)
@@ -583,6 +582,7 @@ svgSet (BananaArgument     *arg,
 
 	return FALSE;
 }
+#endif
 
 static void
 svgWindowMoveNotify (CompWindow *w,
@@ -727,7 +727,7 @@ readSvgFileToImage (char *file,
 	*data = malloc (svgDimension.width * svgDimension.height * 4);
 	if (!*data)
 	{
-		rsvg_handle_free (svgHandle);
+		g_object_unref (svgHandle);
 		return FALSE;
 	}
 
@@ -752,7 +752,7 @@ readSvgFileToImage (char *file,
 		cairo_surface_destroy (surface);
 	}
 
-	rsvg_handle_free (svgHandle);
+	g_object_unref (svgHandle);
 
 	return TRUE;
 }
@@ -934,7 +934,7 @@ svgFiniWindow (CompPlugin *p,
 
 	if (sw->source)
 	{
-		rsvg_handle_free (sw->source->svg);
+		g_object_unref (sw->source->svg);
 		free (sw->source);
 	}
 
@@ -994,8 +994,6 @@ svgInit (CompPlugin *p)
 	if (displayPrivateIndex < 0)
 		return FALSE;
 
-	rsvg_init ();
-
 	return TRUE;
 }
 
@@ -1003,8 +1001,6 @@ static void
 svgFini (CompPlugin *p)
 {
 	freeDisplayPrivateIndex (displayPrivateIndex);
-
-	rsvg_term ();
 }
 
 CompPluginVTable svgVTable = {

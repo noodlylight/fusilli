@@ -939,7 +939,7 @@ resizeHandleMotionEvent (CompScreen *s,
 			/* only constrain movement if previous position was valid */
 			if (rd->inRegionStatus == RectangleIn)
 			{
-				int xStatus, yForXResize;
+				int xStatus = -1, yForXResize = -1;
 				int nx = x;
 				int nw = w;
 				int nh = h;

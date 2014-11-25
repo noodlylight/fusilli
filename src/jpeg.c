@@ -258,15 +258,19 @@ createFilename (const char *path,
                 const char *name)
 {
 	char *filename = NULL;
+	int retval;
 
 	if (path && !name)
-		asprintf (&filename, "%s", path);
+		retval = asprintf (&filename, "%s", path);
 	else if (!path && name)
-		asprintf (&filename, "%s", name);
+		retval = asprintf (&filename, "%s", name);
 	else
-		asprintf (&filename, "%s/%s", path, name);
+		retval = asprintf (&filename, "%s/%s", path, name);
 
-	return filename;
+	if (retval != -1)
+		return filename;
+	else
+		return NULL;
 }
 
 Bool

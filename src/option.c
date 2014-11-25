@@ -112,18 +112,18 @@ modifiersToString (unsigned int modMask)
 	return binding;
 }
 
-static char *
-edgeMaskToBindingString (unsigned int edgeMask)
-{
-	char *binding = NULL;
-	int  i;
+// static char *
+// edgeMaskToBindingString (unsigned int edgeMask)
+// {
+// 	char *binding = NULL;
+// 	int  i;
 
-	for (i = 0; i < SCREEN_EDGE_NUM; i++)
-		if (edgeMask & (1 << i))
-			binding = stringAppend (binding, edges[i].modifierName);
+// 	for (i = 0; i < SCREEN_EDGE_NUM; i++)
+// 		if (edgeMask & (1 << i))
+// 			binding = stringAppend (binding, edges[i].modifierName);
 
-	return binding;
-}
+// 	return binding;
+// }
 
 char *
 keyBindingToString (CompKeyBinding *key)
@@ -192,18 +192,18 @@ stringToModifiers (const char  *binding)
 	return mods;
 }
 
-static unsigned int
-bindingStringToEdgeMask (const char  *binding)
-{
-	unsigned int edgeMask = 0;
-	int          i;
+// static unsigned int
+// bindingStringToEdgeMask (const char  *binding)
+// {
+// 	unsigned int edgeMask = 0;
+// 	int          i;
 
-	for (i = 0; i < SCREEN_EDGE_NUM; i++)
-		if (strstr (binding, edges[i].modifierName))
-			edgeMask |= 1 << i;
+// 	for (i = 0; i < SCREEN_EDGE_NUM; i++)
+// 		if (strstr (binding, edges[i].modifierName))
+// 			edgeMask |= 1 << i;
 
-	return edgeMask;
-}
+// 	return edgeMask;
+// }
 
 Bool
 stringToKeyBinding (const char     *binding,
