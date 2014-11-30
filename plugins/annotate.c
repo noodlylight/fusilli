@@ -64,13 +64,13 @@ typedef struct _AnnoScreen {
 } AnnoScreen;
 
 #define GET_ANNO_DISPLAY(d) \
-        ((AnnoDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((AnnoDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define ANNO_DISPLAY(d) \
         AnnoDisplay *ad = GET_ANNO_DISPLAY (d)
 
 #define GET_ANNO_SCREEN(s, ad) \
-        ((AnnoScreen *) (s)->base.privates[(ad)->screenPrivateIndex].ptr)
+        ((AnnoScreen *) (s)->privates[(ad)->screenPrivateIndex].ptr)
 
 #define ANNO_SCREEN(s) \
         AnnoScreen *as = GET_ANNO_SCREEN (s, GET_ANNO_DISPLAY (&display))
@@ -772,7 +772,7 @@ annoInitDisplay (CompPlugin  *p,
 
 	WRAP (ad, d, handleEvent, annoHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = ad;
+	d->privates[displayPrivateIndex].ptr = ad;
 
 	return TRUE;
 }
@@ -812,7 +812,7 @@ annoInitScreen (CompPlugin *p,
 
 	WRAP (as, s, paintOutput, annoPaintOutput);
 
-	s->base.privates[ad->screenPrivateIndex].ptr = as;
+	s->privates[ad->screenPrivateIndex].ptr = as;
 
 	return TRUE;
 }
@@ -837,32 +837,6 @@ annoFiniScreen (CompPlugin *p,
 	UNWRAP (as, s, paintOutput);
 
 	free (as);
-}
-
-static CompBool
-annoInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) annoInitDisplay,
-		(InitPluginObjectProc) annoInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-annoFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) annoFiniDisplay,
-		(FiniPluginObjectProc) annoFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -947,12 +921,18 @@ static CompPluginVTable annoVTable = {
 	"annotate",
 	annoInit,
 	annoFini,
-	annoInitObject,
-	annoFiniObject
+	NULL, /* annoInitCore */
+	NULL, /* annoFiniCore */
+	annoInitDisplay,
+	annoFiniDisplay,
+	annoInitScreen,
+	annoFiniScreen,
+	NULL, /* annoInitWindow */
+	NULL /* annoFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &annoVTable;
 }

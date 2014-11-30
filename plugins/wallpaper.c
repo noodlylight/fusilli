@@ -87,13 +87,13 @@ typedef struct _WallpaperScreen {
 } WallpaperScreen;
 
 #define GET_WALLPAPER_DISPLAY(d) \
-        ((WallpaperDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((WallpaperDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define WALLPAPER_DISPLAY(d) \
         WallpaperDisplay *wd = GET_WALLPAPER_DISPLAY (d)
 
 #define GET_WALLPAPER_SCREEN(s, wd) \
-        ((WallpaperScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
+        ((WallpaperScreen *) (s)->privates[(wd)->screenPrivateIndex].ptr)
 
 #define WALLPAPER_SCREEN(s) \
         WallpaperScreen *ws = GET_WALLPAPER_SCREEN (s, GET_WALLPAPER_DISPLAY (&display))
@@ -650,7 +650,7 @@ wallpaperInitDisplay (CompPlugin * p,
 	wd->compizWallpaperAtom = XInternAtom (display.display,
 	                                       "_COMPIZ_WALLPAPER_SUPPORTED", 0);
 
-	d->base.privates[displayPrivateIndex].ptr = wd;
+	d->privates[displayPrivateIndex].ptr = wd;
 
 	WRAP (wd, d, handleEvent, wallpaperHandleEvent);
 
@@ -688,7 +688,7 @@ wallpaperInitScreen (CompPlugin *p,
 
 	ws->fakeDesktop = None;
 
-	s->base.privates[wd->screenPrivateIndex].ptr = ws;
+	s->privates[wd->screenPrivateIndex].ptr = ws;
 
 	updateBackgrounds (s);
 	updateProperty (s);
@@ -724,32 +724,6 @@ wallpaperFiniScreen (CompPlugin *p,
 	UNWRAP (ws, s, damageWindowRect);
 
 	free (ws);
-}
-
-static CompBool
-wallpaperInitObject (CompPlugin *p,
-                     CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) wallpaperInitDisplay,
-		(InitPluginObjectProc) wallpaperInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-wallpaperFiniObject (CompPlugin *p,
-                     CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) wallpaperFiniDisplay,
-		(FiniPluginObjectProc) wallpaperFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -812,12 +786,18 @@ static CompPluginVTable wallpaperVTable = {
 	"wallpaper",
 	wallpaperInit,
 	wallpaperFini,
-	wallpaperInitObject,
-	wallpaperFiniObject,
+	NULL, /* wallpaperInitCore */
+	NULL, /* wallpaperFiniCore */
+	wallpaperInitDisplay,
+	wallpaperFiniDisplay,
+	wallpaperInitScreen,
+	wallpaperFiniScreen,
+	NULL, /* wallpaperInitWindow */
+	NULL  /* wallpaperFiniWindow */
 };
 
 CompPluginVTable*
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &wallpaperVTable;
 }

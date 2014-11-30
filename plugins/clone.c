@@ -73,13 +73,13 @@ typedef struct _CloneScreen {
 } CloneScreen;
 
 #define GET_CLONE_DISPLAY(d) \
-        ((CloneDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((CloneDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define CLONE_DISPLAY(d) \
         CloneDisplay *cd = GET_CLONE_DISPLAY (d)
 
 #define GET_CLONE_SCREEN(s, cd) \
-        ((CloneScreen *) (s)->base.privates[(cd)->screenPrivateIndex].ptr)
+        ((CloneScreen *) (s)->privates[(cd)->screenPrivateIndex].ptr)
 
 #define CLONE_SCREEN(s) \
         CloneScreen *cs = GET_CLONE_SCREEN (s, GET_CLONE_DISPLAY (&display))
@@ -756,7 +756,7 @@ cloneInitDisplay (CompPlugin  *p,
 
 	WRAP (cd, d, handleEvent, cloneHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = cd;
+	d->privates[displayPrivateIndex].ptr = cd;
 
 	return TRUE;
 }
@@ -804,7 +804,7 @@ cloneInitScreen (CompPlugin *p,
 	WRAP (cs, s, paintWindow, clonePaintWindow);
 	WRAP (cs, s, outputChangeNotify, cloneOutputChangeNotify);
 
-	s->base.privates[cd->screenPrivateIndex].ptr = cs;
+	s->privates[cd->screenPrivateIndex].ptr = cs;
 
 	return TRUE;
 }
@@ -830,32 +830,6 @@ cloneFiniScreen (CompPlugin *p,
 	UNWRAP (cs, s, outputChangeNotify);
 
 	free (cs);
-}
-
-static CompBool
-cloneInitObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) cloneInitDisplay,
-		(InitPluginObjectProc) cloneInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-cloneFiniObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) cloneFiniDisplay,
-		(FiniPluginObjectProc) cloneFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -916,12 +890,18 @@ CompPluginVTable cloneVTable = {
 	"clone",
 	cloneInit,
 	cloneFini,
-	cloneInitObject,
-	cloneFiniObject
+	NULL, /* cloneInitCore */
+	NULL, /* cloneFiniCore */
+	cloneInitDisplay,
+	cloneFiniDisplay,
+	cloneInitScreen,
+	cloneFiniScreen,
+	NULL, /* cloneInitWindow */
+	NULL  /* cloneFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &cloneVTable;
 }

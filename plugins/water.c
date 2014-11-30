@@ -114,13 +114,13 @@ typedef struct _WaterScreen {
 } WaterScreen;
 
 #define GET_WATER_DISPLAY(d) \
-        ((WaterDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((WaterDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define WATER_DISPLAY(d) \
         WaterDisplay *wd = GET_WATER_DISPLAY (d)
 
 #define GET_WATER_SCREEN(s, wd) \
-        ((WaterScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
+        ((WaterScreen *) (s)->privates[(wd)->screenPrivateIndex].ptr)
 
 #define WATER_SCREEN(s) \
         WaterScreen *ws = GET_WATER_SCREEN (s, GET_WATER_DISPLAY (&display))
@@ -1599,7 +1599,7 @@ waterInitDisplay (CompPlugin  *p,
 
 	WRAP (wd, d, handleEvent, waterHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = wd;
+	d->privates[displayPrivateIndex].ptr = wd;
 
 	return TRUE;
 }
@@ -1635,7 +1635,7 @@ waterInitScreen (CompPlugin *p,
 	WRAP (ws, s, donePaintScreen, waterDonePaintScreen);
 	WRAP (ws, s, drawWindowTexture, waterDrawWindowTexture);
 
-	s->base.privates[wd->screenPrivateIndex].ptr = ws;
+	s->privates[wd->screenPrivateIndex].ptr = ws;
 
 	waterReset (s);
 
@@ -1687,32 +1687,6 @@ waterFiniScreen (CompPlugin *p,
 	UNWRAP (ws, s, drawWindowTexture);
 
 	free (ws);
-}
-
-static CompBool
-waterInitObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) waterInitDisplay,
-		(InitPluginObjectProc) waterInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-waterFiniObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) waterFiniDisplay,
-		(FiniPluginObjectProc) waterFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -1819,12 +1793,18 @@ static CompPluginVTable waterVTable = {
 	"water",
 	waterInit,
 	waterFini,
-	waterInitObject,
-	waterFiniObject
+	NULL, /* waterInitCore */
+	NULL, /* waterFiniCore */
+	waterInitDisplay,
+	waterFiniDisplay,
+	waterInitScreen,
+	waterFiniScreen,
+	NULL, /* waterInitWindow */
+	NULL  /* waterFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &waterVTable;
 }

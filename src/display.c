@@ -80,17 +80,17 @@ reallocDisplayPrivate (int  size,
 {
 	void        *privates;
 
-	privates = realloc (display.base.privates, size * sizeof (CompPrivate));
+	privates = realloc (display.privates, size * sizeof (CompPrivate));
 	if (!privates)
 		return FALSE;
 
-	display.base.privates = (CompPrivate *) privates;
+	display.privates = (CompPrivate *) privates;
 
 	return TRUE;
 }
 
 int
-allocDisplayObjectPrivateIndex (CompObject *parent)
+allocateDisplayPrivateIndex (void)
 {
 	return allocatePrivateIndex (&displayPrivateLen,
 	                             &displayPrivateIndices,
@@ -99,57 +99,9 @@ allocDisplayObjectPrivateIndex (CompObject *parent)
 }
 
 void
-freeDisplayObjectPrivateIndex (CompObject *parent,
-                               int        index)
-{
-	freePrivateIndex (displayPrivateLen, displayPrivateIndices, index);
-}
-
-CompBool
-forEachDisplayObject (CompObject         *parent,
-                      ObjectCallBackProc proc,
-                      void               *closure)
-{
-	if (parent->type == COMP_OBJECT_TYPE_CORE)
-	{
-		if (display.screens != NULL) //HACK: Verify that display is initialized
-			if (!(*proc) (&display.base, closure))
-				return FALSE;
-
-	}
-
-	return TRUE;
-}
-
-char *
-nameDisplayObject (CompObject *object)
-{
-	return NULL;
-}
-
-CompObject *
-findDisplayObject (CompObject *parent,
-                   const char *name)
-{
-	if (parent->type == COMP_OBJECT_TYPE_CORE)
-	{
-		if (!name || !name[0])
-			return &display.base;
-	}
-
-	return NULL;
-}
-
-int
-allocateDisplayPrivateIndex (void)
-{
-	return compObjectAllocatePrivateIndex (NULL, COMP_OBJECT_TYPE_DISPLAY);
-}
-
-void
 freeDisplayPrivateIndex (int index)
 {
-	compObjectFreePrivateIndex (NULL, COMP_OBJECT_TYPE_DISPLAY, index);
+	freePrivateIndex (displayPrivateLen, displayPrivateIndices, index);
 }
 
 
@@ -1347,8 +1299,8 @@ freeDisplay (void)
 	if (display.screenPrivateIndices)
 		free (display.screenPrivateIndices);
 
-	if (display.base.privates)
-		free (display.base.privates);
+	if (display.privates)
+		free (display.privates);
 }
 
 static Bool
@@ -1414,7 +1366,7 @@ addDisplay (const char *name)
 	else
 		privates = 0;
 
-	compObjectInit (&d->base, privates, COMP_OBJECT_TYPE_DISPLAY);
+	d->privates = privates;
 
 	d->screens = NULL;
 
@@ -1738,11 +1690,6 @@ addDisplay (const char *name)
 
 	d->escapeKeyCode = XKeysymToKeycode (dpy, XStringToKeysym ("Escape"));
 	d->returnKeyCode = XKeysymToKeycode (dpy, XStringToKeysym ("Return"));
-
-	/* TODO: bailout properly when objectInitPlugins fails */
-	assert (objectInitPlugins (&d->base));
-
-	(*core.objectAdd) (&core.base, &d->base);
 
 	if (onlyCurrentScreen)
 	{
@@ -2134,10 +2081,6 @@ removeDisplay (void)
 {
 	while (display.screens)
 		removeScreen (display.screens);
-
-	(*core.objectRemove) (&core.base, &display.base);
-
-	objectFiniPlugins (&display.base);
 
 	if (display.edgeDelayHandle)
 	{

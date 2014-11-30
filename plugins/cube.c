@@ -1873,7 +1873,7 @@ cubeInitCore (CompPlugin *p,
 	index.i = cubeDisplayPrivateIndex;
 	bananaSetOption (bananaIndex, "index", -1, &index);
 
-	c->base.privates[cubeCorePrivateIndex].ptr = cc;
+	c->privates[cubeCorePrivateIndex].ptr = cc;
 
 	return TRUE;
 }
@@ -1908,7 +1908,7 @@ cubeInitDisplay (CompPlugin  *p,
 
 	WRAP (cd, d, handleEvent, cubeHandleEvent);
 
-	d->base.privates[cubeDisplayPrivateIndex].ptr = cd;
+	d->privates[cubeDisplayPrivateIndex].ptr = cd;
 
 	return TRUE;
 }
@@ -1971,7 +1971,7 @@ cubeInitScreen (CompPlugin *p,
 	cs->paintViewport       = cubePaintViewport;
 	cs->shouldPaintViewport = cubeShouldPaintViewport;
 
-	s->base.privates[cd->screenPrivateIndex].ptr = cs;
+	s->privates[cd->screenPrivateIndex].ptr = cs;
 
 	initTexture (s, &cs->texture);
 	initTexture (s, &cs->sky);
@@ -2073,32 +2073,6 @@ cubeFiniScreen (CompPlugin *p,
 	free (cs);
 }
 
-static CompBool
-cubeInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) cubeInitCore,
-		(InitPluginObjectProc) cubeInitDisplay,
-		(InitPluginObjectProc) cubeInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-cubeFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) cubeFiniCore,
-		(FiniPluginObjectProc) cubeFiniDisplay,
-		(FiniPluginObjectProc) cubeFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
-
 static Bool
 cubeInit (CompPlugin *p)
 {
@@ -2149,12 +2123,18 @@ CompPluginVTable cubeVTable = {
 	"cube",
 	cubeInit,
 	cubeFini,
-	cubeInitObject,
-	cubeFiniObject
+	cubeInitCore,
+	cubeFiniCore,
+	cubeInitDisplay,
+	cubeFiniDisplay,
+	cubeInitScreen,
+	cubeFiniScreen,
+	NULL, /* cubeInitWindow */
+	NULL  /* cubeFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &cubeVTable;
 }

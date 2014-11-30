@@ -86,19 +86,19 @@ typedef struct _FadeWindow {
 } FadeWindow;
 
 #define GET_FADE_DISPLAY(d) \
-        ((FadeDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((FadeDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define FADE_DISPLAY(d) \
         FadeDisplay *fd = GET_FADE_DISPLAY (d)
 
 #define GET_FADE_SCREEN(s, fd) \
-        ((FadeScreen *) (s)->base.privates[(fd)->screenPrivateIndex].ptr)
+        ((FadeScreen *) (s)->privates[(fd)->screenPrivateIndex].ptr)
 
 #define FADE_SCREEN(s) \
         FadeScreen *fs = GET_FADE_SCREEN (s, GET_FADE_DISPLAY (&display))
 
 #define GET_FADE_WINDOW(w, fs) \
-        ((FadeWindow *) (w)->base.privates[(fs)->windowPrivateIndex].ptr)
+        ((FadeWindow *) (w)->privates[(fs)->windowPrivateIndex].ptr)
 
 #define FADE_WINDOW(w) \
         FadeWindow *fw = GET_FADE_WINDOW  (w, \
@@ -745,7 +745,7 @@ fadeInitDisplay (CompPlugin  *p,
 
 	WRAP (fd, d, handleEvent, fadeHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = fd;
+	d->privates[displayPrivateIndex].ptr = fd;
 
 	return TRUE;
 }
@@ -807,7 +807,7 @@ fadeInitScreen (CompPlugin *p,
 	WRAP (fs, s, focusWindow, fadeFocusWindow);
 	WRAP (fs, s, windowResizeNotify, fadeWindowResizeNotify);
 
-	s->base.privates[fd->screenPrivateIndex].ptr = fs;
+	s->privates[fd->screenPrivateIndex].ptr = fs;
 
 	return TRUE;
 }
@@ -866,7 +866,7 @@ fadeInitWindow (CompPlugin *p,
 	fw->steps      = 0;
 	fw->fadeTime   = 0;
 
-	w->base.privates[fs->windowPrivateIndex].ptr = fw;
+	w->privates[fs->windowPrivateIndex].ptr = fw;
 
 	if (w->attrib.map_state == IsViewable)
 	{
@@ -887,34 +887,6 @@ fadeFiniWindow (CompPlugin *p,
 	fadeWindowStop (w);
 
 	free (fw);
-}
-
-static CompBool
-fadeInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) fadeInitDisplay,
-		(InitPluginObjectProc) fadeInitScreen,
-		(InitPluginObjectProc) fadeInitWindow
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-fadeFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) fadeFiniDisplay,
-		(FiniPluginObjectProc) fadeFiniScreen,
-		(FiniPluginObjectProc) fadeFiniWindow
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -958,12 +930,18 @@ static CompPluginVTable fadeVTable = {
 	"fade",
 	fadeInit,
 	fadeFini,
-	fadeInitObject,
-	fadeFiniObject
+	NULL, /* fadeInitCore */
+	NULL, /* fadeFiniCore */
+	fadeInitDisplay,
+	fadeFiniDisplay,
+	fadeInitScreen,
+	fadeFiniScreen,
+	fadeInitWindow,
+	fadeFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &fadeVTable;
 }

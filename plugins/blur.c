@@ -71,12 +71,6 @@ typedef struct _BlurState {
 	Bool    clipped;
 } BlurState;
 
-static int corePrivateIndex;
-
-typedef struct _BlurCore {
-	ObjectAddProc objectAdd;
-} BlurCore;
-
 static int displayPrivateIndex;
 
 typedef struct _BlurDisplay {
@@ -98,6 +92,7 @@ typedef struct _BlurScreen {
 	DrawWindowProc               drawWindow;
 	DrawWindowTextureProc        drawWindowTexture;
 
+	WindowAddNotifyProc    windowAddNotify;
 	WindowResizeNotifyProc windowResizeNotify;
 	WindowMoveNotifyProc   windowMoveNotify;
 
@@ -157,26 +152,20 @@ typedef struct _BlurWindow {
 	Region clip;
 } BlurWindow;
 
-#define GET_BLUR_CORE(c) \
-        ((BlurCore *) (c)->base.privates[corePrivateIndex].ptr)
-
-#define BLUR_CORE(c) \
-        BlurCore *bc = GET_BLUR_CORE (c)
-
 #define GET_BLUR_DISPLAY(d) \
-        ((BlurDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((BlurDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define BLUR_DISPLAY(d) \
         BlurDisplay *bd = GET_BLUR_DISPLAY (d)
 
 #define GET_BLUR_SCREEN(s, bd) \
-        ((BlurScreen *) (s)->base.privates[(bd)->screenPrivateIndex].ptr)
+        ((BlurScreen *) (s)->privates[(bd)->screenPrivateIndex].ptr)
 
 #define BLUR_SCREEN(s) \
         BlurScreen *bs = GET_BLUR_SCREEN (s, GET_BLUR_DISPLAY (&display))
 
 #define GET_BLUR_WINDOW(w, bs) \
-        ((BlurWindow *) (w)->base.privates[(bs)->windowPrivateIndex].ptr)
+        ((BlurWindow *) (w)->privates[(bs)->windowPrivateIndex].ptr)
 
 #define BLUR_WINDOW(w) \
         BlurWindow *bw = GET_BLUR_WINDOW  (w, \
@@ -2733,60 +2722,15 @@ blurWindowAdd (CompScreen *s,
 }
 
 static void
-blurObjectAdd (CompObject *parent,
-               CompObject *object)
+blurWindowAddNotify (CompWindow *w)
 {
-	static ObjectAddProc dispTab[] = {
-		(ObjectAddProc) 0, /* CoreAdd */
-		(ObjectAddProc) 0, /* DisplayAdd */
-		(ObjectAddProc) 0, /* ScreenAdd */
-		(ObjectAddProc) blurWindowAdd
-	};
+	BLUR_SCREEN (w->screen);
 
-	BLUR_CORE (&core);
+	blurWindowAdd (w->screen, w);
 
-	UNWRAP (bc, &core, objectAdd);
-	(*core.objectAdd) (parent, object);
-	WRAP (bc, &core, objectAdd, blurObjectAdd);
-
-	DISPATCH (object, dispTab, ARRAY_SIZE (dispTab), (parent, object));
-}
-
-static Bool
-blurInitCore (CompPlugin *p,
-              CompCore   *c)
-{
-	BlurCore *bc;
-
-	bc = malloc (sizeof (BlurCore));
-	if (!bc)
-		return FALSE;
-
-	displayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (displayPrivateIndex < 0)
-	{
-		free (bc);
-		return FALSE;
-	}
-
-	WRAP (bc, c, objectAdd, blurObjectAdd);
-
-	c->base.privates[corePrivateIndex].ptr = bc;
-
-	return TRUE;
-}
-
-static void
-blurFiniCore (CompPlugin *p,
-              CompCore   *c)
-{
-	BLUR_CORE (c);
-
-	freeDisplayPrivateIndex (displayPrivateIndex);
-
-	UNWRAP (bc, c, objectAdd);
-
-	free (bc);
+	UNWRAP (bs, w->screen, windowAddNotify);
+	(*w->screen->windowAddNotify) (w);
+	WRAP (bs, w->screen, windowAddNotify, blurWindowAddNotify);
 }
 
 static Bool
@@ -2814,7 +2758,7 @@ blurInitDisplay (CompPlugin  *p,
 	WRAP (bd, d, handleEvent, blurHandleEvent);
 	WRAP (bd, d, matchPropertyChanged, blurMatchPropertyChanged);
 
-	d->base.privates[displayPrivateIndex].ptr = bd;
+	d->privates[displayPrivateIndex].ptr = bd;
 
 	return TRUE;
 }
@@ -2960,10 +2904,11 @@ blurInitScreen (CompPlugin *p,
 	WRAP (bs, s, paintWindow, blurPaintWindow);
 	WRAP (bs, s, drawWindow, blurDrawWindow);
 	WRAP (bs, s, drawWindowTexture, blurDrawWindowTexture);
+	WRAP (bs, s, windowAddNotify, blurWindowAddNotify);
 	WRAP (bs, s, windowResizeNotify, blurWindowResizeNotify);
 	WRAP (bs, s, windowMoveNotify, blurWindowMoveNotify);
 
-	s->base.privates[bd->screenPrivateIndex].ptr = bs;
+	s->privates[bd->screenPrivateIndex].ptr = bs;
 
 	blurUpdateFilterRadius (s);
 
@@ -3005,6 +2950,7 @@ blurFiniScreen (CompPlugin *p,
 	UNWRAP (bs, s, paintWindow);
 	UNWRAP (bs, s, drawWindow);
 	UNWRAP (bs, s, drawWindowTexture);
+	UNWRAP (bs, s, windowAddNotify);
 	UNWRAP (bs, s, windowResizeNotify);
 	UNWRAP (bs, s, windowMoveNotify);
 
@@ -3048,9 +2994,9 @@ blurInitWindow (CompPlugin *p,
 		return FALSE;
 	}
 
-	w->base.privates[bs->windowPrivateIndex].ptr = bw;
+	w->privates[bs->windowPrivateIndex].ptr = bw;
 
-	if (w->base.parent)
+	if (w->added)
 		blurWindowAdd (w->screen, w);
 
 	return TRUE;
@@ -3076,34 +3022,6 @@ blurFiniWindow (CompPlugin *p,
 	free (bw);
 }
 
-static CompBool
-blurInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) blurInitCore,
-		(InitPluginObjectProc) blurInitDisplay,
-		(InitPluginObjectProc) blurInitScreen,
-		(InitPluginObjectProc) blurInitWindow
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-blurFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) blurFiniCore,
-		(FiniPluginObjectProc) blurFiniDisplay,
-		(FiniPluginObjectProc) blurFiniScreen,
-		(FiniPluginObjectProc) blurFiniWindow
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
-
 static Bool
 blurInit (CompPlugin *p)
 {
@@ -3118,9 +3036,9 @@ blurInit (CompPlugin *p)
 		return FALSE;
 	}
 
-	corePrivateIndex = allocateCorePrivateIndex ();
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
 
-	if (corePrivateIndex < 0)
+	if (displayPrivateIndex < 0)
 		return FALSE;
 
 	bananaIndex = bananaLoadPlugin ("blur");
@@ -3136,7 +3054,7 @@ blurInit (CompPlugin *p)
 static void
 blurFini (CompPlugin *p)
 {
-	freeCorePrivateIndex (corePrivateIndex);
+	freeDisplayPrivateIndex (displayPrivateIndex);
 
 	bananaUnloadPlugin (bananaIndex);
 }
@@ -3145,12 +3063,18 @@ static CompPluginVTable blurVTable = {
 	"blur",
 	blurInit,
 	blurFini,
-	blurInitObject,
-	blurFiniObject
+	NULL, /* blurInitCore */
+	NULL, /* blurFiniCore */
+	blurInitDisplay,
+	blurFiniDisplay,
+	blurInitScreen,
+	blurFiniScreen,
+	blurInitWindow,
+	blurFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &blurVTable;
 }

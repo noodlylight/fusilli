@@ -16,7 +16,6 @@ fusilli_SOURCES =   \
 	privates.c \
 	png.c      \
 	jpeg.c     \
-	object.c   \
 	core.c     \
 	texture.c  \
 	display.c  \

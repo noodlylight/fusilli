@@ -29,7 +29,7 @@
 
 #include <fusilli-plugin.h>
 
-#define CORE_ABIVERSION 20141016
+#define CORE_ABIVERSION 20141130
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -390,84 +390,6 @@ freePrivateIndex (int  len,
                   char *indices,
                   int  index);
 
-
-/* object.c */
-
-typedef unsigned int CompObjectType;
-
-#define COMP_OBJECT_TYPE_CORE    0
-#define COMP_OBJECT_TYPE_DISPLAY 1
-#define COMP_OBJECT_TYPE_SCREEN  2
-#define COMP_OBJECT_TYPE_WINDOW  3
-
-struct _CompObject {
-	CompObjectType type;
-	CompPrivate    *privates;
-	CompObject     *parent;
-};
-
-typedef CompBool (*ObjectCallBackProc) (CompObject *object,
-                                        void       *closure);
-
-typedef CompBool (*ObjectTypeCallBackProc) (CompObjectType type,
-                                            CompObject     *parent,
-                                            void           *closure);
-
-void
-compObjectInit (CompObject     *object,
-                CompPrivate    *privates,
-                CompObjectType type);
-
-void
-compObjectFini (CompObject *object);
-
-int
-compObjectAllocatePrivateIndex (CompObject     *parent,
-                                CompObjectType type);
-
-void
-compObjectFreePrivateIndex (CompObject     *parent,
-                            CompObjectType type,
-                            int            index);
-
-CompBool
-compObjectForEach (CompObject         *parent,
-                   CompObjectType     type,
-                   ObjectCallBackProc proc,
-                   void               *closure);
-
-CompBool
-compObjectForEachType (CompObject             *parent,
-                       ObjectTypeCallBackProc proc,
-                       void                   *closure);
-
-const char *
-compObjectTypeName (CompObjectType type);
-
-char *
-compObjectName (CompObject *object);
-
-CompObject *
-compObjectFind (CompObject     *parent,
-                CompObjectType type,
-                const char     *name);
-
-#define ARRAY_SIZE(array) \
-        (sizeof (array) / sizeof (array[0]))
-
-#define DISPATCH_CHECK(object, dispTab, tabSize) \
-        ((object)->type < (tabSize) && (dispTab)[(object)->type])
-
-#define DISPATCH(object, dispTab, tabSize, args) \
-        if (DISPATCH_CHECK (object, dispTab, tabSize)) \
-        	(*(dispTab)[(object)->type]) args
-
-#define RETURN_DISPATCH(object, dispTab, tabSize, def, args) \
-        if (DISPATCH_CHECK (object, dispTab, tabSize)) \
-        	return (*(dispTab)[(object)->type]) args; \
-        else \
-        	return (def)
-
 /* session.c */
 
 typedef enum {
@@ -577,16 +499,6 @@ colorToString (unsigned short *rgba);
 
 /* core.c */
 
-typedef CompBool (*InitPluginForObjectProc) (CompPlugin *plugin,
-                                             CompObject *object);
-typedef void (*FiniPluginForObjectProc) (CompPlugin *plugin,
-                                         CompObject *object);
-
-typedef void (*ObjectAddProc) (CompObject *parent,
-                               CompObject *object);
-typedef void (*ObjectRemoveProc) (CompObject *parent,
-                                  CompObject *object);
-
 #define NOTIFY_CREATE_MASK (1 << 0)
 #define NOTIFY_DELETE_MASK (1 << 1)
 #define NOTIFY_MOVE_MASK   (1 << 2)
@@ -630,7 +542,7 @@ typedef void (*LogMessageProc) (const char   *componentName,
                                 const char   *message);
 
 struct _CompCore {
-	CompObject base;
+	CompPrivate    *privates;
 
 	Region tmpRegion;
 	Region outputRegion;
@@ -647,37 +559,12 @@ struct _CompCore {
 	struct pollfd     *watchPollFds;
 	int               nWatchFds;
 
-	InitPluginForObjectProc initPluginForObject;
-	FiniPluginForObjectProc finiPluginForObject;
-
-	ObjectAddProc    objectAdd;
-	ObjectRemoveProc objectRemove;
-
 	SessionEventProc sessionEvent;
 	LogMessageProc   logMessage;
 
 	DBusConnection    *dbusConnection;
 	CompWatchFdHandle dbusWatchFdHandle;
 };
-
-int
-allocCoreObjectPrivateIndex (CompObject *parent);
-
-void
-freeCoreObjectPrivateIndex (CompObject *parent,
-                            int        index);
-
-CompBool
-forEachCoreObject (CompObject         *parent,
-                   ObjectCallBackProc proc,
-                   void               *closure);
-
-char *
-nameCoreObject (CompObject *object);
-
-CompObject *
-findCoreObject (CompObject *parent,
-                const char *name);
 
 CompBool
 initCore (void);
@@ -779,7 +666,7 @@ union _CompMatchOp {
 typedef void (*MatchPropertyChangedProc) (CompWindow  *window);
 
 struct _CompDisplay {
-	CompObject base;
+	CompPrivate    *privates;
 
 	Display    *display;
 	CompScreen *screens;
@@ -1000,29 +887,6 @@ struct _CompDisplay {
 
 	void *reserved;
 };
-
-CompBool
-allocDisplayObjectPrivates (CompObject *object,
-                            CompObject *parent);
-
-int
-allocDisplayObjectPrivateIndex (CompObject *parent);
-
-void
-freeDisplayObjectPrivateIndex (CompObject *parent,
-                              int         index);
-
-CompBool
-forEachDisplayObject (CompObject         *parent,
-                      ObjectCallBackProc proc,
-                      void               *closure);
-
-char *
-nameDisplayObject (CompObject *object);
-
-CompObject *
-findDisplayObject (CompObject *parent,
-                   const char *name);
 
 int
 allocateDisplayPrivateIndex (void);
@@ -1782,6 +1646,8 @@ typedef void (*WindowUngrabNotifyProc) (CompWindow *window);
 typedef void (*WindowStateChangeNotifyProc) (CompWindow   *window,
                                              unsigned int lastState);
 
+typedef void (*WindowAddNotifyProc) (CompWindow *window);
+
 typedef void (*OutputChangeNotifyProc) (CompScreen *screen);
 
 typedef unsigned int (*AddSupportedAtomsProc) (CompScreen   *s,
@@ -1903,7 +1769,7 @@ typedef struct _CompActiveWindowHistory {
 } CompActiveWindowHistory;
 
 struct _CompScreen {
-	CompObject base;
+	CompPrivate    *privates;
 
 	CompScreen  *next;
 
@@ -2095,6 +1961,7 @@ struct _CompScreen {
 	PaintCursorProc      paintCursor;
 	DamageCursorRectProc damageCursorRect;
 
+	WindowAddNotifyProc    windowAddNotify;
 	WindowResizeNotifyProc windowResizeNotify;
 	WindowMoveNotifyProc   windowMoveNotify;
 	WindowGrabNotifyProc   windowGrabNotify;
@@ -2114,32 +1981,6 @@ struct _CompScreen {
 
 	void *reserved;
 };
-
-#define GET_CORE_SCREEN(object) ((CompScreen *) (object))
-#define CORE_SCREEN(object) CompScreen *s = GET_CORE_SCREEN (object)
-
-CompBool
-allocScreenObjectPrivates (CompObject *object,
-                           CompObject *parent);
-
-int
-allocScreenObjectPrivateIndex (CompObject *parent);
-
-void
-freeScreenObjectPrivateIndex (CompObject *parent,
-                              int        index);
-
-CompBool
-forEachScreenObject (CompObject	        *parent,
-                     ObjectCallBackProc proc,
-                     void               *closure);
-
-char *
-nameScreenObject (CompObject *object);
-
-CompObject *
-findScreenObject (CompObject *parent,
-                  const char *name);
 
 int
 allocateScreenPrivateIndex (void);
@@ -2457,7 +2298,7 @@ typedef struct _CompStruts {
 } CompStruts;
 
 struct _CompWindow {
-	CompObject base;
+	CompPrivate    *privates;
 
 	CompScreen *screen;
 	CompWindow *next;
@@ -2502,6 +2343,7 @@ struct _CompWindow {
 	Bool          managed;
 	Bool          unmanaging;
 	Bool          bindFailed;
+	Bool          added;
 	Bool          overlayWindow;
 	int                   destroyRefCnt;
 	int                   unmapRefCnt;
@@ -2593,32 +2435,6 @@ struct _CompWindow {
 
 	void *reserved;
 };
-
-#define GET_CORE_WINDOW(object) ((CompWindow *) (object))
-#define CORE_WINDOW(object) CompWindow *w = GET_CORE_WINDOW (object)
-
-CompBool
-allocWindowObjectPrivates (CompObject *object,
-                           CompObject *parent);
-
-int
-allocWindowObjectPrivateIndex (CompObject *parent);
-
-void
-freeWindowObjectPrivateIndex (CompObject *parent,
-                              int        index);
-
-CompBool
-forEachWindowObject (CompObject	        *parent,
-                     ObjectCallBackProc proc,
-                     void               *closure);
-
-char *
-nameWindowObject (CompObject *object);
-
-CompObject *
-findWindowObject (CompObject *parent,
-                  const char *name);
 
 int
 allocateWindowPrivateIndex (CompScreen *screen);
@@ -2989,6 +2805,9 @@ int
 compareWindowActiveness (CompWindow *w1,
                          CompWindow *w2);
 
+void
+windowAddNotify (CompWindow *w);
+
 Bool
 windowOnAllViewports (CompWindow *w);
 
@@ -3033,11 +2852,11 @@ struct _CompPlugin {
 	CompPluginVTable *vTable;
 };
 
-CompBool
-objectInitPlugins (CompObject *o);
+Bool
+windowInitPlugins (CompWindow *w);
 
 void
-objectFiniPlugins (CompObject *o);
+windowFiniPlugins (CompWindow *w);
 
 CompPlugin *
 findActivePlugin (const char *name);

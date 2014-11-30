@@ -115,13 +115,13 @@ typedef struct _ResizeScreen {
 } ResizeScreen;
 
 #define GET_RESIZE_DISPLAY(d) \
-        ((ResizeDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((ResizeDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define RESIZE_DISPLAY(d) \
         ResizeDisplay *rd = GET_RESIZE_DISPLAY (d)
 
 #define GET_RESIZE_SCREEN(s, rd) \
-        ((ResizeScreen *) (s)->base.privates[(rd)->screenPrivateIndex].ptr)
+        ((ResizeScreen *) (s)->privates[(rd)->screenPrivateIndex].ptr)
 
 #define RESIZE_SCREEN(s) \
         ResizeScreen *rs = GET_RESIZE_SCREEN (s, GET_RESIZE_DISPLAY (&display))
@@ -1566,7 +1566,7 @@ resizeInitDisplay (CompPlugin  *p,
 
 	WRAP (rd, d, handleEvent, resizeHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = rd;
+	d->privates[displayPrivateIndex].ptr = rd;
 
 	return TRUE;
 }
@@ -1623,7 +1623,7 @@ resizeInitScreen (CompPlugin *p,
 	WRAP (rs, s, paintWindow, resizePaintWindow);
 	WRAP (rs, s, damageWindowRect, resizeDamageWindowRect);
 
-	s->base.privates[rd->screenPrivateIndex].ptr = rs;
+	s->privates[rd->screenPrivateIndex].ptr = rs;
 
 	return TRUE;
 }
@@ -1661,32 +1661,6 @@ resizeFiniScreen (CompPlugin *p,
 	UNWRAP (rs, s, damageWindowRect);
 
 	free (rs);
-}
-
-static CompBool
-resizeInitObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) resizeInitDisplay,
-		(InitPluginObjectProc) resizeInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-resizeFiniObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) resizeFiniDisplay,
-		(FiniPluginObjectProc) resizeFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -1756,12 +1730,18 @@ CompPluginVTable resizeVTable = {
 	"resize",
 	resizeInit,
 	resizeFini,
-	resizeInitObject,
-	resizeFiniObject
+	NULL, /* resizeInitCore */
+	NULL, /* resizeFiniCore */
+	resizeInitDisplay,
+	resizeFiniDisplay,
+	resizeInitScreen,
+	resizeFiniScreen,
+	NULL, /* resizeInitWindow */
+	NULL  /* resizeFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &resizeVTable;
 }

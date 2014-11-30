@@ -104,13 +104,13 @@ typedef struct _RotateScreen {
 } RotateScreen;
 
 #define GET_ROTATE_DISPLAY(d) \
-        ((RotateDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((RotateDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define ROTATE_DISPLAY(d) \
         RotateDisplay *rd = GET_ROTATE_DISPLAY (d)
 
 #define GET_ROTATE_SCREEN(s, rd) \
-        ((RotateScreen *) (s)->base.privates[(rd)->screenPrivateIndex].ptr)
+        ((RotateScreen *) (s)->privates[(rd)->screenPrivateIndex].ptr)
 
 #define ROTATE_SCREEN(s) \
         RotateScreen *rs = GET_ROTATE_SCREEN (s, GET_ROTATE_DISPLAY (&display))
@@ -1441,7 +1441,7 @@ rotateInitDisplay (CompPlugin  *p,
 
 	WRAP (rd, d, handleEvent, rotateHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = rd;
+	d->privates[displayPrivateIndex].ptr = rd;
 
 	return TRUE;
 }
@@ -1522,7 +1522,7 @@ rotateInitScreen (CompPlugin *p,
 
 	WRAP (rs, cs, getRotation, rotateGetRotation);
 
-	s->base.privates[rd->screenPrivateIndex].ptr = rs;
+	s->privates[rd->screenPrivateIndex].ptr = rs;
 
 	return TRUE;
 }
@@ -1547,31 +1547,6 @@ rotateFiniScreen (CompPlugin *p,
 	UNWRAP (rs, s, activateWindow);
 
 	free (rs);
-}
-static CompBool
-rotateInitObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) rotateInitDisplay,
-		(InitPluginObjectProc) rotateInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-rotateFiniObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) rotateFiniDisplay,
-		(FiniPluginObjectProc) rotateFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -1699,12 +1674,18 @@ CompPluginVTable rotateVTable = {
 	"rotate",
 	rotateInit,
 	rotateFini,
-	rotateInitObject,
-	rotateFiniObject
+	NULL, /* rotateInitCore */
+	NULL, /* rotateFiniCore */
+	rotateInitDisplay,
+	rotateFiniDisplay,
+	rotateInitScreen,
+	rotateFiniScreen,
+	NULL, /* rotateInitWindow */
+	NULL  /* rotateFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &rotateVTable;
 }

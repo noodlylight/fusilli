@@ -49,7 +49,7 @@ typedef struct _GConfDisplay {
 } GLibDisplay;
 
 #define GET_GLIB_DISPLAY(d) \
-        ((GLibDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((GLibDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define GLIB_DISPLAY(d) \
         GLibDisplay *gd = GET_GLIB_DISPLAY (d)
@@ -207,7 +207,7 @@ glibInitDisplay (CompPlugin  *p,
 
 	WRAP (gd, d, handleEvent, glibHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = gd;
+	d->privates[displayPrivateIndex].ptr = gd;
 
 	glibPrepare (d, g_main_context_default ());
 
@@ -234,30 +234,6 @@ glibFiniDisplay (CompPlugin  *p,
 		free (gd->fds);
 
 	free (gd);
-}
-
-static CompBool
-glibInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) glibInitDisplay
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-glibFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) glibFiniDisplay
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -292,12 +268,18 @@ CompPluginVTable glibVTable = {
 	"glib",
 	glibInit,
 	glibFini,
-	glibInitObject,
-	glibFiniObject
+	NULL, /* glibInitCore */
+	NULL, /* glibFiniCore */
+	glibInitDisplay,
+	glibFiniDisplay,
+	NULL, /* glibInitScreen,*/
+	NULL, /* glibFiniScreen,*/
+	NULL, /* glibInitWindow,*/
+	NULL  /* glibFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &glibVTable;
 }

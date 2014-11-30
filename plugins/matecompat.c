@@ -45,7 +45,7 @@ typedef struct _MateDisplay {
 } MateDisplay;
 
 #define GET_MATE_DISPLAY(d) \
-        ((MateDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((MateDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define MATE_DISPLAY(d) \
         MateDisplay *md = GET_MATE_DISPLAY (d)
@@ -288,7 +288,7 @@ mateInitDisplay (CompPlugin  *p,
 
 	WRAP (md, d, handleEvent, mateHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = md;
+	d->privates[displayPrivateIndex].ptr = md;
 
 	return TRUE;
 }
@@ -300,30 +300,6 @@ mateFiniDisplay (CompPlugin  *p,
 	MATE_DISPLAY (d);
 
 	free (md);
-}
-
-static CompBool
-mateInitObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) mateInitDisplay
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-mateFiniObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) mateFiniDisplay
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -398,12 +374,18 @@ static CompPluginVTable mateVTable = {
 	"matecompat",
 	mateInit,
 	mateFini,
-	mateInitObject,
-	mateFiniObject
+	NULL, /* mateInitCore */
+	NULL, /* mateFiniCore */
+	mateInitDisplay,
+	mateFiniDisplay,
+	NULL, /* mateInitScreen */
+	NULL, /* mateFiniScreen */
+	NULL, /* mateInitWindow */
+	NULL  /* mateFiniWinodw */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &mateVTable;
 }

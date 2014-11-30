@@ -90,13 +90,13 @@ typedef struct _MoveScreen {
 } MoveScreen;
 
 #define GET_MOVE_DISPLAY(d) \
-        ((MoveDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((MoveDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define MOVE_DISPLAY(d) \
         MoveDisplay *md = GET_MOVE_DISPLAY (d)
 
 #define GET_MOVE_SCREEN(s, md) \
-        ((MoveScreen *) (s)->base.privates[(md)->screenPrivateIndex].ptr)
+        ((MoveScreen *) (s)->privates[(md)->screenPrivateIndex].ptr)
 
 #define MOVE_SCREEN(s) \
         MoveScreen *ms = GET_MOVE_SCREEN (s, GET_MOVE_DISPLAY (&display))
@@ -914,7 +914,7 @@ moveInitDisplay (CompPlugin  *p,
 
 	WRAP (md, d, handleEvent, moveHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = md;
+	d->privates[displayPrivateIndex].ptr = md;
 
 	return TRUE;
 }
@@ -953,7 +953,7 @@ moveInitScreen (CompPlugin *p,
 
 	WRAP (ms, s, paintWindow, movePaintWindow);
 
-	s->base.privates[md->screenPrivateIndex].ptr = ms;
+	s->privates[md->screenPrivateIndex].ptr = ms;
 
 	return TRUE;
 }
@@ -970,32 +970,6 @@ moveFiniScreen (CompPlugin *p,
 		XFreeCursor (display.display, ms->moveCursor);
 
 	free (ms);
-}
-
-static CompBool
-moveInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) moveInitDisplay,
-		(InitPluginObjectProc) moveInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-moveFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) moveFiniDisplay,
-		(FiniPluginObjectProc) moveFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -1052,12 +1026,18 @@ CompPluginVTable moveVTable = {
 	"move",
 	moveInit,
 	moveFini,
-	moveInitObject,
-	moveFiniObject
+	NULL, /* moveInitCore */
+	NULL, /* moveFiniCore */
+	moveInitDisplay,
+	moveFiniDisplay,
+	moveInitScreen,
+	moveFiniScreen,
+	NULL, /* moveInitWindow */
+	NULL  /* moveFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &moveVTable;
 }

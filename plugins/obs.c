@@ -78,19 +78,19 @@ typedef struct _ObsWindow
 } ObsWindow;
 
 #define GET_OBS_DISPLAY(d) \
-        ((ObsDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((ObsDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define OBS_DISPLAY(d) \
         ObsDisplay *od = GET_OBS_DISPLAY (d)
 
 #define GET_OBS_SCREEN(s, od) \
-        ((ObsScreen *) (s)->base.privates[(od)->screenPrivateIndex].ptr)
+        ((ObsScreen *) (s)->privates[(od)->screenPrivateIndex].ptr)
 
 #define OBS_SCREEN(s) \
         ObsScreen *os = GET_OBS_SCREEN (s, GET_OBS_DISPLAY (&display))
 
 #define GET_OBS_WINDOW(w, os) \
-        ((ObsWindow *) (w)->base.privates[(os)->windowPrivateIndex].ptr)
+        ((ObsWindow *) (w)->privates[(os)->windowPrivateIndex].ptr)
 
 #define OBS_WINDOW(w) \
         ObsWindow *ow = GET_OBS_WINDOW  (w, \
@@ -435,7 +435,7 @@ obsInitDisplay (CompPlugin  *p,
 	WRAP (od, d, matchPropertyChanged, obsMatchPropertyChanged);
 	WRAP (od, d, handleEvent, obsHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = od;
+	d->privates[displayPrivateIndex].ptr = od;
 
 	return TRUE;
 }
@@ -472,7 +472,7 @@ obsInitScreen (CompPlugin *p,
 		return FALSE;
 	}
 
-	s->base.privates[od->screenPrivateIndex].ptr = os;
+	s->privates[od->screenPrivateIndex].ptr = os;
 
 	int i;
 
@@ -553,7 +553,7 @@ obsInitWindow (CompPlugin *p,
 	   means wrapped function calls */
 	ow->updateHandle = compAddTimeout (0, 0, obsUpdateWindow, w);
 
-	w->base.privates[os->windowPrivateIndex].ptr = ow;
+	w->privates[os->windowPrivateIndex].ptr = ow;
 
 	return TRUE;
 }
@@ -568,35 +568,6 @@ obsFiniWindow (CompPlugin *p,
 		compRemoveTimeout (ow->updateHandle);
 
 	free (ow);
-}
-
-static CompBool
-obsInitObject (CompPlugin *p,
-               CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-	   (InitPluginObjectProc) 0, /* InitCore */
-	   (InitPluginObjectProc) obsInitDisplay,
-	   (InitPluginObjectProc) obsInitScreen,
-	   (InitPluginObjectProc) obsInitWindow
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-
-}
-
-static void
-obsFiniObject (CompPlugin *p,
-               CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-	   (FiniPluginObjectProc) 0, /* FiniCore */
-	   (FiniPluginObjectProc) obsFiniDisplay,
-	   (FiniPluginObjectProc) obsFiniScreen,
-	   (FiniPluginObjectProc) obsFiniWindow
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -755,12 +726,18 @@ CompPluginVTable obsVTable = {
 	"obs",
 	obsInit,
 	obsFini,
-	obsInitObject,
-	obsFiniObject
+	NULL, /* obsInitCore */
+	NULL, /* obsFiniCore */
+	obsInitDisplay,
+	obsFiniDisplay,
+	obsInitScreen,
+	obsFiniScreen,
+	obsInitWindow,
+	obsFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &obsVTable;
 }

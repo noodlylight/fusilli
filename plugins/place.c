@@ -89,19 +89,19 @@ typedef struct _PlaceWindow {
 } PlaceWindow;
 
 #define GET_PLACE_DISPLAY(d) \
-        ((PlaceDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((PlaceDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define PLACE_DISPLAY(d) \
         PlaceDisplay *pd = GET_PLACE_DISPLAY (d)
 
 #define GET_PLACE_SCREEN(s, pd) \
-        ((PlaceScreen *) (s)->base.privates[(pd)->screenPrivateIndex].ptr)
+        ((PlaceScreen *) (s)->privates[(pd)->screenPrivateIndex].ptr)
 
 #define PLACE_SCREEN(s) \
         PlaceScreen *ps = GET_PLACE_SCREEN (s, GET_PLACE_DISPLAY (&display))
 
 #define GET_PLACE_WINDOW(w, ps) \
-        ((PlaceWindow *) (w)->base.privates[(ps)->windowPrivateIndex].ptr)
+        ((PlaceWindow *) (w)->privates[(ps)->windowPrivateIndex].ptr)
 
 #define PLACE_WINDOW(w) \
         PlaceWindow *pw = GET_PLACE_WINDOW  (w, \
@@ -1998,7 +1998,7 @@ placeInitDisplay (CompPlugin  *p,
 	pd->fullPlacementAtom = XInternAtom (d->display,
 	                             "_NET_WM_FULL_PLACEMENT", 0);
 
-	d->base.privates[displayPrivateIndex].ptr = pd;
+	d->privates[displayPrivateIndex].ptr = pd;
 
 	WRAP (pd, d, handleEvent, placeHandleEvent);
 
@@ -2101,7 +2101,7 @@ placeInitScreen (CompPlugin *p,
 	WRAP (ps, s, addSupportedAtoms, placeAddSupportedAtoms);
 	WRAP (ps, s, windowGrabNotify, placeWindowGrabNotify);
 
-	s->base.privates[pd->screenPrivateIndex].ptr = ps;
+	s->privates[pd->screenPrivateIndex].ptr = ps;
 
 	setSupportedWmHints (s);
 
@@ -2153,7 +2153,7 @@ placeInitWindow (CompPlugin *p,
 
 	pw->savedOriginal = FALSE;
 
-	w->base.privates[ps->windowPrivateIndex].ptr = pw;
+	w->privates[ps->windowPrivateIndex].ptr = pw;
 
 	return TRUE;
 }
@@ -2165,34 +2165,6 @@ placeFiniWindow (CompPlugin *p,
 	PLACE_WINDOW (w);
 
 	free (pw);
-}
-
-static CompBool
-placeInitObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) placeInitDisplay,
-		(InitPluginObjectProc) placeInitScreen,
-		(InitPluginObjectProc) placeInitWindow
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-placeFiniObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) placeFiniDisplay,
-		(FiniPluginObjectProc) placeFiniScreen,
-		(FiniPluginObjectProc) placeFiniWindow
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -2305,12 +2277,18 @@ static CompPluginVTable placeVTable = {
 	"place",
 	placeInit,
 	placeFini,
-	placeInitObject,
-	placeFiniObject
+	NULL, /* placeInitCore */
+	NULL, /* placeFiniCore */
+	placeInitDisplay,
+	placeFiniDisplay,
+	placeInitScreen,
+	placeFiniScreen,
+	placeInitWindow,
+	placeFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &placeVTable;
 }

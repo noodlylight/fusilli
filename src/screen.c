@@ -57,18 +57,18 @@ reallocScreenPrivate (int  size,
 
 	for (s = display.screens; s; s = s->next)
 	{
-		privates = realloc (s->base.privates, size * sizeof (CompPrivate));
+		privates = realloc (s->privates, size * sizeof (CompPrivate));
 		if (!privates)
 			return FALSE;
 
-		s->base.privates = (CompPrivate *) privates;
+		s->privates = (CompPrivate *) privates;
 	}
 
 	return TRUE;
 }
 
 int
-allocScreenObjectPrivateIndex (CompObject *parent)
+allocateScreenPrivateIndex (void)
 {
 	return allocatePrivateIndex (&display.screenPrivateLen,
 	                         &display.screenPrivateIndices,
@@ -77,75 +77,11 @@ allocScreenObjectPrivateIndex (CompObject *parent)
 }
 
 void
-freeScreenObjectPrivateIndex (CompObject *parent,
-                              int        index)
+freeScreenPrivateIndex (int         index)
 {
 	freePrivateIndex (display.screenPrivateLen,
 	                  display.screenPrivateIndices,
 	                  index);
-}
-
-CompBool
-forEachScreenObject (CompObject         *parent,
-                     ObjectCallBackProc proc,
-                     void               *closure)
-{
-	if (parent->type == COMP_OBJECT_TYPE_DISPLAY)
-	{
-		CompScreen *s;
-
-		for (s = display.screens; s; s = s->next)
-		{
-			if (!(*proc) (&s->base, closure))
-				return FALSE;
-		}
-	}
-
-	return TRUE;
-}
-
-char *
-nameScreenObject (CompObject *object)
-{
-	char tmp[256];
-
-	CORE_SCREEN (object);
-
-	snprintf (tmp, 256, "%d", s->screenNum);
-
-	return strdup (tmp);
-}
-
-CompObject *
-findScreenObject (CompObject *parent,
-                  const char *name)
-{
-	if (parent->type == COMP_OBJECT_TYPE_DISPLAY)
-	{
-		CompScreen *s;
-		int    screenNum = atoi (name);
-
-		for (s = display.screens; s; s = s->next)
-			if (s->screenNum == screenNum)
-				return &s->base;
-	}
-
-	return NULL;
-}
-
-int
-allocateScreenPrivateIndex (void)
-{
-	return compObjectAllocatePrivateIndex (&display.base,
-	                              COMP_OBJECT_TYPE_SCREEN);
-}
-
-void
-freeScreenPrivateIndex (int         index)
-{
-	compObjectFreePrivateIndex (&display.base,
-	                        COMP_OBJECT_TYPE_SCREEN,
-	                        index);
 }
 
 static Bool
@@ -1645,8 +1581,8 @@ freeScreen (CompScreen *s)
 	if (s->windowPrivateIndices)
 		free (s->windowPrivateIndices);
 
-	if (s->base.privates)
-		free (s->base.privates);
+	if (s->privates)
+		free (s->privates);
 
 	free (s);
 }
@@ -1697,7 +1633,7 @@ addScreen (int         screenNum,
 	else
 		privates = 0;
 
-	compObjectInit (&s->base, privates, COMP_OBJECT_TYPE_SCREEN);
+	s->privates = privates;
 
 	s->snContext = NULL;
 
@@ -1834,6 +1770,7 @@ addScreen (int         screenNum,
 	s->paintCursor      = paintCursor;
 	s->damageCursorRect = damageCursorRect;
 
+	s->windowAddNotify    = windowAddNotify;
 	s->windowResizeNotify = windowResizeNotify;
 	s->windowMoveNotify   = windowMoveNotify;
 	s->windowGrabNotify   = windowGrabNotify;
@@ -2357,11 +2294,6 @@ addScreen (int         screenNum,
 
 	getDesktopHints (s);
 
-	/* TODO: bailout properly when objectInitPlugins fails */
-	assert (objectInitPlugins (&s->base));
-
-	(*core.objectAdd) (&display.base, &s->base);
-
 	XQueryTree (dpy, s->root,
 	            &rootReturn, &parentReturn,
 	            &children, &nchildren);
@@ -2466,10 +2398,6 @@ removeScreen (CompScreen *s)
 
 	while (s->windows)
 		removeWindow (s->windows);
-
-	(*core.objectRemove) (&display.base, &s->base);
-
-	objectFiniPlugins (&s->base);
 
 	XUngrabKey (display.display, AnyKey, AnyModifier, s->root);
 

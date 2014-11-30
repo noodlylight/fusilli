@@ -84,13 +84,13 @@ typedef struct _ZoomScreen {
 } ZoomScreen;
 
 #define GET_ZOOM_DISPLAY(d) \
-        ((ZoomDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((ZoomDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define ZOOM_DISPLAY(d) \
         ZoomDisplay *zd = GET_ZOOM_DISPLAY (d)
 
 #define GET_ZOOM_SCREEN(s, zd) \
-        ((ZoomScreen *) (s)->base.privates[(zd)->screenPrivateIndex].ptr)
+        ((ZoomScreen *) (s)->privates[(zd)->screenPrivateIndex].ptr)
 
 #define ZOOM_SCREEN(s) \
         ZoomScreen *zs = GET_ZOOM_SCREEN (s, GET_ZOOM_DISPLAY (&display))
@@ -999,7 +999,7 @@ zoomInitDisplay (CompPlugin  *p,
 
 	WRAP (zd, d, handleEvent, zoomHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = zd;
+	d->privates[displayPrivateIndex].ptr = zd;
 
 	return TRUE;
 }
@@ -1051,7 +1051,7 @@ zoomInitScreen (CompPlugin *p,
 	WRAP (zs, s, donePaintScreen, zoomDonePaintScreen);
 	WRAP (zs, s, paintOutput, zoomPaintOutput);
 
-	s->base.privates[zd->screenPrivateIndex].ptr = zs;
+	s->privates[zd->screenPrivateIndex].ptr = zs;
 
 	return TRUE;
 }
@@ -1070,32 +1070,6 @@ zoomFiniScreen (CompPlugin *p,
 	UNWRAP (zs, s, paintOutput);
 
 	free (zs);
-}
-
-static CompBool
-zoomInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) zoomInitDisplay,
-		(InitPluginObjectProc) zoomInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-zoomFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) zoomFiniDisplay,
-		(FiniPluginObjectProc) zoomFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -1183,12 +1157,18 @@ CompPluginVTable zoomVTable = {
 	"zoom",
 	zoomInit,
 	zoomFini,
-	zoomInitObject,
-	zoomFiniObject
+	NULL, /* zoomInitCore */
+	NULL, /* zoomFiniCore */
+	zoomInitDisplay,
+	zoomFiniDisplay,
+	zoomInitScreen,
+	zoomFiniScreen,
+	NULL, /* zoomInitWindow */
+	NULL  /* zoomFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &zoomVTable;
 }

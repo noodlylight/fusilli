@@ -33,13 +33,48 @@
 extern "C" {
 #endif
 
-typedef CompBool (*InitPluginProc) (CompPlugin *plugin);
-typedef void (*FiniPluginProc) (CompPlugin *plugin);
+/* pluginInit, pluginFini */
+typedef CompBool
+(*InitPluginProc) (CompPlugin *plugin);
 
-typedef CompBool (*InitPluginObjectProc) (CompPlugin *plugin,
-                                          CompObject *object);
-typedef void (*FiniPluginObjectProc) (CompPlugin  *plugin,
-                                      CompObject *object);
+typedef void
+(*FiniPluginProc) (CompPlugin *plugin);
+
+/* pluginInitCore, pluginFiniCore */
+typedef CompBool 
+(*InitPluginCoreProc) (CompPlugin *p,
+                       CompCore   *c);
+
+typedef void 
+(*FiniPluginCoreProc) (CompPlugin *p,
+                       CompCore   *c);
+
+/* pluginInitDisplay, pluginFiniDisplay */
+typedef CompBool 
+(*InitPluginDisplayProc) (CompPlugin  *p,
+                          CompDisplay *d);
+
+typedef void
+(*FiniPluginDisplayProc) (CompPlugin  *p,
+                          CompDisplay *d);
+
+/* pluginInitScreen, pluginFiniScreen */
+typedef CompBool
+(*InitPluginScreenProc) (CompPlugin *p,
+                         CompScreen *s);
+
+typedef void
+(*FiniPluginScreenProc) (CompPlugin *p,
+                         CompScreen *s);
+
+/* pluginInitWindow, pluginFiniWindow */
+typedef CompBool
+(*InitPluginWindowProc) (CompPlugin *p,
+                         CompWindow *w);
+
+typedef void
+(*FiniPluginWindowProc) (CompPlugin *p,
+                         CompWindow *w);
 
 typedef struct _CompPluginVTable {
 	const char *name;
@@ -47,13 +82,21 @@ typedef struct _CompPluginVTable {
 	InitPluginProc init;
 	FiniPluginProc fini;
 
-	InitPluginObjectProc initObject;
-	FiniPluginObjectProc finiObject;
+	InitPluginCoreProc initCore;
+	FiniPluginCoreProc finiCore;
 
+	InitPluginDisplayProc initDisplay;
+	FiniPluginDisplayProc finiDisplay;
+
+	InitPluginScreenProc initScreen;
+	FiniPluginScreenProc finiScreen;
+
+	InitPluginWindowProc initWindow;
+	FiniPluginWindowProc finiWindow;
 } CompPluginVTable;
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void);
+getCompPluginInfo20141130 (void);
 
 #ifdef  __cplusplus
 }

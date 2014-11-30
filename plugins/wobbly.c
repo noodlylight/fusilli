@@ -166,19 +166,19 @@ typedef struct _WobblyWindow {
 } WobblyWindow;
 
 #define GET_WOBBLY_DISPLAY(d) \
-        ((WobblyDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((WobblyDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define WOBBLY_DISPLAY(d) \
         WobblyDisplay *wd = GET_WOBBLY_DISPLAY (d)
 
 #define GET_WOBBLY_SCREEN(s, wd) \
-        ((WobblyScreen *) (s)->base.privates[(wd)->screenPrivateIndex].ptr)
+        ((WobblyScreen *) (s)->privates[(wd)->screenPrivateIndex].ptr)
 
 #define WOBBLY_SCREEN(s) \
         WobblyScreen *ws = GET_WOBBLY_SCREEN (s, GET_WOBBLY_DISPLAY (&display))
 
 #define GET_WOBBLY_WINDOW(w, ws) \
-        ((WobblyWindow *) (w)->base.privates[(ws)->windowPrivateIndex].ptr)
+        ((WobblyWindow *) (w)->privates[(ws)->windowPrivateIndex].ptr)
 
 #define WOBBLY_WINDOW(w) \
         WobblyWindow *ww = GET_WOBBLY_WINDOW  (w, \
@@ -2804,7 +2804,7 @@ wobblyInitDisplay (CompPlugin  *p,
 	wd->snapping = FALSE;
 	wd->yConstrained = FALSE;
 
-	d->base.privates[displayPrivateIndex].ptr = wd;
+	d->privates[displayPrivateIndex].ptr = wd;
 
 	return TRUE;
 }
@@ -2896,7 +2896,7 @@ wobblyInitScreen (CompPlugin *p,
 	WRAP (ws, s, windowGrabNotify, wobblyWindowGrabNotify);
 	WRAP (ws, s, windowUngrabNotify, wobblyWindowUngrabNotify);
 
-	s->base.privates[wd->screenPrivateIndex].ptr = ws;
+	s->privates[wd->screenPrivateIndex].ptr = ws;
 
 	return TRUE;
 }
@@ -2945,7 +2945,7 @@ wobblyInitWindow (CompPlugin *p,
 	ww->grabbed = FALSE;
 	ww->state   = w->state;
 
-	w->base.privates[ws->windowPrivateIndex].ptr = ww;
+	w->privates[ws->windowPrivateIndex].ptr = ww;
 
 	const BananaValue *
 	option_maximize_effect = bananaGetOption (bananaIndex,
@@ -2981,34 +2981,6 @@ wobblyFiniWindow (CompPlugin *p,
 	}
 
 	free (ww);
-}
-
-static CompBool
-wobblyInitObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) wobblyInitDisplay,
-		(InitPluginObjectProc) wobblyInitScreen,
-		(InitPluginObjectProc) wobblyInitWindow
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-wobblyFiniObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) wobblyFiniDisplay,
-		(FiniPluginObjectProc) wobblyFiniScreen,
-		(FiniPluginObjectProc) wobblyFiniWindow
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -3058,12 +3030,18 @@ CompPluginVTable wobblyVTable = {
 	"wobbly",
 	wobblyInit,
 	wobblyFini,
-	wobblyInitObject,
-	wobblyFiniObject
+	NULL, /* wobblyInitCore */
+	NULL, /* wobblyFiniCore */
+	wobblyInitDisplay,
+	wobblyFiniDisplay,
+	wobblyInitScreen,
+	wobblyFiniScreen,
+	wobblyInitWindow,
+	wobblyFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &wobblyVTable;
 }

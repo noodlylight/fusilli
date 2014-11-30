@@ -1634,7 +1634,7 @@ scaleInitDisplay (CompPlugin  *p,
 
 	WRAP (sd, d, handleEvent, scaleHandleEvent);
 
-	d->base.privates[scaleDisplayPrivateIndex].ptr = sd;
+	d->privates[scaleDisplayPrivateIndex].ptr = sd;
 
 	return TRUE;
 }
@@ -1711,7 +1711,7 @@ scaleInitScreen (CompPlugin *p,
 
 	ss->cursor = XCreateFontCursor (display.display, XC_left_ptr);
 
-	s->base.privates[sd->screenPrivateIndex].ptr = ss;
+	s->privates[sd->screenPrivateIndex].ptr = ss;
 
 	return TRUE;
 }
@@ -1768,7 +1768,7 @@ scaleInitWindow (CompPlugin *p,
 	sw->delta = 1.0f;
 	sw->lastThumbOpacity = 0.0f;
 
-	w->base.privates[ss->windowPrivateIndex].ptr = sw;
+	w->privates[ss->windowPrivateIndex].ptr = sw;
 
 	return TRUE;
 }
@@ -1780,34 +1780,6 @@ scaleFiniWindow (CompPlugin *p,
 	SCALE_WINDOW (w);
 
 	free (sw);
-}
-
-static CompBool
-scaleInitObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) scaleInitDisplay,
-		(InitPluginObjectProc) scaleInitScreen,
-		(InitPluginObjectProc) scaleInitWindow
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-scaleFiniObject (CompPlugin *p,
-                 CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) scaleFiniDisplay,
-		(FiniPluginObjectProc) scaleFiniScreen,
-		(FiniPluginObjectProc) scaleFiniWindow
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -1929,12 +1901,18 @@ CompPluginVTable scaleVTable = {
 	"scale",
 	scaleInit,
 	scaleFini,
-	scaleInitObject,
-	scaleFiniObject
+	NULL, /* scaleInitCore */
+	NULL, /* scaleFiniCore */
+	scaleInitDisplay,
+	scaleFiniDisplay,
+	scaleInitScreen,
+	scaleFiniScreen,
+	scaleInitWindow,
+	scaleFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &scaleVTable;
 }

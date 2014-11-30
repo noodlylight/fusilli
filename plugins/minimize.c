@@ -76,19 +76,19 @@ typedef struct _MinWindow {
 } MinWindow;
 
 #define GET_MIN_DISPLAY(d) \
-        ((MinDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((MinDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define MIN_DISPLAY(d) \
         MinDisplay *md = GET_MIN_DISPLAY (d)
 
 #define GET_MIN_SCREEN(s, md) \
-        ((MinScreen *) (s)->base.privates[(md)->screenPrivateIndex].ptr)
+        ((MinScreen *) (s)->privates[(md)->screenPrivateIndex].ptr)
 
 #define MIN_SCREEN(s) \
         MinScreen *ms = GET_MIN_SCREEN (s, GET_MIN_DISPLAY (&display))
 
 #define GET_MIN_WINDOW(w, ms) \
-        ((MinWindow *) (w)->base.privates[(ms)->windowPrivateIndex].ptr)
+        ((MinWindow *) (w)->privates[(ms)->windowPrivateIndex].ptr)
 
 #define MIN_WINDOW(w) \
         MinWindow *mw = GET_MIN_WINDOW  (w, \
@@ -773,7 +773,7 @@ minInitDisplay (CompPlugin  *p,
 
 	WRAP (md, d, handleEvent, minHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = md;
+	d->privates[displayPrivateIndex].ptr = md;
 
 	return TRUE;
 }
@@ -835,7 +835,7 @@ minInitScreen (CompPlugin *p,
 	WRAP (ms, s, damageWindowRect, minDamageWindowRect);
 	WRAP (ms, s, focusWindow, minFocusWindow);
 
-	s->base.privates[md->screenPrivateIndex].ptr = ms;
+	s->privates[md->screenPrivateIndex].ptr = ms;
 
 	return TRUE;
 }
@@ -903,7 +903,7 @@ minInitWindow (CompPlugin *p,
 			mw->region = NULL;
 	}
 
-	w->base.privates[ms->windowPrivateIndex].ptr = mw;
+	w->privates[ms->windowPrivateIndex].ptr = mw;
 
 	return TRUE;
 }
@@ -923,34 +923,6 @@ minFiniWindow (CompPlugin *p,
 		XDestroyRegion (mw->region);
 
 	free (mw);
-}
-
-static CompBool
-minInitObject (CompPlugin *p,
-               CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) minInitDisplay,
-		(InitPluginObjectProc) minInitScreen,
-		(InitPluginObjectProc) minInitWindow
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-minFiniObject (CompPlugin *p,
-               CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) minFiniDisplay,
-		(FiniPluginObjectProc) minFiniScreen,
-		(FiniPluginObjectProc) minFiniWindow
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -994,12 +966,18 @@ static CompPluginVTable minVTable = {
 	"minimize",
 	minInit,
 	minFini,
-	minInitObject,
-	minFiniObject
+	NULL, /* minInitCore */
+	NULL, /* minFiniCore */
+	minInitDisplay,
+	minFiniDisplay,
+	minInitScreen,
+	minFiniScreen,
+	minInitWindow,
+	minFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &minVTable;
 }

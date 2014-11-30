@@ -55,13 +55,13 @@ typedef struct _ShotScreen {
 } ShotScreen;
 
 #define GET_SHOT_DISPLAY(d) \
-        ((ShotDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((ShotDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define SHOT_DISPLAY(d) \
         ShotDisplay *sd = GET_SHOT_DISPLAY (d)
 
 #define GET_SHOT_SCREEN(s, sd) \
-        ((ShotScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
+        ((ShotScreen *) (s)->privates[(sd)->screenPrivateIndex].ptr)
 
 #define SHOT_SCREEN(s) \
         ShotScreen *ss = GET_SHOT_SCREEN (s, GET_SHOT_DISPLAY (&display))
@@ -563,7 +563,7 @@ shotInitDisplay (CompPlugin  *p,
 
 	WRAP (sd, d, handleEvent, shotHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = sd;
+	d->privates[displayPrivateIndex].ptr = sd;
 
 	return TRUE;
 }
@@ -599,7 +599,7 @@ shotInitScreen (CompPlugin *p,
 	WRAP (ss, s, paintScreen, shotPaintScreen);
 	WRAP (ss, s, paintOutput, shotPaintOutput);
 
-	s->base.privates[sd->screenPrivateIndex].ptr = ss;
+	s->privates[sd->screenPrivateIndex].ptr = ss;
 
 	return TRUE;
 }
@@ -614,32 +614,6 @@ shotFiniScreen (CompPlugin *p,
 	UNWRAP (ss, s, paintOutput);
 
 	free (ss);
-}
-
-static CompBool
-shotInitObject (CompPlugin *p,
-                CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) shotInitDisplay,
-		(InitPluginObjectProc) shotInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-shotFiniObject (CompPlugin *p,
-                CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) shotFiniDisplay,
-		(FiniPluginObjectProc) shotFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static void
@@ -700,12 +674,18 @@ static CompPluginVTable shotVTable = {
 	"screenshot",
 	shotInit,
 	shotFini,
-	shotInitObject,
-	shotFiniObject
+	NULL, /* shotInitCore */
+	NULL, /* shotFiniCore */
+	shotInitDisplay,
+	shotFiniDisplay,
+	shotInitScreen,
+	shotFiniScreen,
+	NULL, /* shotInitWindow */ 
+	NULL  /* shotFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &shotVTable;
 }

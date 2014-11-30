@@ -150,13 +150,13 @@ static float _boxVertices[] =
 #define WINDOW_HEIGHT (HEIGHT + (SPACE << 1))
 
 #define GET_SWITCH_DISPLAY(d) \
-        ((SwitchDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((SwitchDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define SWITCH_DISPLAY(d) \
         SwitchDisplay *sd = GET_SWITCH_DISPLAY (d)
 
 #define GET_SWITCH_SCREEN(s, sd) \
-        ((SwitchScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
+        ((SwitchScreen *) (s)->privates[(sd)->screenPrivateIndex].ptr)
 
 #define SWITCH_SCREEN(s) \
         SwitchScreen *ss = GET_SWITCH_SCREEN (s, GET_SWITCH_DISPLAY (&display))
@@ -1846,7 +1846,7 @@ switchInitDisplay (CompPlugin  *p,
 
 	WRAP (sd, d, handleEvent, switchHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = sd;
+	d->privates[displayPrivateIndex].ptr = sd;
 
 	return TRUE;
 }
@@ -1935,7 +1935,7 @@ switchInitScreen (CompPlugin *p,
 	WRAP (ss, s, paintWindow, switchPaintWindow);
 	WRAP (ss, s, damageWindowRect, switchDamageWindowRect);
 
-	s->base.privates[sd->screenPrivateIndex].ptr = ss;
+	s->privates[sd->screenPrivateIndex].ptr = ss;
 
 	return TRUE;
 }
@@ -1960,32 +1960,6 @@ switchFiniScreen (CompPlugin *p,
 
 	matchFini (&ss->window_match);
 	free (ss);
-}
-
-static CompBool
-switchInitObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) switchInitDisplay,
-		(InitPluginObjectProc) switchInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-switchFiniObject (CompPlugin *p,
-                  CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) switchFiniDisplay,
-		(FiniPluginObjectProc) switchFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -2046,12 +2020,18 @@ CompPluginVTable switchVTable = {
 	"switcher",
 	switchInit,
 	switchFini,
-	switchInitObject,
-	switchFiniObject
+	NULL, /* switchInitCore */
+	NULL, /* switchFiniCore */
+	switchInitDisplay,
+	switchFiniDisplay,
+	switchInitScreen,
+	switchFiniScreen,
+	NULL, /* switchInitWindow */
+	NULL  /* switchFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &switchVTable;
 }

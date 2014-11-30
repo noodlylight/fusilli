@@ -63,17 +63,17 @@ reallocCorePrivate (int  size,
 {
 	void *privates;
 
-	privates = realloc (core.base.privates, size * sizeof (CompPrivate));
+	privates = realloc (core.privates, size * sizeof (CompPrivate));
 	if (!privates)
 		return FALSE;
 
-	core.base.privates = (CompPrivate *) privates;
+	core.privates = (CompPrivate *) privates;
 
 	return TRUE;
 }
 
 int
-allocCoreObjectPrivateIndex (CompObject *parent)
+allocateCorePrivateIndex (void)
 {
 	return allocatePrivateIndex (&corePrivateLen,
 	                             &corePrivateIndices,
@@ -82,70 +82,9 @@ allocCoreObjectPrivateIndex (CompObject *parent)
 }
 
 void
-freeCoreObjectPrivateIndex (CompObject *parent,
-                            int        index)
-{
-	freePrivateIndex (corePrivateLen, corePrivateIndices, index);
-}
-
-CompBool
-forEachCoreObject (CompObject         *parent,
-                   ObjectCallBackProc proc,
-                   void               *closure)
-{
-	return TRUE;
-}
-
-char *
-nameCoreObject (CompObject *object)
-{
-	return NULL;
-}
-
-CompObject *
-findCoreObject (CompObject *parent,
-                const char *name)
-{
-	return NULL;
-}
-
-int
-allocateCorePrivateIndex (void)
-{
-	return compObjectAllocatePrivateIndex (NULL, COMP_OBJECT_TYPE_CORE);
-}
-
-void
 freeCorePrivateIndex (int index)
 {
-	compObjectFreePrivateIndex (NULL, COMP_OBJECT_TYPE_CORE, index);
-}
-
-static CompBool
-initCorePluginForObject (CompPlugin *p,
-                         CompObject *o)
-{
-	return TRUE;
-}
-
-static void
-finiCorePluginForObject (CompPlugin *p,
-                         CompObject *o)
-{
-}
-
-static void
-coreObjectAdd (CompObject *parent,
-               CompObject *object)
-{
-	object->parent = parent;
-}
-
-static void
-coreObjectRemove (CompObject *parent,
-                  CompObject *object)
-{
-	object->parent = NULL;
+	freePrivateIndex (corePrivateLen, corePrivateIndices, index);
 }
 
 #ifdef USE_INOTIFY
@@ -355,7 +294,7 @@ initCore (void)
 {
 	CompPlugin *corePlugin;
 
-	compObjectInit (&core.base, 0, COMP_OBJECT_TYPE_CORE);
+	core.privates = NULL;
 
 	core.tmpRegion = XCreateRegion ();
 	if (!core.tmpRegion)
@@ -380,12 +319,6 @@ initCore (void)
 	core.nWatchFds = 0;
 
 	gettimeofday (&core.lastTimeout, 0);
-
-	core.initPluginForObject = initCorePluginForObject;
-	core.finiPluginForObject = finiCorePluginForObject;
-
-	core.objectAdd    = coreObjectAdd;
-	core.objectRemove = coreObjectRemove;
 
 	core.sessionEvent = sessionEvent;
 	core.logMessage   = logMessage;

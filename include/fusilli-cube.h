@@ -179,19 +179,19 @@ typedef struct _CubeScreen {
 } CubeScreen;
 
 #define GET_CUBE_CORE(c) \
-        ((CubeCore *) (c)->base.privates[cubeCorePrivateIndex].ptr)
+        ((CubeCore *) (c)->privates[cubeCorePrivateIndex].ptr)
 
 #define CUBE_CORE(c) \
         CubeCore *cc = GET_CUBE_CORE (c)
 
 #define GET_CUBE_DISPLAY(d) \
-        ((CubeDisplay *) (d)->base.privates[cubeDisplayPrivateIndex].ptr)
+        ((CubeDisplay *) (d)->privates[cubeDisplayPrivateIndex].ptr)
 
 #define CUBE_DISPLAY(d) \
         CubeDisplay *cd = GET_CUBE_DISPLAY (d)
 
 #define GET_CUBE_SCREEN(s, cd) \
-        ((CubeScreen *) (s)->base.privates[(cd)->screenPrivateIndex].ptr)
+        ((CubeScreen *) (s)->privates[(cd)->screenPrivateIndex].ptr)
 
 #define CUBE_SCREEN(s) \
         CubeScreen *cs = GET_CUBE_SCREEN (s, GET_CUBE_DISPLAY (&display))

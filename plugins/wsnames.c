@@ -52,13 +52,13 @@ typedef struct _WSNamesScreen {
 } WSNamesScreen;
 
 #define GET_WSNAMES_DISPLAY(d) \
-        ((WSNamesDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((WSNamesDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define WSNAMES_DISPLAY(d) \
         WSNamesDisplay *wd = GET_WSNAMES_DISPLAY (d)
 
 #define GET_WSNAMES_SCREEN(s, ad) \
-        ((WSNamesScreen *) (s)->base.privates[(ad)->screenPrivateIndex].ptr)
+        ((WSNamesScreen *) (s)->privates[(ad)->screenPrivateIndex].ptr)
 
 #define WSNAMES_SCREEN(s) \
         WSNamesScreen *ws = GET_WSNAMES_SCREEN (s, GET_WSNAMES_DISPLAY (&display))
@@ -502,7 +502,7 @@ wsnamesInitDisplay (CompPlugin  *p,
 
 	WRAP (wd, d, handleEvent, wsnamesHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = wd;
+	d->privates[displayPrivateIndex].ptr = wd;
 
 	return TRUE;
 }
@@ -541,7 +541,7 @@ wsnamesInitScreen (CompPlugin *p,
 	WRAP (ws, s, donePaintScreen, wsnamesDonePaintScreen);
 	WRAP (ws, s, paintOutput, wsnamesPaintOutput);
 
-	s->base.privates[wd->screenPrivateIndex].ptr = ws;
+	s->privates[wd->screenPrivateIndex].ptr = ws;
 
 	return TRUE;
 }
@@ -559,32 +559,6 @@ wsnamesFiniScreen (CompPlugin *p,
 	wsnamesFreeText (s);
 
 	free (ws);
-}
-
-static CompBool
-wsnamesInitObject (CompPlugin *p,
-                   CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) wsnamesInitDisplay,
-		(InitPluginObjectProc) wsnamesInitScreen
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-wsnamesFiniObject (CompPlugin *p,
-                   CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) wsnamesFiniDisplay,
-		(FiniPluginObjectProc) wsnamesFiniScreen
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -633,12 +607,18 @@ CompPluginVTable wsnamesVTable = {
 	"wsnames",
 	wsnamesInit,
 	wsnamesFini,
-	wsnamesInitObject,
-	wsnamesFiniObject
+	NULL, /* wsnamesInitCore */
+	NULL, /* wsnamesFiniCore */
+	wsnamesInitDisplay,
+	wsnamesFiniDisplay,
+	wsnamesInitScreen,
+	wsnamesFiniScreen,
+	NULL, /* wsnamesInitDisplay */
+	NULL  /* wsnamesFiniWindow  */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &wsnamesVTable;
 }

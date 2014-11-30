@@ -61,21 +61,19 @@ reallocWindowPrivates (int  size,
 
 	for (w = s->windows; w; w = w->next)
 	{
-		privates = realloc (w->base.privates, size * sizeof (CompPrivate));
+		privates = realloc (w->privates, size * sizeof (CompPrivate));
 		if (!privates)
 			return FALSE;
 
-		w->base.privates = (CompPrivate *) privates;
+		w->privates = (CompPrivate *) privates;
 	}
 
 	return TRUE;
 }
 
 int
-allocWindowObjectPrivateIndex (CompObject *parent)
+allocateWindowPrivateIndex (CompScreen *screen)
 {
-	CompScreen *screen = (CompScreen *) parent;
-
 	return allocatePrivateIndex (&screen->windowPrivateLen,
 	                             &screen->windowPrivateIndices,
 	                             reallocWindowPrivates,
@@ -83,82 +81,12 @@ allocWindowObjectPrivateIndex (CompObject *parent)
 }
 
 void
-freeWindowObjectPrivateIndex (CompObject *parent,
-                              int        index)
-{
-	CompScreen *screen = (CompScreen *) parent;
-
-	freePrivateIndex (screen->windowPrivateLen,
-	                  screen->windowPrivateIndices,
-	                  index);
-}
-
-CompBool
-forEachWindowObject (CompObject	        *parent,
-                     ObjectCallBackProc proc,
-                     void               *closure)
-{
-	if (parent->type == COMP_OBJECT_TYPE_SCREEN)
-	{
-		CompWindow *w;
-
-		CORE_SCREEN (parent);
-
-		for (w = s->windows; w; w = w->next)
-		{
-			if (!(*proc) (&w->base, closure))
-				return FALSE;
-		}
-	}
-
-	return TRUE;
-}
-
-char *
-nameWindowObject (CompObject *object)
-{
-	char tmp[256];
-
-	CORE_WINDOW (object);
-
-	snprintf (tmp, 256, "0x%lu", w->id);
-
-	return strdup (tmp);
-}
-
-CompObject *
-findWindowObject (CompObject *parent,
-                  const char *name)
-{
-	if (parent->type == COMP_OBJECT_TYPE_SCREEN)
-	{
-		CompWindow *w;
-		Window     id = atoi (name);
-
-		CORE_SCREEN (parent);
-
-		for (w = s->windows; w; w = w->next)
-			if (w->id == id)
-				return &w->base;
-	}
-
-	return NULL;
-}
-
-int
-allocateWindowPrivateIndex (CompScreen *screen)
-{
-	return compObjectAllocatePrivateIndex (&screen->base,
-	                                 COMP_OBJECT_TYPE_WINDOW);
-}
-
-void
 freeWindowPrivateIndex (CompScreen *screen,
                         int    index)
 {
-	compObjectFreePrivateIndex (&screen->base,
-	                            COMP_OBJECT_TYPE_WINDOW,
-	                            index);
+	freePrivateIndex (screen->windowPrivateLen,
+	                  screen->windowPrivateIndices,
+	                  index);
 }
 
 static Bool
@@ -1498,8 +1426,8 @@ freeWindow (CompWindow *w)
 	if (w->hints)
 		XFree (w->hints);
 
-	if (w->base.privates)
-		free (w->base.privates);
+	if (w->privates)
+		free (w->privates);
 
 	if (w->sizeDamage)
 		free (w->damageRects);
@@ -2000,6 +1928,7 @@ addWindow (CompScreen *screen,
 	w->shaded        = FALSE;
 	w->hidden        = FALSE;
 	w->grabbed       = FALSE;
+	w->added         = FALSE;
 
 	w->desktop = screen->currentDesktop;
 
@@ -2107,7 +2036,7 @@ addWindow (CompScreen *screen,
 	else
 		privates = 0;
 
-	compObjectInit (&w->base, privates, COMP_OBJECT_TYPE_WINDOW);
+	w->privates = privates;
 
 	w->region = XCreateRegion ();
 	if (!w->region)
@@ -2331,10 +2260,10 @@ addWindow (CompScreen *screen,
 		}
 	}
 
-	/* TODO: bailout properly when objectInitPlugins fails */
-	assert (objectInitPlugins (&w->base));
+	//call the InitWindow proc of every loaded plugin
+	windowInitPlugins (w);
 
-	(*core.objectAdd) (&screen->base, &w->base);
+	(*w->screen->windowAddNotify) (w);
 
 	recalcWindowActions (w);
 	updateIconGeometry (w);
@@ -2401,9 +2330,7 @@ removeWindow (CompWindow *w)
 			showOutputWindow (w->screen);
 	}
 
-	(*core.objectRemove) (&w->screen->base, &w->base);
-
-	objectFiniPlugins (&w->base);
+	windowFiniPlugins (w);
 
 	freeWindow (w);
 }
@@ -5540,6 +5467,12 @@ compareWindowActiveness (CompWindow *w1,
 	}
 
 	return w1->activeNum - w2->activeNum;
+}
+
+void
+windowAddNotify (CompWindow *w)
+{
+	w->added = TRUE;
 }
 
 Bool

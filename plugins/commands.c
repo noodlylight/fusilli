@@ -41,7 +41,7 @@ typedef struct _CommandsDisplay {
 } CommandsDisplay;
 
 #define GET_COMMANDS_DISPLAY(d) \
-        ((CommandsDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+        ((CommandsDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
 #define COMMANDS_DISPLAY(d) \
         CommandsDisplay *cd = GET_COMMANDS_DISPLAY (d)
@@ -146,7 +146,7 @@ commandsInitDisplay (CompPlugin  *p,
 
 	WRAP (cd, d, handleEvent, commandsHandleEvent);
 
-	d->base.privates[displayPrivateIndex].ptr = cd;
+	d->privates[displayPrivateIndex].ptr = cd;
 
 	return TRUE;
 }
@@ -158,30 +158,6 @@ commandsFiniDisplay (CompPlugin  *p,
 	COMMANDS_DISPLAY (d);
 
 	free (cd);
-}
-
-static CompBool
-commandsInitObject (CompPlugin *p,
-                    CompObject *o)
-{
-	static InitPluginObjectProc dispTab[] = {
-		(InitPluginObjectProc) 0, /* InitCore */
-		(InitPluginObjectProc) commandsInitDisplay
-	};
-
-	RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-commandsFiniObject (CompPlugin *p,
-                    CompObject *o)
-{
-	static FiniPluginObjectProc dispTab[] = {
-		(FiniPluginObjectProc) 0, /* FiniCore */
-		(FiniPluginObjectProc) commandsFiniDisplay
-	};
-
-	DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
 }
 
 static Bool
@@ -240,12 +216,18 @@ static CompPluginVTable commandsVTable = {
 	"commands",
 	commandsInit,
 	commandsFini,
-	commandsInitObject,
-	commandsFiniObject
+	NULL, /* commandsInitCore */
+	NULL, /* commandsFiniCore */
+	commandsInitDisplay,
+	commandsFiniDisplay,
+	NULL, /* commandsInitScreen */
+	NULL, /* commandsFiniScreen */
+	NULL, /* commandsInitWindow */
+	NULL  /* commandsFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20140724 (void)
+getCompPluginInfo20141130 (void)
 {
 	return &commandsVTable;
 }
