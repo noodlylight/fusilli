@@ -34,8 +34,6 @@ typedef int CompBool;
 typedef int CompTimeoutHandle;
 typedef int CompWatchFdHandle;
 
-typedef union _CompOptionValue CompOptionValue;
-
 typedef struct _CompCore     CompCore;
 typedef struct _CompDisplay  CompDisplay;
 typedef struct _CompPlugin   CompPlugin;

@@ -973,13 +973,6 @@ zoomHandleEvent (XEvent      *event)
 	WRAP (zd, &display, handleEvent, zoomHandleEvent);
 }
 
-/*static const CompMetadataOptionInfo zoomDisplayOptionInfo[] = {
-	{ "initiate_button", "button", 0, zoomInitiate, zoomTerminate },
-	{ "zoom_in_button", "button", 0, zoomIn, 0 },
-	{ "zoom_out_button", "button", 0, zoomOut, 0 },
-	{ "zoom_pan_button", "button", 0, zoomInitiatePan, zoomTerminatePan }
-};*/
-
 static Bool
 zoomInitDisplay (CompPlugin  *p,
                  CompDisplay *d)
