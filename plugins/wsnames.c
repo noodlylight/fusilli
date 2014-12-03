@@ -601,6 +601,12 @@ wsnamesFini (CompPlugin *p)
 	freeDisplayPrivateIndex (displayPrivateIndex);
 
 	bananaUnloadPlugin (bananaIndex);
+
+	if (core.dbusConnection != NULL)
+	{
+		dbus_connection_unregister_object_path (core.dbusConnection,
+		                                        "/org/fusilli/wsnames");
+	}
 }
 
 CompPluginVTable wsnamesVTable = {
