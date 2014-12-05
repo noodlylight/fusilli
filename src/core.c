@@ -365,13 +365,13 @@ finiCore (void)
 
 	compRemoveWatchFd (core.dbusWatchFdHandle);
 
-	dbus_bus_release_name (core.dbusConnection, "org.fusilli", NULL);
-
 	if (core.watchPollFds)
 		free (core.watchPollFds);
 
 	while ((p = popPlugin ()))
 		unloadPlugin (p);
+
+	dbus_bus_release_name (core.dbusConnection, "org.fusilli", NULL);
 
 	XDestroyRegion (core.outputRegion);
 	XDestroyRegion (core.tmpRegion);
