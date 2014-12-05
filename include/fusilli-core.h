@@ -542,8 +542,6 @@ typedef void (*LogMessageProc) (const char   *componentName,
                                 const char   *message);
 
 struct _CompCore {
-	CompPrivate    *privates;
-
 	Region tmpRegion;
 	Region outputRegion;
 
@@ -571,12 +569,6 @@ initCore (void);
 
 void
 finiCore (void);
-
-int
-allocateCorePrivateIndex (void);
-
-void
-freeCorePrivateIndex (int index);
 
 CompFileWatchHandle
 addFileWatch (const char            *path,

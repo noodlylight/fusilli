@@ -40,9 +40,6 @@
 
 CompCore core;
 
-static char *corePrivateIndices = 0;
-static int  corePrivateLen = 0;
-
 #ifdef USE_INOTIFY
 typedef struct _CompInotifyWatch {
 	struct _CompInotifyWatch *next;
@@ -55,39 +52,6 @@ static int               fd; //inotify_init
 static CompInotifyWatch  *watch; //linked list - one node per watched file.
 
 static CompWatchFdHandle watchFdHandle; //compAddWatchFd
-#endif
-
-static int
-reallocCorePrivate (int  size,
-                    void *closure)
-{
-	void *privates;
-
-	privates = realloc (core.privates, size * sizeof (CompPrivate));
-	if (!privates)
-		return FALSE;
-
-	core.privates = (CompPrivate *) privates;
-
-	return TRUE;
-}
-
-int
-allocateCorePrivateIndex (void)
-{
-	return allocatePrivateIndex (&corePrivateLen,
-	                             &corePrivateIndices,
-	                             reallocCorePrivate,
-	                             0);
-}
-
-void
-freeCorePrivateIndex (int index)
-{
-	freePrivateIndex (corePrivateLen, corePrivateIndices, index);
-}
-
-#ifdef USE_INOTIFY
 
 static Bool
 inotifyProcessEvents (void *data)
@@ -292,8 +256,6 @@ initDbus (void)
 CompBool
 initCore (void)
 {
-	core.privates = NULL;
-
 	core.tmpRegion = XCreateRegion ();
 	if (!core.tmpRegion)
 		return FALSE;
