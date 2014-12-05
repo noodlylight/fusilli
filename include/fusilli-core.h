@@ -2824,23 +2824,9 @@ getWindowTitle (CompWindow *w);
 
 typedef CompPluginVTable *(*PluginGetInfoProc) (void);
 
-typedef Bool (*LoadPluginProc) (CompPlugin *p,
-                                const char *path,
-                                const char *name);
-
-typedef void (*UnloadPluginProc) (CompPlugin *p);
-
-typedef char **(*ListPluginsProc) (const char *path,
-                                   int        *n);
-
-extern LoadPluginProc   loaderLoadPlugin;
-extern UnloadPluginProc loaderUnloadPlugin;
-extern ListPluginsProc  loaderListPlugins;
-
 struct _CompPlugin {
 	CompPlugin       *next;
-	CompPrivate      devPrivate;
-	char             *devType;
+	void             *dlhand;
 	CompPluginVTable *vTable;
 };
 

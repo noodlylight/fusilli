@@ -97,8 +97,7 @@ dlloaderLoadPlugin (CompPlugin *p,
 			}
 			else
 			{
-				p->devPrivate.ptr = dlhand;
-				p->devType    = "dlloader";
+				p->dlhand     = dlhand;
 				loaded        = TRUE;
 			}
 		}
@@ -115,12 +114,6 @@ dlloaderLoadPlugin (CompPlugin *p,
 		dlclose (dlhand);
 
 	return loaded;
-}
-
-static void
-dlloaderUnloadPlugin (CompPlugin *p)
-{
-	dlclose (p->devPrivate.ptr);
 }
 
 static int
@@ -183,10 +176,6 @@ dlloaderListPlugins (const char *path,
 
 	return NULL;
 }
-
-LoadPluginProc   loaderLoadPlugin   = dlloaderLoadPlugin;
-UnloadPluginProc loaderUnloadPlugin = dlloaderUnloadPlugin;
-ListPluginsProc  loaderListPlugins  = dlloaderListPlugins;
 
 static Bool
 initPlugin (CompPlugin *p)
@@ -345,7 +334,8 @@ unloadPlugin (CompPlugin *p)
 	compLogMessage("core", CompLogLevelInfo,
 	               "Unloading plugin: %s", p->vTable->name);
 
-	(*loaderUnloadPlugin) (p);
+	dlclose (p->dlhand);
+
 	free (p);
 }
 
@@ -365,8 +355,7 @@ loadPlugin (const char *name)
 		return 0;
 
 	p->next            = 0;
-	p->devPrivate.uval = 0;
-	p->devType         = NULL;
+	p->dlhand          = 0;
 	p->vTable          = 0;
 
 	home = getenv ("HOME");
@@ -376,7 +365,7 @@ loadPlugin (const char *name)
 		if (plugindir)
 		{
 			sprintf (plugindir, "%s/%s", home, HOME_PLUGINDIR);
-			status = (*loaderLoadPlugin) (p, plugindir, name);
+			status = dlloaderLoadPlugin (p, plugindir, name);
 			free (plugindir);
 
 			if (status)
@@ -384,11 +373,11 @@ loadPlugin (const char *name)
 		}
 	}
 
-	status = (*loaderLoadPlugin) (p, PLUGINDIR, name);
+	status = dlloaderLoadPlugin (p, PLUGINDIR, name);
 	if (status)
 		return p;
 
-	status = (*loaderLoadPlugin) (p, NULL, name);
+	status = dlloaderLoadPlugin (p, NULL, name);
 	if (status)
 		return p;
 
@@ -477,13 +466,13 @@ availablePlugins (int *n)
 		if (plugindir)
 		{
 			sprintf (plugindir, "%s/%s", home, HOME_PLUGINDIR);
-			homeList = (*loaderListPlugins) (plugindir, &nHomeList);
+			homeList = dlloaderListPlugins (plugindir, &nHomeList);
 			free (plugindir);
 		}
 	}
 
-	pluginList  = (*loaderListPlugins) (PLUGINDIR, &nPluginList);
-	currentList = (*loaderListPlugins) (NULL, &nCurrentList);
+	pluginList  = dlloaderListPlugins (PLUGINDIR, &nPluginList);
+	currentList = dlloaderListPlugins (NULL, &nCurrentList);
 
 	count = 0;
 	if (homeList)
