@@ -268,8 +268,6 @@ CompPluginVTable glibVTable = {
 	"glib",
 	glibInit,
 	glibFini,
-	NULL, /* glibInitCore */
-	NULL, /* glibFiniCore */
 	glibInitDisplay,
 	glibFiniDisplay,
 	NULL, /* glibInitScreen,*/
@@ -279,7 +277,7 @@ CompPluginVTable glibVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &glibVTable;
 }

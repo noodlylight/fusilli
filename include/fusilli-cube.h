@@ -35,10 +35,6 @@ extern "C" {
 
 #define CUBE_ABIVERSION 20080424
 
-typedef struct _CubeCore {
-	//SetOptionForPluginProc setOptionForPlugin;
-} CubeCore;
-
 #define CUBE_MOMODE_AUTO  0
 #define CUBE_MOMODE_MULTI 1
 #define CUBE_MOMODE_ONE   2
@@ -177,12 +173,6 @@ typedef struct _CubeScreen {
 	int  moMode;
 	Bool recalcOutput;
 } CubeScreen;
-
-#define GET_CUBE_CORE(c) \
-        ((CubeCore *) (c)->privates[cubeCorePrivateIndex].ptr)
-
-#define CUBE_CORE(c) \
-        CubeCore *cc = GET_CUBE_CORE (c)
 
 #define GET_CUBE_DISPLAY(d) \
         ((CubeDisplay *) (d)->privates[cubeDisplayPrivateIndex].ptr)

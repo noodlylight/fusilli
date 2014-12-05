@@ -726,8 +726,6 @@ CompPluginVTable obsVTable = {
 	"obs",
 	obsInit,
 	obsFini,
-	NULL, /* obsInitCore */
-	NULL, /* obsFiniCore */
 	obsInitDisplay,
 	obsFiniDisplay,
 	obsInitScreen,
@@ -737,7 +735,7 @@ CompPluginVTable obsVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &obsVTable;
 }

@@ -1901,8 +1901,6 @@ CompPluginVTable scaleVTable = {
 	"scale",
 	scaleInit,
 	scaleFini,
-	NULL, /* scaleInitCore */
-	NULL, /* scaleFiniCore */
 	scaleInitDisplay,
 	scaleFiniDisplay,
 	scaleInitScreen,
@@ -1912,7 +1910,7 @@ CompPluginVTable scaleVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &scaleVTable;
 }

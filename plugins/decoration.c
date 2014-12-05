@@ -1582,8 +1582,6 @@ static CompPluginVTable decorVTable = {
 	"decoration",
 	decorInit,
 	decorFini,
-	NULL, /* decorInitCore */
-	NULL, /* decorFiniCore */
 	decorInitDisplay,
 	decorFiniDisplay,
 	decorInitScreen,
@@ -1593,7 +1591,7 @@ static CompPluginVTable decorVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &decorVTable;
 }

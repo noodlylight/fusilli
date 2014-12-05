@@ -966,8 +966,6 @@ static CompPluginVTable minVTable = {
 	"minimize",
 	minInit,
 	minFini,
-	NULL, /* minInitCore */
-	NULL, /* minFiniCore */
 	minInitDisplay,
 	minFiniDisplay,
 	minInitScreen,
@@ -977,7 +975,7 @@ static CompPluginVTable minVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &minVTable;
 }

@@ -890,8 +890,6 @@ CompPluginVTable cloneVTable = {
 	"clone",
 	cloneInit,
 	cloneFini,
-	NULL, /* cloneInitCore */
-	NULL, /* cloneFiniCore */
 	cloneInitDisplay,
 	cloneFiniDisplay,
 	cloneInitScreen,
@@ -901,7 +899,7 @@ CompPluginVTable cloneVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &cloneVTable;
 }

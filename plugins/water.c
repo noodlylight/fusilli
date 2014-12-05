@@ -1793,8 +1793,6 @@ static CompPluginVTable waterVTable = {
 	"water",
 	waterInit,
 	waterFini,
-	NULL, /* waterInitCore */
-	NULL, /* waterFiniCore */
 	waterInitDisplay,
 	waterFiniDisplay,
 	waterInitScreen,
@@ -1804,7 +1802,7 @@ static CompPluginVTable waterVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &waterVTable;
 }

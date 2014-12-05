@@ -2277,8 +2277,6 @@ static CompPluginVTable placeVTable = {
 	"place",
 	placeInit,
 	placeFini,
-	NULL, /* placeInitCore */
-	NULL, /* placeFiniCore */
 	placeInitDisplay,
 	placeFiniDisplay,
 	placeInitScreen,
@@ -2288,7 +2286,7 @@ static CompPluginVTable placeVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &placeVTable;
 }

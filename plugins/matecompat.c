@@ -374,18 +374,16 @@ static CompPluginVTable mateVTable = {
 	"matecompat",
 	mateInit,
 	mateFini,
-	NULL, /* mateInitCore */
-	NULL, /* mateFiniCore */
 	mateInitDisplay,
 	mateFiniDisplay,
 	NULL, /* mateInitScreen */
 	NULL, /* mateFiniScreen */
 	NULL, /* mateInitWindow */
-	NULL  /* mateFiniWinodw */
+	NULL  /* mateFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &mateVTable;
 }

@@ -35,7 +35,6 @@
 
 static int bananaIndex;
 
-static int cubeCorePrivateIndex;
 int cubeDisplayPrivateIndex;
 
 static CompKeyBinding unfold_key;
@@ -1852,44 +1851,6 @@ coreChangeNotify (const char        *optionName,
 }
 
 static Bool
-cubeInitCore (CompPlugin *p,
-              CompCore   *c)
-{
-	CubeCore *cc;
-
-	cc = malloc (sizeof (CubeCore));
-	if (!cc)
-		return FALSE;
-
-	cubeDisplayPrivateIndex = allocateDisplayPrivateIndex ();
-	if (cubeDisplayPrivateIndex < 0)
-	{
-		free (cc);
-		return FALSE;
-	}
-
-	//write cubeDisplayPrivateIndex to option index (for rotate plugin)
-	BananaValue index;
-	index.i = cubeDisplayPrivateIndex;
-	bananaSetOption (bananaIndex, "index", -1, &index);
-
-	c->privates[cubeCorePrivateIndex].ptr = cc;
-
-	return TRUE;
-}
-
-static void
-cubeFiniCore (CompPlugin *p,
-              CompCore   *c)
-{
-	CUBE_CORE (c);
-
-	freeDisplayPrivateIndex (cubeDisplayPrivateIndex);
-
-	free (cc);
-}
-
-static Bool
 cubeInitDisplay (CompPlugin  *p,
                  CompDisplay *d)
 {
@@ -2087,15 +2048,21 @@ cubeInit (CompPlugin *p)
 		return FALSE;
 	}
 
-	cubeCorePrivateIndex = allocateCorePrivateIndex ();
-
-	if (cubeCorePrivateIndex < 0)
+	cubeDisplayPrivateIndex = allocateDisplayPrivateIndex ();
+	if (cubeDisplayPrivateIndex < 0)
+	{
 		return FALSE;
+	}
 
 	bananaIndex = bananaLoadPlugin ("cube");
 
 	if (bananaIndex == -1)
 		return FALSE;
+
+	//write cubeDisplayPrivateIndex to option index (for rotate plugin)
+	BananaValue index;
+	index.i = cubeDisplayPrivateIndex;
+	bananaSetOption (bananaIndex, "index", -1, &index);
 
 	bananaAddChangeNotifyCallBack (bananaIndex, cubeChangeNotify);
 
@@ -2112,8 +2079,6 @@ cubeInit (CompPlugin *p)
 static void
 cubeFini (CompPlugin *p)
 {
-	freeCorePrivateIndex (cubeCorePrivateIndex);
-
 	bananaRemoveChangeNotifyCallBack (coreBananaIndex, coreChangeNotify);
 
 	bananaUnloadPlugin (bananaIndex);
@@ -2123,8 +2088,6 @@ CompPluginVTable cubeVTable = {
 	"cube",
 	cubeInit,
 	cubeFini,
-	cubeInitCore,
-	cubeFiniCore,
 	cubeInitDisplay,
 	cubeFiniDisplay,
 	cubeInitScreen,
@@ -2134,7 +2097,7 @@ CompPluginVTable cubeVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &cubeVTable;
 }

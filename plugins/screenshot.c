@@ -674,8 +674,6 @@ static CompPluginVTable shotVTable = {
 	"screenshot",
 	shotInit,
 	shotFini,
-	NULL, /* shotInitCore */
-	NULL, /* shotFiniCore */
 	shotInitDisplay,
 	shotFiniDisplay,
 	shotInitScreen,
@@ -685,7 +683,7 @@ static CompPluginVTable shotVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &shotVTable;
 }

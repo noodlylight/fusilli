@@ -3030,8 +3030,6 @@ CompPluginVTable wobblyVTable = {
 	"wobbly",
 	wobblyInit,
 	wobblyFini,
-	NULL, /* wobblyInitCore */
-	NULL, /* wobblyFiniCore */
 	wobblyInitDisplay,
 	wobblyFiniDisplay,
 	wobblyInitScreen,
@@ -3041,7 +3039,7 @@ CompPluginVTable wobblyVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &wobblyVTable;
 }

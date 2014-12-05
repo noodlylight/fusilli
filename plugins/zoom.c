@@ -1150,8 +1150,6 @@ CompPluginVTable zoomVTable = {
 	"zoom",
 	zoomInit,
 	zoomFini,
-	NULL, /* zoomInitCore */
-	NULL, /* zoomFiniCore */
 	zoomInitDisplay,
 	zoomFiniDisplay,
 	zoomInitScreen,
@@ -1161,7 +1159,7 @@ CompPluginVTable zoomVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &zoomVTable;
 }

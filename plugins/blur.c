@@ -3063,8 +3063,6 @@ static CompPluginVTable blurVTable = {
 	"blur",
 	blurInit,
 	blurFini,
-	NULL, /* blurInitCore */
-	NULL, /* blurFiniCore */
 	blurInitDisplay,
 	blurFiniDisplay,
 	blurInitScreen,
@@ -3074,7 +3072,7 @@ static CompPluginVTable blurVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &blurVTable;
 }

@@ -921,8 +921,6 @@ static CompPluginVTable annoVTable = {
 	"annotate",
 	annoInit,
 	annoFini,
-	NULL, /* annoInitCore */
-	NULL, /* annoFiniCore */
 	annoInitDisplay,
 	annoFiniDisplay,
 	annoInitScreen,
@@ -932,7 +930,7 @@ static CompPluginVTable annoVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &annoVTable;
 }

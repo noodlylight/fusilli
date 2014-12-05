@@ -613,8 +613,6 @@ CompPluginVTable wsnamesVTable = {
 	"wsnames",
 	wsnamesInit,
 	wsnamesFini,
-	NULL, /* wsnamesInitCore */
-	NULL, /* wsnamesFiniCore */
 	wsnamesInitDisplay,
 	wsnamesFiniDisplay,
 	wsnamesInitScreen,
@@ -624,7 +622,7 @@ CompPluginVTable wsnamesVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &wsnamesVTable;
 }

@@ -76,7 +76,7 @@ dlloaderLoadPlugin (CompPlugin *p,
 		dlerror ();
 
 		getInfo = (PluginGetInfoProc) dlsym (dlhand,
-		                      "getCompPluginInfo20141130");
+		                      "getCompPluginInfo20141205");
 
 		error = dlerror ();
 		if (error)
@@ -202,14 +202,6 @@ initPlugin (CompPlugin *p)
 		return FALSE;
 	}
 
-	//InitCore
-	if (p->vTable->initCore && !(*p->vTable->initCore) (p, &core))
-	{
-		compLogMessage ("core", CompLogLevelError,
-		                "InitCore '%s' failed", p->vTable->name);
-		return FALSE;
-	}
-
 	//InitDisplay
 	if (p->vTable->initDisplay && !(*p->vTable->initDisplay) (p, &display))
 	{
@@ -277,10 +269,6 @@ finiPlugin (CompPlugin *p)
 	//FiniDisplay
 	if (p->vTable->finiDisplay)
 		(*p->vTable->finiDisplay) (p, &display);
-
-	//FiniCore
-	if (p->vTable->finiCore)
-		(*p->vTable->finiCore) (p, &core);
 
 	//FiniPlugin
 	(*p->vTable->fini) (p);

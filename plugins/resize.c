@@ -1730,8 +1730,6 @@ CompPluginVTable resizeVTable = {
 	"resize",
 	resizeInit,
 	resizeFini,
-	NULL, /* resizeInitCore */
-	NULL, /* resizeFiniCore */
 	resizeInitDisplay,
 	resizeFiniDisplay,
 	resizeInitScreen,
@@ -1741,7 +1739,7 @@ CompPluginVTable resizeVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &resizeVTable;
 }

@@ -40,15 +40,6 @@ typedef CompBool
 typedef void
 (*FiniPluginProc) (CompPlugin *plugin);
 
-/* pluginInitCore, pluginFiniCore */
-typedef CompBool 
-(*InitPluginCoreProc) (CompPlugin *p,
-                       CompCore   *c);
-
-typedef void 
-(*FiniPluginCoreProc) (CompPlugin *p,
-                       CompCore   *c);
-
 /* pluginInitDisplay, pluginFiniDisplay */
 typedef CompBool 
 (*InitPluginDisplayProc) (CompPlugin  *p,
@@ -82,9 +73,6 @@ typedef struct _CompPluginVTable {
 	InitPluginProc init;
 	FiniPluginProc fini;
 
-	InitPluginCoreProc initCore;
-	FiniPluginCoreProc finiCore;
-
 	InitPluginDisplayProc initDisplay;
 	FiniPluginDisplayProc finiDisplay;
 
@@ -96,7 +84,7 @@ typedef struct _CompPluginVTable {
 } CompPluginVTable;
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void);
+getCompPluginInfo20141205 (void);
 
 #ifdef  __cplusplus
 }

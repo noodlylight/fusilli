@@ -1674,8 +1674,6 @@ CompPluginVTable rotateVTable = {
 	"rotate",
 	rotateInit,
 	rotateFini,
-	NULL, /* rotateInitCore */
-	NULL, /* rotateFiniCore */
 	rotateInitDisplay,
 	rotateFiniDisplay,
 	rotateInitScreen,
@@ -1685,7 +1683,7 @@ CompPluginVTable rotateVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &rotateVTable;
 }

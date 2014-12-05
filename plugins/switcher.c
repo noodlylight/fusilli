@@ -2020,8 +2020,6 @@ CompPluginVTable switchVTable = {
 	"switcher",
 	switchInit,
 	switchFini,
-	NULL, /* switchInitCore */
-	NULL, /* switchFiniCore */
 	switchInitDisplay,
 	switchFiniDisplay,
 	switchInitScreen,
@@ -2031,7 +2029,7 @@ CompPluginVTable switchVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &switchVTable;
 }

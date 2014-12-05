@@ -930,8 +930,6 @@ static CompPluginVTable fadeVTable = {
 	"fade",
 	fadeInit,
 	fadeFini,
-	NULL, /* fadeInitCore */
-	NULL, /* fadeFiniCore */
 	fadeInitDisplay,
 	fadeFiniDisplay,
 	fadeInitScreen,
@@ -941,7 +939,7 @@ static CompPluginVTable fadeVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &fadeVTable;
 }

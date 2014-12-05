@@ -979,8 +979,6 @@ CompPluginVTable svgVTable = {
 	"svg",
 	svgInit,
 	svgFini,
-	NULL, /* svgInitCore */
-	NULL, /* svgFiniCore */
 	svgInitDisplay,
 	svgFiniDisplay,
 	svgInitScreen,
@@ -990,7 +988,7 @@ CompPluginVTable svgVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &svgVTable;
 }

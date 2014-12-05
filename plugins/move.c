@@ -1026,8 +1026,6 @@ CompPluginVTable moveVTable = {
 	"move",
 	moveInit,
 	moveFini,
-	NULL, /* moveInitCore */
-	NULL, /* moveFiniCore */
 	moveInitDisplay,
 	moveFiniDisplay,
 	moveInitScreen,
@@ -1037,7 +1035,7 @@ CompPluginVTable moveVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &moveVTable;
 }

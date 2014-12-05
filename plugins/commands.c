@@ -216,8 +216,6 @@ static CompPluginVTable commandsVTable = {
 	"commands",
 	commandsInit,
 	commandsFini,
-	NULL, /* commandsInitCore */
-	NULL, /* commandsFiniCore */
 	commandsInitDisplay,
 	commandsFiniDisplay,
 	NULL, /* commandsInitScreen */
@@ -227,7 +225,7 @@ static CompPluginVTable commandsVTable = {
 };
 
 CompPluginVTable *
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &commandsVTable;
 }

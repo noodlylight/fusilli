@@ -786,8 +786,6 @@ static CompPluginVTable wallpaperVTable = {
 	"wallpaper",
 	wallpaperInit,
 	wallpaperFini,
-	NULL, /* wallpaperInitCore */
-	NULL, /* wallpaperFiniCore */
 	wallpaperInitDisplay,
 	wallpaperFiniDisplay,
 	wallpaperInitScreen,
@@ -797,7 +795,7 @@ static CompPluginVTable wallpaperVTable = {
 };
 
 CompPluginVTable*
-getCompPluginInfo20141130 (void)
+getCompPluginInfo20141205 (void)
 {
 	return &wallpaperVTable;
 }
