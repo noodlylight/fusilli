@@ -316,9 +316,9 @@ displayChangeNotify (const char        *optionName,
 static void
 updatePlugins (void)
 {
-	//pop and unload all plugins *except core*
+	//pop and unload all plugins
 	int i;
-	for (i = 0; i < display.plugin.list.nItem - 1; i++)
+	for (i = 0; i < display.plugin.list.nItem; i++)
 	{
 		CompPlugin *p;
 		p = popPlugin ();
@@ -330,14 +330,10 @@ updatePlugins (void)
 	//load and push all plugins
 	initBananaValue (&display.plugin, BananaListString);
 
-	//core was not popped/unloaded, so adding it to the list is enough
-	addItemToBananaList ("core", BananaListString, &display.plugin);
-
 	const BananaValue *
 	option_active_plugins = bananaGetOption (coreBananaIndex,
 	                                         "active_plugins",
 	                                         -1);
-
 
 	for (i = 0; i < option_active_plugins->list.nItem; i++)
 	{
@@ -1385,8 +1381,6 @@ addDisplay (const char *name)
 	d->ignoredModMask = LockMask;
 
 	initBananaValue (&d->plugin, BananaListString);
-
-	addItemToBananaList ("core", BananaListString, &d->plugin);
 
 	d->dirtyPluginList = TRUE;
 

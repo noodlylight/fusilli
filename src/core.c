@@ -292,8 +292,6 @@ initDbus (void)
 CompBool
 initCore (void)
 {
-	CompPlugin *corePlugin;
-
 	core.privates = NULL;
 
 	core.tmpRegion = XCreateRegion ();
@@ -342,21 +340,6 @@ initCore (void)
 #endif
 
 	initDbus ();
-
-	corePlugin = loadPlugin ("core");
-	if (!corePlugin)
-	{
-		compLogMessage ("core", CompLogLevelFatal,
-		                "Couldn't load core plugin");
-		return FALSE;
-	}
-
-	if (!pushPlugin (corePlugin))
-	{
-		compLogMessage ("core", CompLogLevelFatal,
-		                "Couldn't activate core plugin");
-		return FALSE;
-	}
 
 	return TRUE;
 }

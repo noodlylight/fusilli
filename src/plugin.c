@@ -39,73 +39,6 @@
 CompPlugin *plugins = 0;
 
 static Bool
-coreInit (CompPlugin *p)
-{
-	return TRUE;
-}
-
-static void
-coreFini (CompPlugin *p)
-{
-}
-
-static CompPluginVTable coreVTable = {
-	"core",
-	coreInit,
-	coreFini,
-	0, /* InitObject */
-	0, /* FiniObject */
-};
-
-static Bool
-cloaderLoadPlugin (CompPlugin *p,
-                   const char *path,
-                   const char *name)
-{
-	if (path)
-		return FALSE;
-
-	if (strcmp (name, coreVTable.name))
-		return FALSE;
-
-	p->vTable         = &coreVTable;
-	p->devPrivate.ptr = NULL;
-	p->devType        = "cloader";
-
-	return TRUE;
-}
-
-static void
-cloaderUnloadPlugin (CompPlugin *p)
-{
-}
-
-static char **
-cloaderListPlugins (const char *path,
-                    int        *n)
-{
-	char **list;
-
-	if (path)
-		return 0;
-
-	list = malloc (sizeof (char *));
-	if (!list)
-		return 0;
-
-	*list = strdup (coreVTable.name);
-	if (!*list)
-	{
-		free (list);
-		return 0;
-	}
-
-	*n = 1;
-
-	return list;
-}
-
-static Bool
 dlloaderLoadPlugin (CompPlugin *p,
                     const char *path,
                     const char *name)
@@ -114,9 +47,6 @@ dlloaderLoadPlugin (CompPlugin *p,
 	void        *dlhand;
 	struct stat fileInfo;
 	Bool        loaded = FALSE;
-
-	if (cloaderLoadPlugin (p, path, name))
-		return TRUE;
 
 	file = malloc ((path ? strlen (path) : 0) + strlen (name) + 8);
 	if (!file)
@@ -190,10 +120,7 @@ dlloaderLoadPlugin (CompPlugin *p,
 static void
 dlloaderUnloadPlugin (CompPlugin *p)
 {
-	if (strcmp (p->devType, "dlloader") == 0)
-		dlclose (p->devPrivate.ptr);
-	else
-		cloaderUnloadPlugin (p);
+	dlclose (p->devPrivate.ptr);
 }
 
 static int
@@ -216,24 +143,20 @@ dlloaderListPlugins (const char *path,
                      int        *n)
 {
 	struct dirent **nameList;
-	char      **list, **cList;
+	char      **list;
 	char      *name;
 	int       length, nFile, i, j = 0;
-
-	cList = cloaderListPlugins (path, n);
-	if (cList)
-		j = *n;
 
 	if (!path)
 		path = ".";
 
 	nFile = scandir (path, &nameList, dlloaderFilter, alphasort);
 	if (!nFile)
-		return cList;
+		return NULL;
 
-	list = realloc (cList, (j + nFile) * sizeof (char *));
+	list = malloc ((j + nFile) * sizeof (char *));
 	if (!list)
-		return cList;
+		return NULL;
 
 	for (i = 0; i < nFile; i++)
 	{
