@@ -239,6 +239,9 @@ initBackground (WallpaperBackground *back,
 	initTexture (s, &back->imgTex);
 	initTexture (s, &back->fillTex);
 
+	back->width = 0;
+	back->height = 0;
+
 	if (back->image && strlen (back->image))
 	{
 		if (!readImageToTexture (s, &back->imgTex, back->image,
@@ -362,7 +365,7 @@ updateBackgrounds (CompScreen *s)
 		stringToColor (option_bg_color1->list.item[i].s,
 		               ws->backgrounds[i].color1);
 
-		stringToColor (option_bg_color2->list.item[i].s, 
+		stringToColor (option_bg_color2->list.item[i].s,
 		               ws->backgrounds[i].color2);
 
 		initBackground (&ws->backgrounds[i], s);
@@ -468,7 +471,7 @@ wallpaperDrawWindow (CompWindow           *w,
 		else if (mask & PAINT_WINDOW_TRANSFORMED_MASK)
 			filterIdx = WINDOW_TRANS_FILTER;
 		else
-		filterIdx = NOTHING_TRANS_FILTER;
+			filterIdx = NOTHING_TRANS_FILTER;
 
 		saveFilter = s->filter[filterIdx];
 
@@ -574,7 +577,7 @@ wallpaperDrawWindow (CompWindow           *w,
 						tmpMatrix = back->imgTex.matrix;
 						tmpMatrix.x0 -= xi * tmpMatrix.xx;
 						tmpMatrix.y0 -= y * tmpMatrix.yy;
-						
+
 						tmpRegion.extents.x1 = MAX (0, xi);
 						tmpRegion.extents.y1 = MAX (0, y);
 						tmpRegion.extents.x2 = MIN (s->width, xi + back->width);
@@ -750,7 +753,7 @@ wallpaperInit (CompPlugin *p)
 {
 	if (getCoreABI() != CORE_ABIVERSION)
 	{
-		compLogMessage ("annotate", CompLogLevelError,
+		compLogMessage ("wallpaper", CompLogLevelError,
 		                "ABI mismatch\n"
 		                "\tPlugin was compiled with ABI: %d\n"
 		                "\tFusilli Core was compiled with ABI: %d\n",
