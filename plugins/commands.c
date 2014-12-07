@@ -157,6 +157,8 @@ commandsFiniDisplay (CompPlugin  *p,
 {
 	COMMANDS_DISPLAY (d);
 
+	UNWRAP (cd, d, handleEvent);
+
 	free (cd);
 }
 

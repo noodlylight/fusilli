@@ -299,6 +299,8 @@ mateFiniDisplay (CompPlugin  *p,
 {
 	MATE_DISPLAY (d);
 
+	UNWRAP (md, d, handleEvent);
+
 	free (md);
 }
 

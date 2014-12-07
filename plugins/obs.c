@@ -447,6 +447,7 @@ obsFiniDisplay (CompPlugin  *p,
 	OBS_DISPLAY (d);
 
 	UNWRAP (od, d, matchPropertyChanged);
+	UNWRAP (od, d, handleEvent);
 
 	freeScreenPrivateIndex (od->screenPrivateIndex);
 
