@@ -962,7 +962,13 @@ updateScreenBackground (CompScreen  *screen,
 			    actualFormat == 32         &&
 			    nItems       == 1)
 			{
-				Pixmap p;
+				/* Pixmap is typedef'ed to unsigned long in X11/X.h
+				 * unsigned long can be 64-bits
+				 * prop holds 32-bits
+				 * So, ensure that p is properly initialized before memcpy
+				 * TODO: See what happens on big endian systems
+				 */
+				Pixmap p = 0;
 
 				memcpy (&p, prop, 4);
 
