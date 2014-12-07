@@ -1616,14 +1616,11 @@ handleEvent (XEvent      *event)
 			s = findScreenAtDisplay (event->xclient.window);
 			if (s)
 			{
-				BananaValue value;
-
-				value.i = event->xclient.data.l[0];
-
-				bananaSetOption (coreBananaIndex,
-				                 "number_of_desktops",
-				                 s->screenNum,
-				                 &value);
+				if (event->xclient.data.l[0] != 1)
+				{
+					compLogMessage ("core", CompLogLevelWarn,
+					                "Fusilli supports just one virtual desktop");
+				}
 			}
 		}
 		else if (event->xclient.message_type == display.currentDesktopAtom)

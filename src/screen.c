@@ -558,10 +558,6 @@ screenChangeNotify (const char        *optionName,
 
 		setVirtualScreenSize (screen, option_hsize->i, optionValue->i);
 	}
-	else if (strcasecmp (optionName, "number_of_desktops") == 0)
-	{
-		setNumberOfDesktops (screen, optionValue->i);
-	}
 	else if (strcasecmp (optionName, "default_icon") == 0)
 	{
 		updateDefaultIcon (screen);
