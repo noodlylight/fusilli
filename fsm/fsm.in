@@ -202,14 +202,12 @@ class ListWidget():
             path = model.get_path(treeiter)
             if path != None:
                 row = path[0]
-            else:
-                return
 
-        self.GTKDialog.show_all()
-        self.GTKDialog.run()
-        self.GTKDialog.hide_all()
+                self.GTKDialog.show_all()
+                self.GTKDialog.run()
+                self.GTKDialog.hide_all()
 
-        self.UpdateGTKModel()
+                self.UpdateGTKModel()
 
     def Move(self, widget, direction):
         model, treeiter = self.GTKTreeSelection.get_selected()
@@ -217,27 +215,25 @@ class ListWidget():
             path = model.get_path(treeiter)
             if path != None:
                 row = path[0]
-            else:
-                return
 
-            if direction == "up":
-                dest = row - 1
-            elif direction == "down":
-                dest = row + 1
+                if direction == "up":
+                    dest = row - 1
+                elif direction == "down":
+                    dest = row + 1
 
-            for option in self.Options:
-                value = option.GetValue()
-                value.insert(dest, value.pop(row))
+                for option in self.Options:
+                    value = option.GetValue()
+                    value.insert(dest, value.pop(row))
 
-            if autoSaveMode:
-                banana.WriteConfigFile()
+                if autoSaveMode:
+                    banana.WriteConfigFile()
 
-            order = range(len(model))
-            order.insert(dest, order.pop(row))
-            model.reorder(order)
+                order = range(len(model))
+                order.insert(dest, order.pop(row))
+                model.reorder(order)
 
-            self.GTKTreeView.set_cursor(dest)
-            self.SelectionChanged(self.GTKTreeSelection)
+                self.GTKTreeView.set_cursor(dest)
+                self.SelectionChanged(self.GTKTreeSelection)
 
     def Delete(self, widget):
         model, treeiter = self.GTKTreeSelection.get_selected()
@@ -245,39 +241,38 @@ class ListWidget():
             path = model.get_path(treeiter)
             if path != None:
                 row = path[0]
-            else:
-                return
 
-        for option in self.Options:
-            value = option.GetValue()
-            del value[row]
-            option.SetValue(value)
+                for option in self.Options:
+                    value = option.GetValue()
+                    del value[row]
+                    option.SetValue(value)
 
-        if autoSaveMode:
-            banana.WriteConfigFile()
+                if autoSaveMode:
+                    banana.WriteConfigFile()
 
-        model.remove(treeiter)
+                model.remove(treeiter)
+                if len(model) > 0:
+                    if row  > len(model) - 1:
+                        self.GTKTreeView.set_cursor(row - 1)
+                    else:
+                        self.GTKTreeView.set_cursor(row)
 
-        if len(model) > 0:
-            if row  > len(model) - 1:
-                self.GTKTreeView.set_cursor(row - 1)
-            else:
-                self.GTKTreeView.set_cursor(row)
-
-        self.SelectionChanged(self.GTKTreeSelection)
+                self.SelectionChanged(self.GTKTreeSelection)
 
     def SelectionChanged(self, selection):
         model, treeiter = selection.get_selected()
-        self.GTKEditButton.set_sensitive(True)
-        self.GTKDeleteButton.set_sensitive(True)
 
         if treeiter == None:
+            self.GTKEditButton.set_sensitive(False)
+            self.GTKDeleteButton.set_sensitive(False)
             self.GTKMoveUpButton.set_sensitive(False)
             self.GTKMoveDownButton.set_sensitive(False)
         else:
             path = model.get_path(treeiter)
             if path != None:
                 row = path[0]
+                self.GTKEditButton.set_sensitive(True)
+                self.GTKDeleteButton.set_sensitive(True)
                 self.GTKMoveUpButton.set_sensitive(row > 0)
                 self.GTKMoveDownButton.set_sensitive(row < (len(model) - 1))
                 self.CurrentRow = row
