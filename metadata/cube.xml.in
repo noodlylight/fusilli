@@ -9,6 +9,10 @@
 				<plugin>switcher</plugin>
 				<plugin>scale</plugin>
 			</relation>
+
+			<conflict>
+				<plugin>wall</plugin>
+			</conflict>
 		</deps>
 
 		<group>

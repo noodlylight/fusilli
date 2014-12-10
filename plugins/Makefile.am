@@ -7,6 +7,9 @@ libfade_la_SOURCES = fade.c
 libcube_la_LDFLAGS = -module -avoid-version -no-undefined
 libcube_la_SOURCES = cube.c
 
+libwall_la_LDFLAGS = -module -avoid-version -no-undefined
+libwall_la_SOURCES = wall.c
+
 librotate_la_LDFLAGS = -module -avoid-version -no-undefined
 librotate_la_SOURCES = rotate.c
 
@@ -107,6 +110,7 @@ module_LTLIBRARIES =      \
 	libfade.la            \
 	libminimize.la        \
 	libcube.la            \
+	libwall.la            \
 	librotate.la          \
 	libzoom.la            \
 	libscale.la           \

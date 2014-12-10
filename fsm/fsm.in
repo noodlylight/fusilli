@@ -1160,7 +1160,7 @@ class Banana():
                     dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
                                             buttons=gtk.BUTTONS_OK)
                     msg = "Plugin %s conflicts with plugin %s" % (plugin,
-                                                                  conflict)
+                                                                  activeplugin)
                     dlg.set_markup(msg)
                     dlg.show_all()
                     dlg.run()
