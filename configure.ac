@@ -175,19 +175,6 @@ AC_CHECK_HEADERS([jpeglib.h], [] ,AC_MSG_ERROR(jpeglib.h not found --- aborting)
 dnl Check for GL/glu.h, required for plugin blur
 AC_CHECK_HEADERS([GL/glu.h], [] ,AC_MSG_ERROR(GL/glu.h not found --- aborting))
 
-AC_ARG_ENABLE(glib,
-  [  --disable-glib          Disable glib plugin],
-  [use_glib=$enableval], [use_glib=yes])
-
-if test "x$use_glib" = "xyes"; then
-  PKG_CHECK_MODULES(GLIB, glib-2.0)
-fi
-
-AM_CONDITIONAL(USE_GLIB, test "x$use_glib" = "xyes")
-if test "$use_glib" = yes; then
-  AC_DEFINE(USE_GLIB, 1, [Build glib plugin])
-fi
-
 AC_ARG_ENABLE(inotify,
   [  --disable-inotify       Disable inotify support],
   [use_inotify=$enableval], [use_inotify=yes])
@@ -357,7 +344,6 @@ fsm/Makefile
 
 echo ""
 echo "the following optional plugins will be compiled:"
-echo "  glib:     $use_glib"
 echo "  svg:      $use_librsvg"
 echo ""
 echo "and the following optional features will be compiled:"

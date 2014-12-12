@@ -81,17 +81,9 @@ libsvg_la_SOURCES = svg.c
 libsvg_module = libsvg.la
 endif
 
-if USE_GLIB
-libglib_la_LDFLAGS = -module -avoid-version -no-undefined
-libglib_la_LIBADD = @GLIB_LIBS@
-libglib_la_SOURCES = glib.c
-libglib_module = libglib.la
-endif
-
 AM_CPPFLAGS =                           \
 	@FUSILLI_CFLAGS@                    \
 	@LIBRSVG_CFLAGS@                    \
-	@GLIB_CFLAGS@                       \
 	-DALL_LINGUAS="\"@ALL_LINGUAS@\""   \
 	-DLOCALEDIR="\"@datadir@/locale\""  \
 	-DPLUGINDIR=\"$(plugindir)\"        \
@@ -103,7 +95,6 @@ AM_CPPFLAGS =                           \
 moduledir = $(plugindir)
 
 module_LTLIBRARIES =      \
-	$(libglib_module)     \
 	libannotate.la        \
 	libdecoration.la      \
 	libwobbly.la          \

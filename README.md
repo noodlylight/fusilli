@@ -37,7 +37,7 @@ Options are stored in ~/.config/fusilli/banana.xml (you can change this file usi
 
 ## Plugins Currently Available
 
-annotate, blur, clone, commands, cube, decoration, fade, glib, matecompat, minimize, move, obs, place, resize, rotate, scale, screenshot, svg, switcher, water, wsnames(formerly workspacenames), wobbly, zoom
+annotate, blur, clone, commands, cube, decoration, fade, matecompat, minimize, move, obs, place, resize, rotate, scale, screenshot, svg, switcher, water, wsnames(formerly workspacenames), wobbly, zoom
 
 Plugins png, imgjpeg, text, regex, inotify were consolidated into core.
 
