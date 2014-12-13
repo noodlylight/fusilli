@@ -79,27 +79,27 @@ char *configurationFile = NULL;
 static void
 usage (void)
 {
-        printf ("Usage: %s\n"
-                "\t[--display DISPLAY] "
-                "[--bg-image PNG] "
-                "[--indirect-rendering]\n"
-                "\t[--keep-desktop-hints] "
-                "[--loose-binding] "
-                "[--replace]\n"
-                "\t[--sm-disable] "
-                "[--sm-client-id ID] "
-                "[--only-current-screen]\n"
-                "\t[--metadatadir DIR] "
-                "[--bananafile FILE]\n    "
+	printf ("Usage: %s\n"
+	        "\t[--display DISPLAY] "
+	        "[--bg-image PNG] "
+	        "[--indirect-rendering]\n"
+	        "\t[--keep-desktop-hints] "
+	        "[--loose-binding] "
+	        "[--replace]\n"
+	        "\t[--sm-disable] "
+	        "[--sm-client-id ID] "
+	        "[--only-current-screen]\n"
+	        "\t[--metadatadir DIR] "
+	        "[--bananafile FILE]\n    "
 
 #ifdef USE_COW
-                "\t[--use-root-window]\n "
+	        "\t[--use-root-window]\n "
 #endif
 
-                "\t[--debug] "
-                "[--version] "
-                "[--help]\n",
-                programName);
+	        "\t[--debug] "
+	        "[--version] "
+	        "[--help]\n",
+	        programName);
 }
 
 void
