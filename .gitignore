@@ -37,7 +37,7 @@ stamp-h1
 cscope.*
 src/fusilli
 gtk/window-decorator/fusilli-decorator-gtk
-kde/window-decorator-kde4/kde4-window-decorator
+kde/window-decorator-kde4/fusilli-decorator-kde4
 kde/window-decorator-kde4/kwinadaptor.cpp
 kde/window-decorator-kde4/kwinadaptor.h
 mkinstalldirs

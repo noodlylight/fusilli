@@ -66,6 +66,7 @@ The functionality of plugin vpswitch can be simulated by prefixing button bindin
 
 ### Decorator:
 * gtk-window-decorator is now fusilli-decorator-gtk
+* kde4-window-decorator is now fusilli-decorator-kde4
 * Changed to support marco/GSettings, not metacity/gconf
 * The decorator for KDE3 was removed.
 

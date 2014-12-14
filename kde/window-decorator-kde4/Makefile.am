@@ -8,16 +8,16 @@ BUILDSOURCES =              \
 	kwinadaptor.cpp         \
 	kwinadaptor.h
 
-kde4_window_decorator_DEPENDENCIES = \
+fusilli_decorator_kde4_DEPENDENCIES = \
 	$(top_builddir)/libfusillidecoration/libfusillidecoration.la
-kde4_window_decorator_LDADD   =       \
+fusilli_decorator_kde4_LDADD   =       \
 	$(top_builddir)/libfusillidecoration/libfusillidecoration.la \
-	@KDE4_WINDOW_DECORATOR_LIBS@ @KDE4_LIBS@ -ldl
+	@FUSILLI_DECORATOR_KDE4_LIBS@ @KDE4_LIBS@ -ldl
 
-nodist_kde4_window_decorator_SOURCES = \
+nodist_fusilli_decorator_kde4_SOURCES = \
 	$(BUILDSOURCES)
 
-dist_kde4_window_decorator_SOURCES = \
+dist_fusilli_decorator_kde4_SOURCES = \
 	main.cpp                \
 	utils.cpp               \
 	utils.h                 \
@@ -35,11 +35,11 @@ dist_kde4_window_decorator_SOURCES = \
 	paintredirector.h       \
 	org.kde.KWin.xml
 
-kde4_window_decorator_program = kde4-window-decorator
+fusilli_decorator_kde4_program = fusilli-decorator-kde4
 
-AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include @KDE4_WINDOW_DECORATOR_CFLAGS@ @KDE4_CFLAGS@
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include @FUSILLI_DECORATOR_KDE4_CFLAGS@ @KDE4_CFLAGS@
 
-bin_PROGRAMS = $(kde4_window_decorator_program)
+bin_PROGRAMS = $(fusilli_decorator_kde4_program)
 
 %.moc.cpp: %.h
 	$(QT4_MOC) $< > $@

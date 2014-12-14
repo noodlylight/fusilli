@@ -283,7 +283,7 @@ if test "x$use_kde4" = "xyes"; then
   AC_MSG_RESULT([$kde4_notfound])
 
   if test -d "$kde4libs"; then
-    PKG_CHECK_MODULES(KDE4_WINDOW_DECORATOR,
+    PKG_CHECK_MODULES(FUSILLI_DECORATOR_KDE4,
                       dbus-1 xdamage xext xcomposite QtCore >= 4.5.0 QtGui QtDBus,
                       [use_kde4=yes], [use_kde4=no])
 
@@ -299,7 +299,7 @@ fi
 
 AM_CONDITIONAL(USE_KDE4, test "x$use_kde4" = "xyes")
 if test "$use_kde4" = yes; then
-  AC_DEFINE(USE_KDE4, 1, [Build kde4 window decorator])
+  AC_DEFINE(USE_KDE4, 1, [Build fusilli-decorator-kde4])
 fi
 
 AC_SUBST(KDE4_CFLAGS)
@@ -350,6 +350,6 @@ echo "and the following optional features will be compiled:"
 echo "  inotify:                 $use_inotify"
 echo "  fusilli-decorator-gtk:   $use_gtk"
 echo "       marco themes:       $use_marco"
-echo "  kde4-window-decorator:   $use_kde4"
+echo "  fusilli-decorator-kde4:  $use_kde4"
 echo "  fsm:                     $use_fsm"
 echo ""
