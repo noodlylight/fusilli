@@ -1,11 +1,26 @@
-Fusilli
+Fusilli Window Manager
 ======
 
-OpenGL Compositing Window Manager
+## Introduction
 
-High in carbohydrates.
+Fusilli is a fork of the Unix window manager Compiz. (forked from 0.8.9)
 
-A fork of Compiz (0.8).
+Fusilli has two main goals:
+* Preserve the eye candy: spinning cubes, wobbly windows, generally the awesome things that made Compiz famous.
+* Reduce complexity and feature duplication. Example: no multiple option systems.
+
+Fusilli is currently under heavy development (no releases yet)
+
+## Plugins Currently Available
+
+annotate, blur, clone, commands, cube, decoration, fade, matecompat, minimize, move, obs, place, resize, rotate, scale, screenshot, svg, switcher, water, wsnames(formerly workspacenames), wobbly, zoom
+
+Plugins png, imgjpeg, text, regex, inotify were consolidated into core.
+
+The functionality of plugin vpswitch can be simulated by prefixing button bindings with
+```
+<ClickOnDesktop>
+```
 
 ## Installing
 
@@ -35,43 +50,23 @@ fsm
 
 Options are stored in ~/.config/fusilli/banana.xml (you can change this file using the --bananafile parameter of fusilli)
 
-## Plugins Currently Available
-
-annotate, blur, clone, commands, cube, decoration, fade, matecompat, minimize, move, obs, place, resize, rotate, scale, screenshot, svg, switcher, water, wsnames(formerly workspacenames), wobbly, zoom
-
-Plugins png, imgjpeg, text, regex, inotify were consolidated into core.
-
-The functionality of plugin vpswitch can be simulated by prefixing button bindings with
-```
-<ClickOnDesktop>
-```
-## Philosophy
-
-* Preserve eye candy
-* Simplicity
-* No feature duplication: one option system, one workspace type etc.
-
-## Long Term Plans
-
-* Tiling
-
 ## Changes to Compiz
 
 ### Option system:
 * libcompizconfig, bcop and plugins ini, ccp, fuse, gconf, kconfig were removed.
-* Options are now handled in core. 
+* Options are now handled in core.
 * XML metadata parsing was written from scratch.
 * Options are stored in a single .xml file (~/.config/fusilli/banana.xml)
 * CCSM was replaced with FSM (Fusilli Settings Manager)
 
-### Decorator:
+### Window Decorations:
 * gtk-window-decorator is now fusilli-decorator-gtk
 * kde4-window-decorator is now fusilli-decorator-kde4
-* Changed to support marco/GSettings, not metacity/gconf
+* fusilli-decorator-gtk now supports marco/GSettings, not metacity/gconf
 * The decorator for KDE3 was removed.
 
 ### Other:
-* Currently there is no dbus support.
+* Currently dbus support is very limited.
 * Currently there is no edge binding support.
 
 ### Codebase:
@@ -79,3 +74,5 @@ The functionality of plugin vpswitch can be simulated by prefixing button bindin
 * All names of executables/libs were changed to allow coexistence with compiz on the same system.
 * Coding style was changed to tabs.
 * MULTIDPY support was dropped.
+* CompObject was removed.
+
