@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<compiz>
+	<plugin name="neg" useBcop="true">
+		<_short>Negative</_short>
+		<_long>Used to set a window or screen negative</_long>
+		<category>Accessibility</category>
+		<deps>
+			<relation type="after">
+				<plugin>blur</plugin>
+			</relation>
+		</deps>
+		<display>
+			<option name="window_toggle_key" type="key">
+				<_short>Toggle Window Negative</_short>
+				<_long>Toggle active window negative</_long>
+				<default>&lt;Super&gt;n</default>
+			</option>
+			<option name="screen_toggle_key" type="key">
+				<_short>Toggle Screen Negative</_short>
+				<_long>Toggle screen negative</_long>
+				<default>&lt;Super&gt;m</default>
+			</option>
+		</display>
+		<screen>
+			<option name="neg_match" type="match">
+				<_short>Neg Windows</_short>
+				<_long>Windows to be negative by default</_long>
+				<default>any</default>
+			</option>
+			<option name="exclude_match" type="match">
+				<_short>Exclude Windows</_short>
+				<_long>Windows to exclude from negating</_long>
+				<default>type=Desktop</default>
+			</option>
+		</screen>
+	</plugin>
+</compiz>
