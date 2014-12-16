@@ -28,6 +28,9 @@ libminimize_la_SOURCES = minimize.c
 libmove_la_LDFLAGS = -module -avoid-version -no-undefined
 libmove_la_SOURCES = move.c
 
+libneg_la_LDFLAGS = -module -avoid-version -no-undefined
+libneg_la_SOURCES = neg.c
+
 libresize_la_LDFLAGS = -module -avoid-version -no-undefined
 libresize_la_SOURCES = resize.c
 
@@ -105,6 +108,7 @@ module_LTLIBRARIES =      \
 	librotate.la          \
 	libzoom.la            \
 	libscale.la           \
+	libneg.la             \
 	libmove.la            \
 	libresize.la          \
 	libplace.la           \

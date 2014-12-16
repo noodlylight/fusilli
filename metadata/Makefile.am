@@ -12,6 +12,7 @@ xml_in_files =         \
 	matecompat.xml.in  \
 	minimize.xml.in    \
 	move.xml.in        \
+	neg.xml.in         \
 	obs.xml.in         \
 	place.xml.in       \
 	resize.xml.in      \
