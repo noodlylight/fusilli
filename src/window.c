@@ -2260,6 +2260,9 @@ addWindow (CompScreen *screen,
 		}
 	}
 
+	w->title = getWindowTitle (w);
+	w->role  = getWindowStringProperty (w, display.roleAtom, XA_STRING);
+
 	//call the InitWindow proc of every loaded plugin
 	windowInitPlugins (w);
 
@@ -2273,9 +2276,6 @@ addWindow (CompScreen *screen,
 		              w->attrib.x, w->attrib.y,
 		              w->attrib.width, ++w->attrib.height - 1,
 		              w->attrib.border_width);
-
-	w->title = getWindowTitle (w);
-	w->role  = getWindowStringProperty (w, display.roleAtom, XA_STRING);
 }
 
 void
