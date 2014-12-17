@@ -13,7 +13,9 @@ Fusilli is currently under heavy development (no releases yet)
 
 ## Plugins Currently Available
 
-annotate, blur, clone, commands, cube, decoration, fade, matecompat, minimize, move, obs, place, resize, rotate, scale, screenshot, svg, switcher, water, wsnames(formerly workspacenames), wobbly, zoom
+annotate, blur, clone, commands, cube, decoration, fade, matecompat,
+minimize, move, neg, obs, place, resize, rotate, scale, screenshot, svg,
+switcher, wall, wallpaper, water, wobbly, wsnames(formerly workspacenames), zoom
 
 Plugins png, imgjpeg, text, regex, inotify were consolidated into core.
 
