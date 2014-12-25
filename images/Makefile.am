@@ -1,6 +1,8 @@
 imagesdir = $(imagedir)
 images_DATA =       \
-	icon.png
+	icon.png        \
+	snowflake.png
 
 EXTRA_DIST =        \
-	icon.png
+	icon.png        \
+	snowflake.png

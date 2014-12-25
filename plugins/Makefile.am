@@ -19,6 +19,9 @@ libzoom_la_SOURCES = zoom.c
 libscale_la_LDFLAGS = -module -avoid-version -no-undefined
 libscale_la_SOURCES = scale.c
 
+libsnow_la_LDFLAGS = -module -avoid-version -no-undefined
+libsnow_la_SOURCES = snow.c
+
 libwobbly_la_LDFLAGS = -module -avoid-version -no-undefined
 libwobbly_la_SOURCES = wobbly.c
 
@@ -108,6 +111,7 @@ module_LTLIBRARIES =      \
 	librotate.la          \
 	libzoom.la            \
 	libscale.la           \
+	libsnow.la            \
 	libneg.la             \
 	libmove.la            \
 	libresize.la          \

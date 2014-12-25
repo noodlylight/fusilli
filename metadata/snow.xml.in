@@ -1,19 +1,20 @@
-<?xml version="1.0"?>
-<compiz>
-	<plugin name="snow" useBcop="true">
+<?xml version="1.0" encoding="UTF-8"?>
+<fusilli>
+	<plugin name="snow">
 		<_short>Snow</_short>
-		<_long>Snow for Compiz</_long>
+		<_long>Snow for Fusilli</_long>
+
 		<category>Extras</category>
 		<deps>
 			<relation type="after">
-				<plugin>png</plugin>
 				<plugin>svg</plugin>
-				<plugin>jpeg</plugin>
 			</relation>
 		</deps>
-		<display>
-			<group>
-				<_short>Settings</_short>
+
+		<group>
+			<_short>Settings</_short>
+
+			<subgroup>
 				<option name="num_snowflakes" type="int">
 					<_short>Number Of Snowflakes</_short>
 					<_long>Number of snowflakes</_long>
@@ -21,6 +22,7 @@
 					<min>0</min>
 					<max>10000</max>
 				</option>
+
 				<option name="snow_size" type="float">
 					<_short>Size Of Snowflakes</_short>
 					<_long>Size of snowflakes</_long>
@@ -29,6 +31,7 @@
 					<max>50.0</max>
 					<precision>0.1</precision>
 				</option>
+
 				<option name="snow_speed" type="int">
 					<_short>Snow Speed</_short>
 					<_long>Speed of falling snow</_long>
@@ -36,6 +39,7 @@
 					<min>1</min>
 					<max>100</max>
 				</option>
+
 				<option name="snow_update_delay" type="int">
 					<_short>Update Delay</_short>
 					<_long>Delay (in ms) between screen updates. Decreasing this value may make snow fall more smoothly, but will also increase CPU usage.</_long>
@@ -43,6 +47,7 @@
 					<min>10</min>
 					<max>200</max>
 				</option>
+
 				<option name="screen_boxing" type="int">
 					<_short>Screen Boxing</_short>
 					<_long>How far outside the screen resolution snow flakes can be before being removed. Needed because of FOV.</_long>
@@ -50,6 +55,7 @@
 					<min>-2000</min>
 					<max>2000</max>
 				</option>
+
 				<option name="screen_depth" type="int">
 					<_short>Screen Depth</_short>
 					<_long>How deep into the screen snowflakes can be drawn before being removed</_long>
@@ -57,16 +63,19 @@
 					<min>0</min>
 					<max>2000</max>
 				</option>
+
 				<option name="snow_over_windows" type="bool">
 					<_short>Snow Over Windows</_short>
 					<_long>Snow is drawn above windows</_long>
 					<default>false</default>
 				</option>
+
 				<option name="snow_rotation" type="bool">
 					<_short>Rotate Flakes</_short>
 					<_long>Flakes rotate if checked.</_long>
 					<default>true</default>
 				</option>
+
 				<option name="snow_direction" type="int">
 					<_short>Snow Direction</_short>
 					<_long>Select snow flake movement direction</_long>
@@ -90,41 +99,54 @@
 						<_name>Left to Right</_name>
 					</desc>
 				</option>
-			</group>
-			<group>
-				<_short>Textures</_short>
-				<option name="snow_textures" type="list">
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>Textures</_short>
+
+			<subgroup>
+				<option name="snow_textures" type="list_string">
 					<_short>Snow Textures</_short>
 					<_long>Snow textures</_long>
 					<hints>file;image;</hints>
-					<type>string</type>
 					<default>
-						<value>snowflake.png</value>
+						<item>snowflake.png</item>
 					</default>
 				</option>
-			</group>
-			<group>
-				<_short>Debug</_short>
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>Debug</_short>
+
+			<subgroup>
 				<option name="use_blending" type="bool">
 					<_short>Enable Blending</_short>
 					<_long>Enables alpha blending of snowflakes.</_long>
 					<default>true</default>
 				</option>
+
 				<option name="use_textures" type="bool">
 					<_short>Enable Textures</_short>
 					<_long>Enables textured snowflakes. If not selected, color gradients are used.</_long>
 					<default>true</default>
 				</option>
-			</group>
-			<group>
-				<_short>Key Bindings</_short>
-				<option name="toggle_key" type="key">
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>Key Bindings</_short>
+
+			<subgroup>
+				<option name="toggle_key" type="string">
 					<_short>Snow Toggle</_short>
 					<_long>Snow toggle key</_long>
+					<hint>key</hint>
 					<default>&lt;Super&gt;F3</default>
 				</option>
-			</group>
-		</display>
+			</subgroup>
+		</group>
 	</plugin>
-</compiz>
+</fusilli>
 

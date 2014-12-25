@@ -19,6 +19,7 @@ xml_in_files =         \
 	rotate.xml.in      \
 	scale.xml.in       \
 	screenshot.xml.in  \
+	snow.xml.in        \
 	svg.xml.in         \
 	switcher.xml.in    \
 	wallpaper.xml.in   \
