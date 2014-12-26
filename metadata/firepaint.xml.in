@@ -1,0 +1,88 @@
+<compiz>
+    <plugin name="firepaint" useBcop="true">
+	<_short>Paint fire on the screen</_short>
+	<_long>Paint fire or other particles on the screen</_long>
+	<category>Effects</category>
+	<display>
+	    <option type="key" name="initiate_key">
+		<_short>Initiate (key)</_short>
+		<_long>Initiate fire drawing</_long>
+		<default></default>
+	    </option>
+	    <option type="button" name="initiate_button">
+		<_short>Initiate (button)</_short>
+		<_long>Initiate fire drawing</_long>
+		<default>&lt;Super&gt;&lt;Shift&gt;Button1</default>
+	    </option>
+	    <option type="key" name="clear_key">
+		<_short>Clear (key)</_short>
+		<_long>Clear</_long>
+		<default>&lt;Super&gt;&lt;Shift&gt;c</default>
+	    </option>
+	    <option type="button" name="clear_button">
+		<_short>Clear (button)</_short>
+		<_long>Clear</_long>
+		<default></default>
+	    </option>
+	    <option type="action" name="add_particle">
+		<_short>Add Particle</_short>
+		<_long>Adds a fire particle at position (x,y), where x and y are floats.</_long>
+	    </option>
+	</display>
+	<screen>
+	    <option name="num_Particles" type="int">
+		<_short>Number of particles</_short>
+		<_long>Maximum number of active particles</_long>
+		<default>3000</default>
+		<min>100</min>
+		<max>20000</max>
+	    </option>
+	    <option name="fire_size" type="float">
+		<_short>Fire Particle Size</_short>
+		<_long>Fire particle size.</_long>
+		<default>15.0</default>
+		<min>0.1</min>
+		<max>40</max>
+		<precision>0.1</precision>
+	    </option>
+	    <option name="fire_slowdown" type="float">
+		<_short>Fire Particle Slowdown</_short>
+		<_long>Fire particle slowdown.</_long>
+		<default>0.5</default>
+		<min>0.1</min>
+		<max>10</max>
+		<precision>0.1</precision>
+	    </option>
+	    <option name="fire_life" type="float">
+		<_short>Fire Particle Life</_short>
+		<_long>Fire particle life.</_long>
+		<default>0.7</default>
+		<min>0.1</min>
+		<max>0.95</max>
+		<precision>0.05</precision>
+	    </option>
+	    <option name="fire_color" type="color">
+		<_short>Fire Particle Color</_short>
+		<_long>Fire particle color.</_long>
+		<default>
+		    <red>0xffff</red>
+		    <green>0x3333</green>
+		    <blue>0x0555</blue>
+		    <alpha>0xffff</alpha>
+		</default>
+	    </option>
+	    <option name="fire_mystical" type="bool">
+		<_short>Randomly Colored Fire</_short>
+		<_long>Have random colors for the fire effect, also known as Mystical Fire.</_long>
+		<default>false</default>
+	    </option>
+	    <option name="bg_brightness" type="int">
+		<_short>Background brightness</_short>
+		<_long>Background brightness during paint</_long>
+		<default>50</default>
+		<min>0</min>
+		<max>100</max>
+	    </option>
+	</screen>
+    </plugin>
+</compiz>
