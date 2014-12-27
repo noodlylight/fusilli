@@ -4,6 +4,9 @@ libannotate_la_SOURCES = annotate.c
 libfade_la_LDFLAGS = -module -avoid-version -no-undefined
 libfade_la_SOURCES = fade.c
 
+libfirepaint_la_LDFLAGS = -module -avoid-version -no-undefined
+libfirepaint_la_SOURCES = firepaint.c
+
 libcube_la_LDFLAGS = -module -avoid-version -no-undefined
 libcube_la_SOURCES = cube.c
 
@@ -105,6 +108,7 @@ module_LTLIBRARIES =      \
 	libdecoration.la      \
 	libwobbly.la          \
 	libfade.la            \
+	libfirepaint.la       \
 	libminimize.la        \
 	libcube.la            \
 	libwall.la            \

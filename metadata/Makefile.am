@@ -9,6 +9,7 @@ xml_in_files =         \
 	wall.xml.in        \
 	decoration.xml.in  \
 	fade.xml.in        \
+	firepaint.xml.in   \
 	matecompat.xml.in  \
 	minimize.xml.in    \
 	move.xml.in        \
