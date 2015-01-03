@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<compiz>
+    <plugin name="grid" useBcop="true">
+	<_short>Grid</_short>
+	<_long>Warp and resize windows to fit an imaginary grid.</_long>
+	<category>Window Management</category>
+	<display>
+	    <group>
+		<_short>Bindings</_short>
+		<option name="put_center_key" type="key">
+		    <_short>Put Center</_short>
+		    <_long>Move window to the center</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_5</default>
+		</option>
+		<option name="put_left_key" type="key">
+		    <_short>Put Left</_short>
+		    <_long>Move window to the left edge</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_4</default>
+		</option>
+		<option name="put_right_key" type="key">
+		    <_short>Put Right</_short>
+		    <_long>Move window to the right edge</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_6</default>
+		</option>
+		<option name="put_top_key" type="key">
+		    <_short>Put Top</_short>
+		    <_long>Move window to the top edge</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_8</default>
+		</option>
+		<option name="put_bottom_key" type="key">
+		    <_short>Put Bottom</_short>
+		    <_long>Move window to the bottom edge</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_2</default>
+		</option>
+		<option name="put_topleft_key" type="key">
+		    <_short>Put Top Left</_short>
+		    <_long>Move window to the top left corner</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_7</default>
+		</option>
+		<option name="put_topright_key" type="key">
+		    <_short>Put Top Right</_short>
+		    <_long>Move window to the top right corner</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_9</default>
+		</option>
+		<option name="put_bottomleft_key" type="key">
+		    <_short>Put Bottom Left</_short>
+		    <_long>Move window to the bottom left corner</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_1</default>
+		</option>
+		<option name="put_bottomright_key" type="key">
+		    <_short>Put Bottom Right</_short>
+		    <_long>Move window to the bottom right corner</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;KP_3</default>
+		</option>
+	    </group>
+	</display>
+    </plugin>
+</compiz>
