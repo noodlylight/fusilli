@@ -18,6 +18,7 @@ xml_in_files =         \
 	place.xml.in       \
 	resize.xml.in      \
 	rotate.xml.in      \
+	grid.xml.in        \
 	scale.xml.in       \
 	screenshot.xml.in  \
 	snow.xml.in        \
