@@ -1,0 +1,277 @@
+<compiz>
+    <plugin name="staticswitcher" useBcop="true">
+	<_short>Static Application Switcher</_short>
+	<_long>Static Application Switcher</_long>
+	<deps>
+	    <relation type="after">
+		<plugin>fade</plugin>
+	    </relation>
+	    <relation type="before">
+		<plugin>bs</plugin>
+	    </relation>
+	</deps>
+	<category>Window Management</category>
+	<display>
+	    <group>
+		<_short>Bindings</_short>
+		<option name="next_button" type="button">
+		    <_short>Next window</_short>
+		    <_long>Popup switcher if not visible and select next window</_long>
+		</option>
+		<option name="next_key" type="key">
+		    <_short>Next window</_short>
+		    <_long>Popup switcher if not visible and select next window</_long>
+		    <default>&lt;Alt&gt;Tab</default>
+		</option>
+		<option name="prev_button" type="button">
+		    <_short>Prev window</_short>
+		    <_long>Popup switcher if not visible and select previous window</_long>
+		</option>
+		<option name="prev_key" type="key">
+		    <_short>Prev window</_short>
+		    <_long>Popup switcher if not visible and select previous window</_long>
+		    <default>&lt;Shift&gt;&lt;Alt&gt;Tab</default>
+		</option>
+		<option name="next_all_button" type="button">
+		    <_short>Next window (All windows)</_short>
+		    <_long>Popup switcher if not visible and select next window out of all windows</_long>
+		</option>
+		<option name="next_all_key" type="key">
+		    <_short>Next window (All windows)</_short>
+		    <_long>Popup switcher if not visible and select next window out of all windows</_long>
+		    <default>&lt;Control&gt;&lt;Alt&gt;Tab</default>
+		</option>
+		<option name="prev_all_button" type="button">
+		    <_short>Prev window (All windows)</_short>
+		    <_long>Popup switcher if not visible and select previous window out of all windows</_long>
+		</option>
+		<option name="prev_all_key" type="key">
+		    <_short>Prev window (All windows)</_short>
+		    <_long>Popup switcher if not visible and select previous window out of all windows</_long>
+		    <default>&lt;Shift&gt;&lt;Control&gt;&lt;Alt&gt;Tab</default>
+		</option>
+		<option name="next_group_button" type="button">
+		    <_short>Next window (Group)</_short>
+		    <_long>Popup switcher if not visible and select next window of the current application.</_long>
+		</option>
+		<option name="next_group_key" type="key">
+		    <_short>Next window (Group)</_short>
+		    <_long>Popup switcher if not visible and select next window of the current application.</_long>
+		</option>
+		<option name="prev_group_button" type="button">
+		    <_short>Prev window (Group)</_short>
+		    <_long>Popup switcher if not visible and select previous window of the current application.</_long>
+		</option>
+		<option name="prev_group_key" type="key">
+		    <_short>Prev window (Group)</_short>
+		    <_long>Popup switcher if not visible and select previous window of the current application.</_long>
+		</option>
+		<option name="next_no_popup_button" type="button">
+		    <_short>Next window (No popup)</_short>
+		    <_long>Select next window without showing the popup window.</_long>
+		</option>
+		<option name="next_no_popup_key" type="key">
+		    <_short>Next window (No popup)</_short>
+		    <_long>Select next window without showing the popup window.</_long>
+		</option>
+		<option name="prev_no_popup_button" type="button">
+		    <_short>Prev window (No popup)</_short>
+		    <_long>Select previous window without showing the popup window.</_long>
+		</option>
+		<option name="prev_no_popup_key" type="key">
+		    <_short>Prev window (No popup)</_short>
+		    <_long>Select previous window without showing the popup window.</_long>
+		</option>
+		<option name="next_panel_button" type="button">
+		    <_short>Next Panel</_short>
+		    <_long>Select next panel type window.</_long>
+		</option>
+		<option name="next_panel_key" type="key">
+		    <_short>Next Panel</_short>
+		    <_long>Select next panel type window.</_long>
+		</option>
+		<option name="prev_panel_button" type="button">
+		    <_short>Prev Panel</_short>
+		    <_long>Select previous panel type window.</_long>
+		</option>
+		<option name="prev_panel_key" type="key">
+		    <_short>Prev Panel</_short>
+		    <_long>Select previous panel type window.</_long>
+		</option>
+	    </group>
+	</display>
+	<screen>
+	    <group>
+		<_short>Behaviour</_short>
+		<option name="speed" type="float">
+		    <_short>Speed</_short>
+		    <_long>Switcher speed</_long>
+		    <default>4</default>
+		    <min>0.1</min>
+		    <max>50</max>
+		    <precision>0.1</precision>
+		</option>
+		<option name="timestep" type="float">
+		    <_short>Timestep</_short>
+		    <_long>Switcher timestep</_long>
+		    <default>1.2</default>
+		    <min>0.1</min>
+		    <max>50</max>
+		    <precision>0.1</precision>
+		</option>
+		<option name="window_match" type="match">
+		    <_short>Switcher windows</_short>
+		    <_long>Windows that should be shown in switcher</_long>
+		    <default>Normal | Dialog | Toolbar | Utility | Unknown</default>
+		</option>
+		<option name="minimized" type="bool">
+		    <_short>Show Minimized</_short>
+		    <_long>Show minimized windows</_long>
+		    <default>true</default>
+		</option>
+		<option name="auto_change_vp" type="bool">
+		    <_short>Auto Change Viewport</_short>
+		    <_long>Change to the viewport of the selected window while switching</_long>
+		    <default>false</default>
+		</option>
+		<option name="popup_delay" type="float">
+		    <_short>Popup Window Delay</_short>
+		    <_long>Time (in s) the popup window should be delayed before appearing</_long>
+		    <default>0.0</default>
+		    <min>0.0</min>
+		    <max>2.0</max>
+		    <precision>0.05</precision>
+		</option>
+		<option name="mouse_select" type="bool">
+		    <_short>Allow Mouse Selection</_short>
+		    <_long>Allow selection of windows from the switcher window with the mouse</_long>
+		    <default>false</default>
+		</option>
+	    </group>
+	    <group>
+		<_short>Appearance</_short>
+		<option name="saturation" type="int">
+		    <_short>Saturation</_short>
+		    <_long>Amount of saturation in percent</_long>
+		    <default>50</default>
+		    <min>0</min>
+		    <max>100</max>
+		</option>
+		<option name="brightness" type="int">
+		    <_short>Brightness</_short>
+		    <_long>Amount of brightness in percent</_long>
+		    <default>50</default>
+		    <min>0</min>
+		    <max>100</max>
+		</option>
+		<option name="opacity" type="int">
+		    <_short>Opacity</_short>
+		    <_long>Amount of opacity in percent</_long>
+		    <default>100</default>
+		    <min>0</min>
+		    <max>100</max>
+		</option>
+		<option name="icon" type="bool">
+		    <_short>Icon</_short>
+		    <_long>Show icon next to thumbnail</_long>
+		    <default>true</default>
+		</option>
+		<option name="mipmap" type="bool">
+		    <_short>Mipmap</_short>
+		    <_long>Generate mipmaps when possible for higher quality scaling</_long>
+		    <default>true</default>
+		</option>
+		<option name="row_align" type="int">
+		    <_short>Row Alignment</_short>
+		    <_long>Alignment for rows that are not fully filled</_long>
+		    <default>1</default>
+		    <min>0</min>
+		    <max>2</max>
+		    <desc>
+			<value>0</value>
+			<_name>Left</_name>
+		    </desc>
+		    <desc>
+			<value>1</value>
+			<_name>Centered</_name>
+		    </desc>
+		    <desc>
+			<value>2</value>
+			<_name>Right</_name>
+		    </desc>
+		</option>
+		<subgroup>
+		    <_short>Selected Window Highlight</_short>
+		    <option name="highlight_mode" type="int">
+			<_short>Highlight Mode</_short>
+			<_long>Mode for highlighting the currently selected window</_long>
+			<min>0</min>
+			<max>2</max>
+			<default>1</default>
+			<desc>
+			    <value>0</value>
+			    <_name>None</_name>
+			</desc>
+			<desc>
+			    <value>1</value>
+			    <_name>Bring Selected To Front</_name>
+			</desc>
+			<desc>
+			    <value>2</value>
+			    <_name>Show Rectangle</_name>
+			</desc>
+		    </option>
+		    <option name="highlight_rect_hidden" type="int">
+			<_short>Minimized Window Highlight Rectangle</_short>
+			<_long>Where to draw highlight rectangle for minimized windows</_long>
+			<min>0</min>
+			<max>2</max>
+			<default>1</default>
+			<desc>
+			    <value>0</value>
+			    <_name>None</_name>
+			</desc>
+			<desc>
+			    <value>1</value>
+			    <_name>Taskbar Entry</_name>
+			</desc>
+			<desc>
+			    <value>2</value>
+			    <_name>Original Window Position</_name>
+			</desc>
+		    </option>
+		    <option name="highlight_color" type="color">
+			<_short>Highlight Color</_short>
+			<_long>Color of highlight rectangle</_long>
+			<default>
+			    <red>0x0000</red>
+			    <green>0x0000</green>
+			    <blue>0x0000</blue>
+			    <alpha>0x9696</alpha>
+			</default>
+		    </option>
+		    <option name="highlight_border_color" type="color">
+			<_short>Highlight Border Color</_short>
+			<_long>Color of highlight rectangle border</_long>
+			<default>
+			    <red>0x0000</red>
+			    <green>0x0000</green>
+			    <blue>0x0000</blue>
+			    <alpha>0xc8c8</alpha>
+			</default>
+		    </option>
+		    <option name="highlight_border_inlay_color" type="color">
+			<_short>Highlight Border Inlay Color</_short>
+			<_long>Color of inlay in highlight rectangle border</_long>
+			<default>
+			    <red>0xc8c8</red>
+			    <green>0xc8c8</green>
+			    <blue>0xc8c8</blue>
+			    <alpha>0xc8c8</alpha>
+			</default>
+		    </option>
+		</subgroup>
+	    </group>
+	</screen>
+    </plugin>
+</compiz>
