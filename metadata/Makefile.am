@@ -24,6 +24,7 @@ xml_in_files =         \
 	snow.xml.in        \
 	svg.xml.in         \
 	switcher.xml.in    \
+	staticswitcher.xml.in \
 	wallpaper.xml.in   \
 	water.xml.in       \
 	wobbly.xml.in      \

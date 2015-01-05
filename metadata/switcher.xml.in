@@ -5,6 +5,12 @@
 		<_long>Application Switcher</_long>
 		<category>Window Management</category>
 
+		<deps>
+			<conflict>
+				<plugin>staticswitcher</plugin>
+			</conflict>
+		</deps>
+
 		<group>
 			<_short>Bindings</_short>
 
