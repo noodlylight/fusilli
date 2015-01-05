@@ -1314,8 +1314,10 @@ handleEvent (XEvent      *event)
 		{
 			w = findWindowAtDisplay (event->xproperty.window);
 			if (w)
+			{
 				updateWindowClassHints (w);
 				(*display.matchPropertyChanged) (w);
+			}
 		}
 		else if (event->xproperty.atom == XA_WM_NAME)
 		{
