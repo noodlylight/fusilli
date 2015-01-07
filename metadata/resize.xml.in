@@ -17,7 +17,7 @@
 				</option>
 
 				<option name="initiate_key" type="string">
-					<_short>Initiate Window Resize</_short>
+					<_short>Toggle Window Resize</_short>
 					<_long>Start resizing window</_long>
 					<hint>key</hint>
 					<default>&lt;Alt&gt;F8</default>

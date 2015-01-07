@@ -314,6 +314,97 @@ resizeGetConstraintRegion (CompScreen *s)
 	return region;
 }
 
+
+static Bool
+resizeTerminate (BananaArgument   *arg,
+                 int              nArg)
+{
+	RESIZE_DISPLAY (&display);
+
+	if (rd->w)
+	{
+		CompWindow     *w = rd->w;
+		XWindowChanges xwc;
+		unsigned int   mask = 0;
+
+		RESIZE_SCREEN (w->screen);
+
+		if (rd->mode == RESIZE_MODE_NORMAL)
+		{
+			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
+
+			if (cancel != NULL && cancel->b)
+			{
+				xwc.x      = rd->savedGeometry.x;
+				xwc.y      = rd->savedGeometry.y;
+				xwc.width  = rd->savedGeometry.width;
+				xwc.height = rd->savedGeometry.height;
+
+				mask = CWX | CWY | CWWidth | CWHeight;
+			}
+		}
+		else
+		{
+			XRectangle geometry;
+
+			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
+
+			if (cancel != NULL && cancel->b)
+				geometry = rd->savedGeometry;
+			else
+				geometry = rd->geometry;
+
+			if (memcmp (&geometry, &rd->savedGeometry, sizeof (geometry)) == 0)
+			{
+				BoxRec box;
+
+				if (rd->mode == RESIZE_MODE_STRETCH)
+					resizeGetStretchRectangle (&display, &box);
+				else
+					resizeGetPaintRectangle (&display, &box);
+
+				resizeDamageRectangle (w->screen, &box);
+			}
+			else
+			{
+				xwc.x      = geometry.x;
+				xwc.y      = geometry.y;
+				xwc.width  = geometry.width;
+				xwc.height = geometry.height;
+
+				mask = CWX | CWY | CWWidth | CWHeight;
+			}
+		}
+
+		if ((mask & CWWidth) && xwc.width == w->serverWidth)
+			mask &= ~CWWidth;
+
+		if ((mask & CWHeight) && xwc.height == w->serverHeight)
+			mask &= ~CWHeight;
+
+		if (mask)
+		{
+			if (mask & (CWWidth | CWHeight))
+				sendSyncRequest (w);
+
+			configureXWindow (w, mask, &xwc);
+		}
+
+		if (!(mask & (CWWidth | CWHeight)))
+			resizeFinishResizing (&display);
+
+		if (rs->grabIndex)
+		{
+			removeScreenGrab (w->screen, rs->grabIndex, NULL);
+			rs->grabIndex = 0;
+		}
+
+		rd->releaseButton = 0;
+	}
+
+	return FALSE;
+}
+
 static Bool
 resizeInitiate (BananaArgument   *arg,
                 int              nArg)
@@ -413,7 +504,16 @@ resizeInitiate (BananaArgument   *arg,
 			return FALSE;
 
 		if (rd->w)
+		{
+			BananaArgument arg;
+
+			arg.name = "cancel";
+			arg.type = BananaBool;
+			arg.value.b = FALSE;
+
+			resizeTerminate (&arg, 1);
 			return FALSE;
+		}
 
 		if (w->type & (CompWindowTypeDesktopMask |
 		               CompWindowTypeDockMask    |
@@ -534,96 +634,6 @@ resizeInitiate (BananaArgument   *arg,
 				rd->constraintRegion = NULL;
 			}
 		}
-	}
-
-	return FALSE;
-}
-
-static Bool
-resizeTerminate (BananaArgument   *arg,
-                 int              nArg)
-{
-	RESIZE_DISPLAY (&display);
-
-	if (rd->w)
-	{
-		CompWindow     *w = rd->w;
-		XWindowChanges xwc;
-		unsigned int   mask = 0;
-
-		RESIZE_SCREEN (w->screen);
-
-		if (rd->mode == RESIZE_MODE_NORMAL)
-		{
-			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
-
-			if (cancel != NULL && cancel->b)
-			{
-				xwc.x      = rd->savedGeometry.x;
-				xwc.y      = rd->savedGeometry.y;
-				xwc.width  = rd->savedGeometry.width;
-				xwc.height = rd->savedGeometry.height;
-
-				mask = CWX | CWY | CWWidth | CWHeight;
-			}
-		}
-		else
-		{
-			XRectangle geometry;
-
-			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
-
-			if (cancel != NULL && cancel->b)
-				geometry = rd->savedGeometry;
-			else
-				geometry = rd->geometry;
-
-			if (memcmp (&geometry, &rd->savedGeometry, sizeof (geometry)) == 0)
-			{
-				BoxRec box;
-
-				if (rd->mode == RESIZE_MODE_STRETCH)
-					resizeGetStretchRectangle (&display, &box);
-				else
-					resizeGetPaintRectangle (&display, &box);
-
-				resizeDamageRectangle (w->screen, &box);
-			}
-			else
-			{
-				xwc.x      = geometry.x;
-				xwc.y      = geometry.y;
-				xwc.width  = geometry.width;
-				xwc.height = geometry.height;
-
-				mask = CWX | CWY | CWWidth | CWHeight;
-			}
-		}
-
-		if ((mask & CWWidth) && xwc.width == w->serverWidth)
-			mask &= ~CWWidth;
-
-		if ((mask & CWHeight) && xwc.height == w->serverHeight)
-			mask &= ~CWHeight;
-
-		if (mask)
-		{
-			if (mask & (CWWidth | CWHeight))
-				sendSyncRequest (w);
-
-			configureXWindow (w, mask, &xwc);
-		}
-
-		if (!(mask & (CWWidth | CWHeight)))
-			resizeFinishResizing (&display);
-
-		if (rs->grabIndex)
-		{
-			removeScreenGrab (w->screen, rs->grabIndex, NULL);
-			rs->grabIndex = 0;
-		}
-
-		rd->releaseButton = 0;
 	}
 
 	return FALSE;
@@ -1135,6 +1145,16 @@ resizeHandleEvent (XEvent      *event)
 			arg.name = "cancel";
 			arg.type = BananaBool;
 			arg.value.b = TRUE;
+
+			resizeTerminate (&arg, 1);
+		}
+		else if (event->xkey.keycode == display.returnKeyCode)
+		{
+			BananaArgument arg;
+
+			arg.name = "cancel";
+			arg.type = BananaBool;
+			arg.value.b = FALSE;
 
 			resizeTerminate (&arg, 1);
 		}

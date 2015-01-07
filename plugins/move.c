@@ -101,6 +101,50 @@ typedef struct _MoveScreen {
 #define MOVE_SCREEN(s) \
         MoveScreen *ms = GET_MOVE_SCREEN (s, GET_MOVE_DISPLAY (&display))
 
+
+static Bool
+moveTerminate (BananaArgument     *arg,
+              int                 nArg)
+{
+	MOVE_DISPLAY (&display);
+
+	if (md->w)
+	{
+		MOVE_SCREEN (md->w->screen);
+
+		BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
+
+		if (cancel != NULL && cancel->b)
+			moveWindow (md->w,
+			            md->savedX - md->w->attrib.x,
+			            md->savedY - md->w->attrib.y,
+			            TRUE, FALSE);
+
+		syncWindowPosition (md->w);
+
+		/* update window size as window constraints may have
+		   changed - needed e.g. if a maximized window was moved
+		   to another output device */
+		updateWindowSize (md->w);
+
+		(md->w->screen->windowUngrabNotify) (md->w);
+
+		if (ms->grabIndex)
+		{
+			removeScreenGrab (md->w->screen, ms->grabIndex, NULL);
+			ms->grabIndex = 0;
+		}
+
+		if (md->moveOpacity != OPAQUE)
+			addWindowDamage (md->w);
+
+		md->w             = 0;
+		md->releaseButton = 0;
+	}
+
+	return FALSE;
+}
+
 static Bool
 moveInitiate (BananaArgument     *arg,
               int                nArg)
@@ -155,7 +199,16 @@ moveInitiate (BananaArgument     *arg,
 			return FALSE;
 
 		if (md->w)
+		{
+			BananaArgument arg;
+
+			arg.name = "cancel";
+			arg.type = BananaBool;
+			arg.value.b = FALSE;
+
+			moveTerminate (&arg, 1);
 			return FALSE;
+		}
 
 		if (w->type & (CompWindowTypeDesktopMask |
 		               CompWindowTypeDockMask    |
@@ -243,49 +296,6 @@ moveInitiate (BananaArgument     *arg,
 			if (md->moveOpacity != OPAQUE)
 				addWindowDamage (w);
 		}
-	}
-
-	return FALSE;
-}
-
-static Bool
-moveTerminate (BananaArgument     *arg,
-              int                 nArg)
-{
-	MOVE_DISPLAY (&display);
-
-	if (md->w)
-	{
-		MOVE_SCREEN (md->w->screen);
-
-		BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
-
-		if (cancel != NULL && cancel->b)
-			moveWindow (md->w,
-			            md->savedX - md->w->attrib.x,
-			            md->savedY - md->w->attrib.y,
-			            TRUE, FALSE);
-
-		syncWindowPosition (md->w);
-
-		/* update window size as window constraints may have
-		   changed - needed e.g. if a maximized window was moved
-		   to another output device */
-		updateWindowSize (md->w);
-
-		(md->w->screen->windowUngrabNotify) (md->w);
-
-		if (ms->grabIndex)
-		{
-			removeScreenGrab (md->w->screen, ms->grabIndex, NULL);
-			ms->grabIndex = 0;
-		}
-
-		if (md->moveOpacity != OPAQUE)
-			addWindowDamage (md->w);
-
-		md->w             = 0;
-		md->releaseButton = 0;
 	}
 
 	return FALSE;
@@ -706,6 +716,16 @@ moveHandleEvent (XEvent      *event)
 					arg.name = "cancel";
 					arg.type = BananaBool;
 					arg.value.b = TRUE;
+
+					moveTerminate (&arg, 1);
+				}
+				else if (event->xkey.keycode == display.returnKeyCode)
+				{
+					BananaArgument arg;
+
+					arg.name = "cancel";
+					arg.type = BananaBool;
+					arg.value.b = FALSE;
 
 					moveTerminate (&arg, 1);
 				}

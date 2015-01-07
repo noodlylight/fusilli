@@ -17,7 +17,7 @@
 				</option>
 
 				<option name="initiate_key" type="string">
-					<_short>Initiate Window Move</_short>
+					<_short>Toggle Window Move</_short>
 					<_long>Start moving window</_long>
 					<hint>key</hint>
 					<default>&lt;Alt&gt;F7</default>
