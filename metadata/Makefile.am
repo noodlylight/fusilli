@@ -21,6 +21,7 @@ xml_in_files =         \
 	grid.xml.in        \
 	scale.xml.in       \
 	screenshot.xml.in  \
+	splash.xml.in      \
 	snow.xml.in        \
 	svg.xml.in         \
 	switcher.xml.in    \

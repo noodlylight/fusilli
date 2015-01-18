@@ -28,6 +28,9 @@ libscale_la_SOURCES = scale.c
 libsnow_la_LDFLAGS = -module -avoid-version -no-undefined
 libsnow_la_SOURCES = snow.c
 
+libsplash_la_LDFLAGS = -module -avoid-version -no-undefined
+libsplash_la_SOURCES = splash.c
+
 libwobbly_la_LDFLAGS = -module -avoid-version -no-undefined
 libwobbly_la_SOURCES = wobbly.c
 
@@ -123,6 +126,7 @@ module_LTLIBRARIES =      \
 	libzoom.la            \
 	libscale.la           \
 	libsnow.la            \
+	libsplash.la          \
 	libneg.la             \
 	libmove.la            \
 	libresize.la          \
