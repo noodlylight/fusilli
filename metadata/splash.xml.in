@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<compiz>
+  <plugin name="splash" useBcop="true">
+    <_short>Splash</_short>
+    <_long>A simple splash plugin</_long>
+	<category>Extras</category>
+    <display>
+      <group>
+        <_short>Main</_short>
+        <option name="initiate_key" type="key">
+          <_short>Initiate Splash</_short>
+          <_long>Start Splash.</_long>
+          <default>&lt;Control&gt;F11</default>
+        </option>
+        <option name="firststart" type="bool">
+          <_short>Show on first start</_short>
+          <_long>Show splash on first start.</_long>
+          <default>true</default>
+        </option>
+      </group>
+      <group>
+        <_short>Images</_short>
+        <option name="background" type="string">
+          <_short>Background File</_short>
+          <_long>Background image File.</_long>
+          <hints>file;image;</hints>
+          <default>splash_background.png</default>
+        </option>
+        <option name="logo" type="string">
+          <_short>Logo File</_short>
+          <_long>Logo image File.</_long>
+          <hints>file;image;</hints>
+          <default>splash_logo.png</default>
+        </option>
+      </group>
+      <group>
+        <_short>Appearance</_short>
+        <option name="fade_time" type="float">
+          <_short>Fade Time</_short>
+          <_long>Fade In/Out Time.</_long>
+          <default>1.0</default>
+          <min>0.0</min>
+          <max>100.0</max>
+          <precision>0.1</precision>
+        </option>
+        <option name="display_time" type="float">
+          <_short>Display Time</_short>
+          <_long>Display In/Out Time.</_long>
+          <default>2.0</default>
+          <min>0.0</min>
+          <max>100.0</max>
+          <precision>0.1</precision>
+        </option>
+        <option name="saturation" type="float">
+          <_short>Saturation</_short>
+          <_long>Background saturation.</_long>
+          <default>50.0</default>
+          <min>0.0</min>
+          <max>100.0</max>
+          <precision>0.1</precision>
+        </option>
+        <option name="brightness" type="float">
+          <_short>Brightness</_short>
+          <_long>Background brightness.</_long>
+          <default>50.0</default>
+          <min>0.0</min>
+          <max>100.0</max>
+          <precision>0.1</precision>
+        </option>
+      </group>
+    </display>
+  </plugin>
+</compiz>
