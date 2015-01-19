@@ -49,6 +49,7 @@ static int displayPrivateIndex = 0;
 
 typedef struct _SplashDisplay
 {
+	Atom splashAtom;
 	int screenPrivateIndex;
 
 	HandleEventProc handleEvent;
