@@ -1,3 +1,6 @@
+lib3d_la_LDFLAGS = -module -avoid-version -no-undefined
+lib3d_la_SOURCES = 3d.c
+
 libaddhelper_la_LDFLAGS = -module -avoid-version -no-undefined
 libaddhelper_la_SOURCES = addhelper.c
 
@@ -116,6 +119,7 @@ AM_CPPFLAGS =                           \
 moduledir = $(plugindir)
 
 module_LTLIBRARIES =      \
+	lib3d.la              \
 	libaddhelper.la       \
 	libannotate.la        \
 	libdecoration.la      \
