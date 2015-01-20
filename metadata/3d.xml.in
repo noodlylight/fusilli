@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<compiz>
+	<plugin name="3d" useBcop="true">
+		<_short>3D Windows</_short>
+		<_long>Elevates windows while rotating the cube</_long>
+		<category>Effects</category>
+		<deps>
+			<requirement>
+				<plugin>cube</plugin>
+			</requirement>
+			<relation type="after">
+				<plugin>cube</plugin>
+			</relation>
+		</deps>
+		<screen>
+			<group>
+				<_short>Misc. Options</_short>
+				<option name="window_match" type="match">
+					<_short>Window Match</_short>
+					<_long>Windows that should be handled by 3D</_long>
+					<default>Toolbar | Utility | Dialog | Normal | Unknown</default>
+				</option>
+				<option name="min_cube_size" type="int">
+					<_short>Minimum Cube Size</_short>
+					<_long>Minimum cube size (in percent).</_long>
+					<default>60</default>
+					<min>10</min>
+					<max>100</max>
+				</option>
+				<option name="max_window_space" type="int">
+					<_short>Window Space</_short>
+					<_long>Change the amount of space between the windows (in percent of the cube size).</_long>
+					<default>10</default>
+					<min>0</min>
+					<max>50</max>
+				</option>
+				<option name="manual_only" type="bool">
+					<_short>3D Only On Mouse Rotate</_short>
+					<_long>Initiates the 3D display only if rotate is mouse driven. (Ex. You rotate the cube via the mouse)</_long>
+					<default>true</default>
+				</option>
+			</group>
+			<group>
+				<_short>Window Depth</_short>
+				<option name="width" type="float">
+					<_short>Window Depth</_short>
+					<_long>Window depth</_long>
+					<default>0.3</default>
+					<min>0.0</min>
+					<max>1.0</max>
+					<precision>0.001</precision>
+				</option>
+				<option name="bevel" type="int">
+					<_short>Bevel Corners</_short>
+					<_long>Roundoff corners for consistency with rounded decorations</_long>
+					<default>0</default>
+					<min>0</min>
+					<max>20</max>
+				</option>
+				<option name="width_color" type="color">
+	    				<_short>Window Color (Active)</_short>
+	    				<_long>Color of the active window's depth</_long>
+	    				<default>
+	      					<red>0x3333</red>
+	      					<green>0x3333</green>
+	      					<blue>0x3333</blue>
+	      					<alpha>0xffff</alpha>
+	    				</default>
+	  			</option>
+	  			<option name="width_color_inactive" type="color">
+	  				<_short>Window Color (Inactive)</_short>
+	  				<_long>Color of an inactive window's depth</_long>
+	  				<default>
+	      					<red>0x3333</red>
+	      					<green>0x3333</green>
+	      					<blue>0x3333</blue>
+	      					<alpha>0xffff</alpha>
+	    				</default>
+	  			</option>
+				<subgroup>
+					<_short>Bevel Corners</_short>
+					<option name="bevel_topleft" type="bool">
+						<_short>Bevel Top Left</_short>
+						<_long>Bevel top left corner</_long>
+						<default>true</default>
+					</option>
+					<option name="bevel_topright" type="bool">
+						<_short>Bevel Top Right</_short>
+						<_long>Bevel top right corner</_long>
+						<default>true</default>
+					</option>
+					<option name="bevel_bottomleft" type="bool">
+						<_short>Bevel Bottom Left</_short>
+						<_long>Bevel bottom left corner</_long>
+						<default>false</default>
+					</option>
+					<option name="bevel_bottomright" type="bool">
+						<_short>Bevel Bottom Right</_short>
+						<_long>Bevel bottom right corner</_long>
+						<default>false</default>
+					</option>
+				</subgroup>
+			</group>
+		</screen>
+	</plugin>
+</compiz>
+
