@@ -1,6 +1,7 @@
 xmldir       = $(metadatadir)
 xml_in_files =         \
 	core.xml.in        \
+	addhelper.xml.in   \
 	annotate.xml.in    \
 	blur.xml.in        \
 	clone.xml.in       \

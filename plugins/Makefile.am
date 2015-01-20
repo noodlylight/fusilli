@@ -1,3 +1,6 @@
+libaddhelper_la_LDFLAGS = -module -avoid-version -no-undefined
+libaddhelper_la_SOURCES = addhelper.c
+
 libannotate_la_LDFLAGS = -module -avoid-version -no-undefined
 libannotate_la_SOURCES = annotate.c
 
@@ -113,6 +116,7 @@ AM_CPPFLAGS =                           \
 moduledir = $(plugindir)
 
 module_LTLIBRARIES =      \
+	libaddhelper.la       \
 	libannotate.la        \
 	libdecoration.la      \
 	libwobbly.la          \

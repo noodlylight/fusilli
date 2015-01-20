@@ -13,7 +13,7 @@ Fusilli is currently under heavy development (no releases yet)
 
 ## Plugins Currently Available
 
-annotate, blur, clone, commands, cube, decoration, fade, firepaint, grid, matecompat,
+addhelper, annotate, blur, clone, commands, cube, decoration, fade, firepaint, grid, matecompat,
 minimize, move, neg, obs, place, resize, rotate, scale, screenshot, snow, splash,
 staticswitcher, svg, switcher, wall, wallpaper, water, wobbly, wsnames(formerly workspacenames), zoom
 
