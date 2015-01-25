@@ -44,6 +44,7 @@
 #include <X11/extensions/shape.h>
 
 #include <fusilli-core.h>
+#include <fusilli-mousepoll.h>
 
 CompDisplay display;
 
@@ -310,6 +311,10 @@ displayChangeNotify (const char        *optionName,
 	{
 		updateButton (optionValue->s, 
 		              &display.toggle_window_maximized_button);
+	}
+	else if (strcasecmp (optionName, "mouse_poll_interval") == 0)
+	{
+		mousePollIntervalChanged();
 	}
 }
 

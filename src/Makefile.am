@@ -28,6 +28,7 @@ fusilli_SOURCES =   \
 	session.c  \
 	fragment.c \
 	matrix.c   \
+	mousepoll.c \
 	cursor.c   \
 	match.c    \
 	banana.c   \

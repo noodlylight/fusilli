@@ -5,6 +5,8 @@
  * Copyright : (C) 2008 by Dennis Kasprzyk
  * E-mail    : onestone@opencompositing.org
  *
+ * Copyright : (C) 2015 by Michail Bitzes
+ * E-mail    : noodlylight@gmail.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,34 +20,35 @@
  *
  */
 
-#ifndef _COMPIZ_MOUSEPOLL_H
-#define _COMPIZ_MOUSEPOLL_H
-
-#define MOUSEPOLL_ABIVERSION 20080116
+#ifndef _FUSILLI_MOUSEPOLL_H
+#define _FUSILLI_MOUSEPOLL_H
 
 typedef int PositionPollingHandle;
 
 typedef void (*PositionUpdateProc) (CompScreen *s,
-				    int        x,
-				    int        y);
+                                    int        x,
+                                    int        y);
 
-typedef PositionPollingHandle
-(*AddPositionPollingProc) (CompScreen         *s,
-			   PositionUpdateProc update);
+void
+mousepollInitScreen (CompScreen *s);
 
-typedef void
-(*RemovePositionPollingProc) (CompScreen            *s,
-			      PositionPollingHandle id);
+void
+mousepollFiniScreen (CompScreen *s);
 
-typedef void
-(*GetCurrentPositionProc) (CompScreen *s,
-			   int        *x,
-			   int        *y);
+void
+mousePollIntervalChanged (void);
 
-typedef struct _MousePollFunc {
-   AddPositionPollingProc    addPositionPolling;
-   RemovePositionPollingProc removePositionPolling;
-   GetCurrentPositionProc    getCurrentPosition;
-} MousePollFunc;
+PositionPollingHandle
+addPositionPollingCallback (CompScreen     *s,
+                            PositionUpdateProc update);
+
+void
+removePositionPollingCallback (CompScreen            *s,
+                               PositionPollingHandle id);
+
+void
+getCurrentMousePosition (CompScreen *s,
+                         int        *x,
+                         int        *y);
 
 #endif

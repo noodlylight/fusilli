@@ -2365,6 +2365,8 @@ addScreen (int         screenNum,
 	s->filter[SCREEN_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
 	s->filter[WINDOW_TRANS_FILTER]  = COMP_TEXTURE_FILTER_GOOD;
 
+	mousepollInitScreen (s);
+
 	const BananaValue *
 	option_focus_prevention_match = bananaGetOption (coreBananaIndex, 
 	                                                 "focus_prevention_match",
@@ -2384,6 +2386,8 @@ removeScreen (CompScreen *s)
 {
 	CompScreen  *p;
 	int         i;
+
+	mousepollFiniScreen (s);
 
 	matchFini (&s->focus_prevention_match);
 

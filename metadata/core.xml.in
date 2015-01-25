@@ -414,6 +414,14 @@
 					<min>0</min>
 					<max>100</max>
 				</option>
+
+				<option name="mouse_poll_interval" type="int">
+					<_short>Mouse Poll Interval</_short>
+					<_long>How often to poll the mouse position, in miliseconds. Reduce this to reduce choppy behavior.</_long>
+					<default>40</default>
+					<min>1</min>
+					<max>500</max>
+				</option>
 			</subgroup>
 		</group>
 	</plugin>
