@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<compiz>
+	<plugin name="mousepoll">
+		<_short>Mouse position polling</_short>
+		<_long>Updates the mouse pointer position from the xserver</_long>
+		<category>Utility</category>
+		<display>
+			<option name="abi" type="int" read_only="true"/>
+			<option name="index" type="int" read_only="true"/>
+			<group>
+				<_short>Misc</_short>
+				<option type="int" name="mouse_poll_interval">
+					<_short>Mouse Poll Interval</_short>
+					<_long>How often to poll the mouse position, in miliseconds. Reduce this to reduce choppy behavior.</_long>
+					<default>40</default>
+					<min>1</min>
+					<max>500</max>
+				</option>
+			</group>
+		</display>
+	</plugin>
+</compiz>
