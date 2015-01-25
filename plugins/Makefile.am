@@ -37,6 +37,9 @@ libsnow_la_SOURCES = snow.c
 libsplash_la_LDFLAGS = -module -avoid-version -no-undefined
 libsplash_la_SOURCES = splash.c
 
+libshowmouse_la_LDFLAGS = -module -avoid-version -no-undefined
+libshowmouse_la_SOURCES = showmouse.c
+
 libwobbly_la_LDFLAGS = -module -avoid-version -no-undefined
 libwobbly_la_SOURCES = wobbly.c
 
@@ -135,6 +138,7 @@ module_LTLIBRARIES =      \
 	libscale.la           \
 	libsnow.la            \
 	libsplash.la          \
+	libshowmouse.la       \
 	libneg.la             \
 	libmove.la            \
 	libresize.la          \

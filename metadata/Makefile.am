@@ -25,6 +25,7 @@ xml_in_files =         \
 	screenshot.xml.in  \
 	splash.xml.in      \
 	snow.xml.in        \
+	showmouse.xml.in   \
 	svg.xml.in         \
 	switcher.xml.in    \
 	staticswitcher.xml.in \

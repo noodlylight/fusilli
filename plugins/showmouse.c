@@ -7,6 +7,8 @@
  * Copyright : (C) 2008 by Dennis Kasprzyk
  * E-mail    : onestone@opencompositing.org
  *
+ * Copyright : (C) 2015 by Michail Bitzes
+ * E-mail    : noodlylight@gmail.com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,837 +25,903 @@
 #include <math.h>
 #include <string.h>
 
-#include <compiz-core.h>
-#include <compiz-mousepoll.h>
+#include <fusilli-core.h>
+#include <fusilli-mousepoll.h>
 
-#include "showmouse_options.h"
 #include "showmouse_tex.h"
 
-#define GET_SHOWMOUSE_DISPLAY(d)                                  \
-    ((ShowmouseDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
+#define GET_SHOWMOUSE_DISPLAY(d) \
+        ((ShowmouseDisplay *) (d)->privates[displayPrivateIndex].ptr)
 
-#define SHOWMOUSE_DISPLAY(d)                      \
-    ShowmouseDisplay *sd = GET_SHOWMOUSE_DISPLAY (d)
+#define SHOWMOUSE_DISPLAY(d) \
+        ShowmouseDisplay *sd = GET_SHOWMOUSE_DISPLAY (d)
 
-#define GET_SHOWMOUSE_SCREEN(s, sd)                                   \
-    ((ShowmouseScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
+#define GET_SHOWMOUSE_SCREEN(s, sd) \
+        ((ShowmouseScreen *) (s)->privates[(sd)->screenPrivateIndex].ptr)
 
-#define SHOWMOUSE_SCREEN(s)                                                      \
-    ShowmouseScreen *ss = GET_SHOWMOUSE_SCREEN (s, GET_SHOWMOUSE_DISPLAY (s->display))
-
+#define SHOWMOUSE_SCREEN(s) \
+        ShowmouseScreen *ss = GET_SHOWMOUSE_SCREEN (s, GET_SHOWMOUSE_DISPLAY (&display))
 
 typedef struct _Particle
 {
-    float life;			// particle life
-    float fade;			// fade speed
-    float width;		// particle width
-    float height;		// particle height
-    float w_mod;		// particle size modification during life
-    float h_mod;		// particle size modification during life
-    float r;			// red value
-    float g;			// green value
-    float b;			// blue value
-    float a;			// alpha value
-    float x;			// X position
-    float y;			// Y position
-    float z;			// Z position
-    float xi;			// X direction
-    float yi;			// Y direction
-    float zi;			// Z direction
-    float xg;			// X gravity
-    float yg;			// Y gravity
-    float zg;			// Z gravity
-    float xo;			// orginal X position
-    float yo;			// orginal Y position
-    float zo;			// orginal Z position
+	float life;         // particle life
+	float fade;         // fade speed
+	float width;        // particle width
+	float height;       // particle height
+	float w_mod;        // particle size modification during life
+	float h_mod;        // particle size modification during life
+	float r;            // red value
+	float g;            // green value
+	float b;            // blue value
+	float a;            // alpha value
+	float x;            // X position
+	float y;            // Y position
+	float z;            // Z position
+	float xi;           // X direction
+	float yi;           // Y direction
+	float zi;           // Z direction
+	float xg;           // X gravity
+	float yg;           // Y gravity
+	float zg;           // Z gravity
+	float xo;           // orginal X position
+	float yo;           // orginal Y position
+	float zo;           // orginal Z position
 } Particle;
 
 typedef struct _ParticleSystem
 {
-    int      numParticles;
-    Particle *particles;
-    float    slowdown;
-    GLuint   tex;
-    Bool     active;
-    int      x, y;
-    float    darken;
-    GLuint   blendMode;
+	int      numParticles;
+	Particle *particles;
+	float    slowdown;
+	GLuint   tex;
+	Bool     active;
+	int      x, y;
+	float    darken;
+	GLuint   blendMode;
 
-    // Moved from drawParticles to get rid of spurious malloc's
-    GLfloat *vertices_cache;
-    int     vertex_cache_count;
-    GLfloat *coords_cache;
-    int     coords_cache_count;
-    GLfloat *colors_cache;
-    int     color_cache_count;
-    GLfloat *dcolors_cache;
-    int     dcolors_cache_count;
+	// Moved from drawParticles to get rid of spurious malloc's
+	GLfloat *vertices_cache;
+	int     vertex_cache_count;
+
+	GLfloat *coords_cache;
+	int     coords_cache_count;
+
+	GLfloat *colors_cache;
+	int     color_cache_count;
+
+	GLfloat *dcolors_cache;
+	int     dcolors_cache_count;
 } ParticleSystem;
 
+static int bananaIndex;
 
-static int displayPrivateIndex = 0;
+static int displayPrivateIndex;
 
-typedef struct _ShowmouseDisplay
-{
-    int  screenPrivateIndex;
+typedef struct _ShowmouseDisplay {
+	int screenPrivateIndex;
+	HandleEventProc handleEvent;
 
-    MousePollFunc *mpFunc;
-}
-ShowmouseDisplay;
+	CompButtonBinding initiate_button;
+	CompKeyBinding initiate_key;
+} ShowmouseDisplay;
 
-typedef struct _ShowmouseScreen
-{
-    int posX;
-    int posY;
+typedef struct _ShowmouseScreen {
+	int posX;
+	int posY;
 
-    Bool active;
+	Bool active;
 
-    ParticleSystem *ps;
+	ParticleSystem *ps;
 
-    float rot;
+	float rot;
 
-    PositionPollingHandle pollHandle;
-	
-    PreparePaintScreenProc preparePaintScreen;
-    DonePaintScreenProc    donePaintScreen;
-    PaintOutputProc        paintOutput;
-}
-ShowmouseScreen;
+	PositionPollingHandle pollHandle;
 
-static void
-initParticles (int numParticles, ParticleSystem * ps)
-{
-    if (ps->particles)
-	free(ps->particles);
-    ps->particles    = calloc(numParticles, sizeof(Particle));
-    ps->tex          = 0;
-    ps->numParticles = numParticles;
-    ps->slowdown     = 1;
-    ps->active       = FALSE;
-
-    // Initialize cache
-    ps->vertices_cache      = NULL;
-    ps->colors_cache        = NULL;
-    ps->coords_cache        = NULL;
-    ps->dcolors_cache       = NULL;
-    ps->vertex_cache_count  = 0;
-    ps->color_cache_count   = 0;
-    ps->coords_cache_count  = 0;
-    ps->dcolors_cache_count = 0;
-
-    Particle *part = ps->particles;
-    int i;
-    for (i = 0; i < numParticles; i++, part++)
-	part->life = 0.0f;
-}
+	PreparePaintScreenProc preparePaintScreen;
+	DonePaintScreenProc    donePaintScreen;
+	PaintOutputProc        paintOutput;
+} ShowmouseScreen;
 
 static void
-drawParticles (CompScreen * s, ParticleSystem * ps)
+initParticles (int numParticles,
+               ParticleSystem *ps)
 {
-    glPushMatrix();
+	if (ps->particles)
+		free (ps->particles);
 
-    glEnable(GL_BLEND);
-    if (ps->tex)
-    {
-	glBindTexture(GL_TEXTURE_2D, ps->tex);
-	glEnable(GL_TEXTURE_2D);
-    }
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	ps->particles    = calloc (numParticles, sizeof(Particle));
+	ps->tex          = 0;
+	ps->numParticles = numParticles;
+	ps->slowdown     = 1;
+	ps->active       = FALSE;
 
-    /* Check that the cache is big enough */
-    if (ps->numParticles > ps->vertex_cache_count)
-    {
-	ps->vertices_cache =
-	    realloc(ps->vertices_cache,
-		    ps->numParticles * 4 * 3 * sizeof(GLfloat));
-	ps->vertex_cache_count = ps->numParticles;
-    }
+	// Initialize cache
+	ps->vertices_cache      = NULL;
+	ps->colors_cache        = NULL;
+	ps->coords_cache        = NULL;
+	ps->dcolors_cache       = NULL;
+	ps->vertex_cache_count  = 0;
+	ps->color_cache_count   = 0;
+	ps->coords_cache_count  = 0;
+	ps->dcolors_cache_count = 0;
 
-    if (ps->numParticles > ps->coords_cache_count)
-    {
-	ps->coords_cache =
-	    realloc(ps->coords_cache,
-		    ps->numParticles * 4 * 2 * sizeof(GLfloat));
-	ps->coords_cache_count = ps->numParticles;
-    }
+	Particle *part = ps->particles;
+	int i;
+	for (i = 0; i < numParticles; i++, part++)
+		part->life = 0.0f;
+}
 
-    if (ps->numParticles > ps->color_cache_count)
-    {
-	ps->colors_cache =
-	    realloc(ps->colors_cache,
-		    ps->numParticles * 4 * 4 * sizeof(GLfloat));
-	ps->color_cache_count = ps->numParticles;
-    }
+static void
+drawParticles (CompScreen     *s,
+               ParticleSystem *ps)
+{
+	glPushMatrix ();
 
-    if (ps->darken > 0)
-    {
-	if (ps->dcolors_cache_count < ps->numParticles)
+	glEnable (GL_BLEND);
+	if (ps->tex)
 	{
-	    ps->dcolors_cache =
-		realloc(ps->dcolors_cache,
-			ps->numParticles * 4 * 4 * sizeof(GLfloat));
-	    ps->dcolors_cache_count = ps->numParticles;
+		glBindTexture (GL_TEXTURE_2D, ps->tex);
+		glEnable (GL_TEXTURE_2D);
 	}
-    }
+	glTexEnvf (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-    GLfloat *dcolors  = ps->dcolors_cache;
-    GLfloat *vertices = ps->vertices_cache;
-    GLfloat *coords   = ps->coords_cache;
-    GLfloat *colors   = ps->colors_cache;
-
-    int cornersSize = sizeof (GLfloat) * 8;
-    int colorSize   = sizeof (GLfloat) * 4;
-
-    GLfloat cornerCoords[8] = {0.0, 0.0,
-			       0.0, 1.0,
-			       1.0, 1.0,
-			       1.0, 0.0};
-
-    int numActive = 0;
-
-    Particle *part = ps->particles;
-    int i;
-    for (i = 0; i < ps->numParticles; i++, part++)
-    {
-	if (part->life > 0.0f)
+	/* Check that the cache is big enough */
+	if (ps->numParticles > ps->vertex_cache_count)
 	{
-	    numActive += 4;
-
-	    float w = part->width / 2;
-	    float h = part->height / 2;
-
-	    w += (w * part->w_mod) * part->life;
-	    h += (h * part->h_mod) * part->life;
-
-	    vertices[0] = part->x - w;
-	    vertices[1] = part->y - h;
-	    vertices[2] = part->z;
-
-	    vertices[3] = part->x - w;
-	    vertices[4] = part->y + h;
-	    vertices[5] = part->z;
-
-	    vertices[6] = part->x + w;
-	    vertices[7] = part->y + h;
-	    vertices[8] = part->z;
-
-	    vertices[9]  = part->x + w;
-	    vertices[10] = part->y - h;
-	    vertices[11] = part->z;
-
-	    vertices += 12;
-
-	    memcpy (coords, cornerCoords, cornersSize);
-
-	    coords += 8;
-
-	    colors[0] = part->r;
-	    colors[1] = part->g;
-	    colors[2] = part->b;
-	    colors[3] = part->life * part->a;
-	    memcpy (colors + 4, colors, colorSize);
-	    memcpy (colors + 8, colors, colorSize);
-	    memcpy (colors + 12, colors, colorSize);
-
-	    colors += 16;
-
-	    if (ps->darken > 0)
-	    {
-		dcolors[0] = part->r;
-		dcolors[1] = part->g;
-		dcolors[2] = part->b;
-		dcolors[3] = part->life * part->a * ps->darken;
-		memcpy (dcolors + 4, dcolors, colorSize);
-		memcpy (dcolors + 8, dcolors, colorSize);
-		memcpy (dcolors + 12, dcolors, colorSize);
-
-		dcolors += 16;
-	    }
+		ps->vertices_cache =
+		    realloc (ps->vertices_cache,
+		             ps->numParticles * 4 * 3 * sizeof (GLfloat));
+		ps->vertex_cache_count = ps->numParticles;
 	}
-    }
 
-    glEnableClientState(GL_COLOR_ARRAY);
+	if (ps->numParticles > ps->coords_cache_count)
+	{
+		ps->coords_cache =
+		    realloc (ps->coords_cache,
+		             ps->numParticles * 4 * 2 * sizeof (GLfloat));
+		ps->coords_cache_count = ps->numParticles;
+	}
 
-    glTexCoordPointer(2, GL_FLOAT, 2 * sizeof(GLfloat), ps->coords_cache);
-    glVertexPointer(3, GL_FLOAT, 3 * sizeof(GLfloat), ps->vertices_cache);
+	if (ps->numParticles > ps->color_cache_count)
+	{
+		ps->colors_cache =
+		    realloc (ps->colors_cache,
+		             ps->numParticles * 4 * 4 * sizeof (GLfloat));
+		ps->color_cache_count = ps->numParticles;
+	}
 
-    // darken the background
-    if (ps->darken > 0)
-    {
-	glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-	glColorPointer(4, GL_FLOAT, 4 * sizeof(GLfloat), ps->dcolors_cache);
-	glDrawArrays(GL_QUADS, 0, numActive);
-    }
-    // draw particles
-    glBlendFunc(GL_SRC_ALPHA, ps->blendMode);
+	if (ps->darken > 0)
+	{
+		if (ps->dcolors_cache_count < ps->numParticles)
+		{
+			ps->dcolors_cache =
+			    realloc (ps->dcolors_cache,
+			             ps->numParticles * 4 * 4 * sizeof (GLfloat));
+			ps->dcolors_cache_count = ps->numParticles;
+		}
+	}
 
-    glColorPointer(4, GL_FLOAT, 4 * sizeof(GLfloat), ps->colors_cache);
+	GLfloat *dcolors  = ps->dcolors_cache;
+	GLfloat *vertices = ps->vertices_cache;
+	GLfloat *coords   = ps->coords_cache;
+	GLfloat *colors   = ps->colors_cache;
 
-    glDrawArrays(GL_QUADS, 0, numActive);
+	int cornersSize = sizeof (GLfloat) * 8;
+	int colorSize   = sizeof (GLfloat) * 4;
 
-    glDisableClientState(GL_COLOR_ARRAY);
+	GLfloat cornerCoords[8] = {0.0, 0.0,
+	                           0.0, 1.0,
+	                           1.0, 1.0,
+	                           1.0, 0.0};
 
-    glPopMatrix();
-    glColor4usv(defaultColor);
-    screenTexEnvMode(s, GL_REPLACE);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
+	int numActive = 0;
+
+	Particle *part = ps->particles;
+	int i;
+	for (i = 0; i < ps->numParticles; i++, part++)
+	{
+		if (part->life > 0.0f)
+		{
+			numActive += 4;
+
+			float w = part->width / 2;
+			float h = part->height / 2;
+
+			w += (w * part->w_mod) * part->life;
+			h += (h * part->h_mod) * part->life;
+
+			vertices[0] = part->x - w;
+			vertices[1] = part->y - h;
+			vertices[2] = part->z;
+
+			vertices[3] = part->x - w;
+			vertices[4] = part->y + h;
+			vertices[5] = part->z;
+
+			vertices[6] = part->x + w;
+			vertices[7] = part->y + h;
+			vertices[8] = part->z;
+
+			vertices[9]  = part->x + w;
+			vertices[10] = part->y - h;
+			vertices[11] = part->z;
+
+			vertices += 12;
+
+			memcpy (coords, cornerCoords, cornersSize);
+
+			coords += 8;
+
+			colors[0] = part->r;
+			colors[1] = part->g;
+			colors[2] = part->b;
+			colors[3] = part->life * part->a;
+			memcpy (colors + 4, colors, colorSize);
+			memcpy (colors + 8, colors, colorSize);
+			memcpy (colors + 12, colors, colorSize);
+
+			colors += 16;
+
+			if (ps->darken > 0)
+			{
+				dcolors[0] = part->r;
+				dcolors[1] = part->g;
+				dcolors[2] = part->b;
+				dcolors[3] = part->life * part->a * ps->darken;
+				memcpy (dcolors + 4, dcolors, colorSize);
+				memcpy (dcolors + 8, dcolors, colorSize);
+				memcpy (dcolors + 12, dcolors, colorSize);
+
+				dcolors += 16;
+			}
+		}
+	}
+
+	glEnableClientState (GL_COLOR_ARRAY);
+
+	glTexCoordPointer (2, GL_FLOAT, 2 * sizeof(GLfloat), ps->coords_cache);
+	glVertexPointer (3, GL_FLOAT, 3 * sizeof(GLfloat), ps->vertices_cache);
+
+	// darken the background
+	if (ps->darken > 0)
+	{
+		glBlendFunc (GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+		glColorPointer (4, GL_FLOAT, 4 * sizeof(GLfloat), ps->dcolors_cache);
+		glDrawArrays (GL_QUADS, 0, numActive);
+	}
+
+	// draw particles
+	glBlendFunc (GL_SRC_ALPHA, ps->blendMode);
+
+	glColorPointer (4, GL_FLOAT, 4 * sizeof(GLfloat), ps->colors_cache);
+
+	glDrawArrays (GL_QUADS, 0, numActive);
+
+	glDisableClientState (GL_COLOR_ARRAY);
+
+	glPopMatrix ();
+	glColor4usv (defaultColor);
+	screenTexEnvMode (s, GL_REPLACE);
+	glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable (GL_TEXTURE_2D);
+	glDisable (GL_BLEND);
 }
 
 static void
-updateParticles (ParticleSystem * ps, float time)
+updateParticles (ParticleSystem * ps,
+                 float time)
 {
-    int i;
-    Particle *part;
-    float speed    = (time / 50.0);
-    float slowdown = ps->slowdown * (1 - MAX(0.99, time / 1000.0)) * 1000;
+	int i;
+	Particle *part;
+	float speed    = (time / 50.0);
+	float slowdown = ps->slowdown * (1 - MAX(0.99, time / 1000.0)) * 1000;
 
-    ps->active = FALSE;
+	ps->active = FALSE;
 
-    part = ps->particles;
+	part = ps->particles;
 
-    for (i = 0; i < ps->numParticles; i++, part++)
-    {
-	if (part->life > 0.0f)
+	for (i = 0; i < ps->numParticles; i++, part++)
 	{
-	    // move particle
-	    part->x += part->xi / slowdown;
-	    part->y += part->yi / slowdown;
-	    part->z += part->zi / slowdown;
+		if (part->life > 0.0f)
+		{
+			// move particle
+			part->x += part->xi / slowdown;
+			part->y += part->yi / slowdown;
+			part->z += part->zi / slowdown;
 
-	    // modify speed
-	    part->xi += part->xg * speed;
-	    part->yi += part->yg * speed;
-	    part->zi += part->zg * speed;
+			// modify speed
+			part->xi += part->xg * speed;
+			part->yi += part->yg * speed;
+			part->zi += part->zg * speed;
 
-	    // modify life
-	    part->life -= part->fade * speed;
-	    ps->active  = TRUE;
+			// modify life
+			part->life -= part->fade * speed;
+			ps->active  = TRUE;
+		}
 	}
-    }
 }
 
 static void
-finiParticles (ParticleSystem * ps)
+finiParticles (ParticleSystem *ps)
 {
-    free(ps->particles);
-    if (ps->tex)
-	glDeleteTextures(1, &ps->tex);
+	free (ps->particles);
+	if (ps->tex)
+		glDeleteTextures (1, &ps->tex);
 
-    if (ps->vertices_cache)
-	free(ps->vertices_cache);
-    if (ps->colors_cache)
-	free(ps->colors_cache);
-    if (ps->coords_cache)
-	free(ps->coords_cache);
-    if (ps->dcolors_cache)
-	free(ps->dcolors_cache);
+	if (ps->vertices_cache)
+		free (ps->vertices_cache);
+
+	if (ps->colors_cache)
+		free (ps->colors_cache);
+
+	if (ps->coords_cache)
+		free (ps->coords_cache);
+
+	if (ps->dcolors_cache)
+		free (ps->dcolors_cache);
 }
 
 static void
-genNewParticles(CompScreen     *s,
-		ParticleSystem *ps,
-		int            time)
+genNewParticles (CompScreen     *s,
+                 ParticleSystem *ps,
+                 int            time)
 {
-    SHOWMOUSE_SCREEN(s);
+	SHOWMOUSE_SCREEN (s);
 
-    Bool rColor     = showmouseGetRandom (s);
-    float life      = showmouseGetLife (s);
-    float lifeNeg   = 1 - life;
-    float fadeExtra = 0.2f * (1.01 - life);
-    float max_new   = ps->numParticles * ((float)time / 50) * (1.05 - life);
+	const BananaValue *
+	option_random = bananaGetOption (bananaIndex,
+	                                 "random",
+	                                 s->screenNum);
 
-    unsigned short *c = showmouseGetColor (s);
+	const BananaValue *
+	option_life = bananaGetOption (bananaIndex,
+	                               "life",
+	                               s->screenNum);
 
-    float colr1 = (float)c[0] / 0xffff;
-    float colg1 = (float)c[1] / 0xffff;
-    float colb1 = (float)c[2] / 0xffff;
-    float colr2 = 1.0 / 4.0 * (float)c[0] / 0xffff;
-    float colg2 = 1.0 / 4.0 * (float)c[1] / 0xffff;
-    float colb2 = 1.0 / 4.0 * (float)c[2] / 0xffff;
-    float cola  = (float)c[3] / 0xffff;
-    float rVal;
+	Bool rColor     = option_random->b;
+	float life      = option_life->f;
+	float lifeNeg   = 1 - life;
+	float fadeExtra = 0.2f * (1.01 - life);
+	float max_new   = ps->numParticles * ((float)time / 50) * (1.05 - life);
 
-    float partw = showmouseGetSize (s) * 5;
-    float parth = partw;
+	const BananaValue *
+	option_color = bananaGetOption (bananaIndex,
+	                                "color",
+	                                s->screenNum);
 
-    Particle *part = ps->particles;
-    int i, j;
+	unsigned short c[] = { 0, 0, 0, 0 };
 
-    float pos[10][2];
-    int nE       = MIN (10, showmouseGetEmiters (s));
-    float rA     = (2 * M_PI) / nE;
-    int radius   = showmouseGetRadius (s);
-    for (i = 0; i < nE; i++)
-    {
-	pos[i][0]  = sin (ss->rot + (i * rA)) * radius;
-	pos[i][0] += ss->posX;
-	pos[i][1]  = cos (ss->rot + (i * rA)) * radius;
-	pos[i][1] += ss->posY;
-    }
+	stringToColor (option_color->s, c);
 
-    for (i = 0; i < ps->numParticles && max_new > 0; i++, part++)
-    {
-	if (part->life <= 0.0f)
+	float colr1 = (float)c[0] / 0xffff;
+	float colg1 = (float)c[1] / 0xffff;
+	float colb1 = (float)c[2] / 0xffff;
+	float colr2 = 1.0 / 4.0 * (float)c[0] / 0xffff;
+	float colg2 = 1.0 / 4.0 * (float)c[1] / 0xffff;
+	float colb2 = 1.0 / 4.0 * (float)c[2] / 0xffff;
+	float cola  = (float)c[3] / 0xffff;
+	float rVal;
+
+	const BananaValue *
+	option_size = bananaGetOption (bananaIndex,
+	                               "size",
+	                               s->screenNum);
+
+	float partw = option_size->f * 5;
+	float parth = partw;
+
+	Particle *part = ps->particles;
+	int i, j;
+
+	const BananaValue *
+	option_emitters = bananaGetOption (bananaIndex,
+	                                   "emitters",
+	                                   s->screenNum);
+
+	const BananaValue *
+	option_radius = bananaGetOption (bananaIndex,
+	                                 "radius",
+	                                 s->screenNum);
+
+	float pos[10][2];
+	int nE       = MIN (10, option_emitters->i);
+	float rA     = (2 * M_PI) / nE;
+	int radius   = option_radius->i;
+
+	for (i = 0; i < nE; i++)
 	{
-	    // give gt new life
-	    rVal = (float)(random() & 0xff) / 255.0;
-	    part->life = 1.0f;
-	    part->fade = rVal * lifeNeg + fadeExtra; // Random Fade Value
-
-	    // set size
-	    part->width = partw;
-	    part->height = parth;
-	    rVal = (float)(random() & 0xff) / 255.0;
-	    part->w_mod = part->h_mod = -1;
-
-	    // choose random position
-
-	    j        = random() % nE;
-	    part->x  = pos[j][0];
-	    part->y  = pos[j][1];
-	    part->z  = 0.0;
-	    part->xo = part->x;
-	    part->yo = part->y;
-	    part->zo = part->z;
-
-	    // set speed and direction
-	    rVal     = (float)(random() & 0xff) / 255.0;
-	    part->xi = ((rVal * 20.0) - 10.0f);
-	    rVal     = (float)(random() & 0xff) / 255.0;
-	    part->yi = ((rVal * 20.0) - 10.0f);
-	    part->zi = 0.0f;
-
-	    if (rColor)
-	    {
-		// Random colors! (aka Mystical Fire)
-		rVal    = (float)(random() & 0xff) / 255.0;
-		part->r = rVal;
-		rVal    = (float)(random() & 0xff) / 255.0;
-		part->g = rVal;
-		rVal    = (float)(random() & 0xff) / 255.0;
-		part->b = rVal;
-	    }
-	    else
-	    {
-		rVal    = (float)(random() & 0xff) / 255.0;
-		part->r = colr1 - rVal * colr2;
-		part->g = colg1 - rVal * colg2;
-		part->b = colb1 - rVal * colb2;
-	    }
-	    // set transparancy
-	    part->a = cola;
-
-	    // set gravity
-	    part->xg = 0.0f;
-	    part->yg = 0.0f;
-	    part->zg = 0.0f;
-
-	    ps->active = TRUE;
-	    max_new   -= 1;
+		pos[i][0]  = sin (ss->rot + (i * rA)) * radius;
+		pos[i][0] += ss->posX;
+		pos[i][1]  = cos (ss->rot + (i * rA)) * radius;
+		pos[i][1] += ss->posY;
 	}
-    }
-}
 
+	for (i = 0; i < ps->numParticles && max_new > 0; i++, part++)
+	{
+		if (part->life <= 0.0f)
+		{
+			// give gt new life
+			rVal = (float)(random() & 0xff) / 255.0;
+			part->life = 1.0f;
+			part->fade = rVal * lifeNeg + fadeExtra; // Random Fade Value
+
+			// set size
+			part->width = partw;
+			part->height = parth;
+			rVal = (float)(random() & 0xff) / 255.0;
+			part->w_mod = part->h_mod = -1;
+
+			// choose random position
+			j        = random() % nE;
+			part->x  = pos[j][0];
+			part->y  = pos[j][1];
+			part->z  = 0.0;
+			part->xo = part->x;
+			part->yo = part->y;
+			part->zo = part->z;
+
+			// set speed and direction
+			rVal     = (float)(random() & 0xff) / 255.0;
+			part->xi = ((rVal * 20.0) - 10.0f);
+			rVal     = (float)(random() & 0xff) / 255.0;
+			part->yi = ((rVal * 20.0) - 10.0f);
+			part->zi = 0.0f;
+
+			if (rColor)
+			{
+				// Random colors! (aka Mystical Fire)
+				rVal    = (float)(random() & 0xff) / 255.0;
+				part->r = rVal;
+				rVal    = (float)(random() & 0xff) / 255.0;
+				part->g = rVal;
+				rVal    = (float)(random() & 0xff) / 255.0;
+				part->b = rVal;
+			}
+			else
+			{
+				rVal    = (float)(random() & 0xff) / 255.0;
+				part->r = colr1 - rVal * colr2;
+				part->g = colg1 - rVal * colg2;
+				part->b = colb1 - rVal * colb2;
+			}
+			// set transparancy
+			part->a = cola;
+
+			// set gravity
+			part->xg = 0.0f;
+			part->yg = 0.0f;
+			part->zg = 0.0f;
+
+			ps->active = TRUE;
+			max_new   -= 1;
+		}
+	}
+}
 
 static void
 damageRegion (CompScreen *s)
 {
-    REGION   r;
-    int      i;
-    Particle *p;
-    float    w, h, x1, x2, y1, y2;
+	REGION   r;
+	int      i;
+	Particle *p;
+	float    w, h, x1, x2, y1, y2;
 
-    SHOWMOUSE_SCREEN (s);
+	SHOWMOUSE_SCREEN (s);
 
-    if (!ss->ps)
-	return;
+	if (!ss->ps)
+		return;
 
-    x1 = s->width;
-    x2 = 0;
-    y1 = s->height;
-    y2 = 0;
+	x1 = s->width;
+	x2 = 0;
+	y1 = s->height;
+	y2 = 0;
 
-    p = ss->ps->particles;
+	p = ss->ps->particles;
 
-    for (i = 0; i < ss->ps->numParticles; i++, p++)
-    {
-	w = p->width / 2;
-	h = p->height / 2;
+	for (i = 0; i < ss->ps->numParticles; i++, p++)
+	{
+		w = p->width / 2;
+		h = p->height / 2;
 
-	w += (w * p->w_mod) * p->life;
-	h += (h * p->h_mod) * p->life;
-	
-	x1 = MIN (x1, p->x - w);
-	x2 = MAX (x2, p->x + w);
-	y1 = MIN (y1, p->y - h);
-	y2 = MAX (y2, p->y + h);
-    }
+		w += (w * p->w_mod) * p->life;
+		h += (h * p->h_mod) * p->life;
+		
+		x1 = MIN (x1, p->x - w);
+		x2 = MAX (x2, p->x + w);
+		y1 = MIN (y1, p->y - h);
+		y2 = MAX (y2, p->y + h);
+	}
 
-    r.rects = &r.extents;
-    r.numRects = r.size = 1;
+	r.rects = &r.extents;
+	r.numRects = r.size = 1;
 
-    r.extents.x1 = floor (x1);
-    r.extents.x2 = ceil (x2);
-    r.extents.y1 = floor (y1);
-    r.extents.y2 = ceil (y2);
+	r.extents.x1 = floor (x1);
+	r.extents.x2 = ceil (x2);
+	r.extents.y1 = floor (y1);
+	r.extents.y2 = ceil (y2);
 
-    damageScreenRegion (s, &r);
+	damageScreenRegion (s, &r);
 }
 
 static void
 positionUpdate (CompScreen *s,
-		int        x,
-		int        y)
+                int        x,
+                int        y)
 {
-    SHOWMOUSE_SCREEN (s);
+	SHOWMOUSE_SCREEN (s);
 
-    ss->posX = x;
-    ss->posY = y;
+	ss->posX = x;
+	ss->posY = y;
 }
-
 
 static void
 showmousePreparePaintScreen (CompScreen *s,
-			     int        time)
+                             int        time)
 {
-    SHOWMOUSE_SCREEN (s);
-    SHOWMOUSE_DISPLAY (s->display);
+	SHOWMOUSE_SCREEN (s);
 
-    if (ss->active && !ss->pollHandle)
-    {
-	(*sd->mpFunc->getCurrentPosition) (s, &ss->posX, &ss->posY);
-	ss->pollHandle = (*sd->mpFunc->addPositionPolling) (s, positionUpdate);
-    }
-
-    if (ss->active && !ss->ps)
-    {
-	ss->ps = calloc(1, sizeof(ParticleSystem));
-	if (!ss->ps)
+	if (ss->active && !ss->pollHandle)
 	{
-	    UNWRAP (ss, s, preparePaintScreen);
-	    (*s->preparePaintScreen) (s, time);
-	    WRAP (ss, s, preparePaintScreen, showmousePreparePaintScreen);
-	    return;
+		getCurrentMousePosition (s, &ss->posX, &ss->posY);
+		ss->pollHandle = addPositionPollingCallback (s, positionUpdate);
 	}
-	initParticles(showmouseGetNumParticles (s), ss->ps);
 
-	ss->ps->slowdown = showmouseGetSlowdown (s);
-	ss->ps->darken = showmouseGetDarken (s);
-	ss->ps->blendMode = (showmouseGetBlend(s)) ? GL_ONE :
-			    GL_ONE_MINUS_SRC_ALPHA;
+	if (ss->active && !ss->ps)
+	{
+		ss->ps = malloc (sizeof(ParticleSystem));
+		if (!ss->ps)
+		{
+			UNWRAP (ss, s, preparePaintScreen);
+			(*s->preparePaintScreen) (s, time);
+			WRAP (ss, s, preparePaintScreen, showmousePreparePaintScreen);
+			return;
+		}
 
-	glGenTextures(1, &ss->ps->tex);
-	glBindTexture(GL_TEXTURE_2D, ss->ps->tex);
+		ss->ps->particles = NULL;
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		const BananaValue *
+		option_num_particles = bananaGetOption (bananaIndex,
+		                                        "num_particles",
+		                                        s->screenNum);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 32, 32, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, starTex);
-	glBindTexture(GL_TEXTURE_2D, 0);
-    }
+		const BananaValue *
+		option_slowdown = bananaGetOption (bananaIndex,
+		                                   "slowdown",
+		                                   s->screenNum);
 
-    if (ss->active)
-	ss->rot = fmod (ss->rot + (((float)time / 1000.0) * 2 * M_PI *
-			showmouseGetRotationSpeed (s)), 2 * M_PI);
+		const BananaValue *
+		option_darken = bananaGetOption (bananaIndex,
+		                                 "darken",
+		                                 s->screenNum);
 
-    if (ss->ps && ss->ps->active)
-    {
-	updateParticles (ss->ps, time);
-	damageRegion (s);
-    }
+		const BananaValue *
+		option_blend = bananaGetOption (bananaIndex,
+		                                "blend",
+		                                s->screenNum);
 
-    if (ss->ps && ss->active)
-	genNewParticles (s, ss->ps, time);
+		initParticles (option_num_particles->i, ss->ps);
 
-    UNWRAP (ss, s, preparePaintScreen);
-    (*s->preparePaintScreen) (s, time);
-    WRAP (ss, s, preparePaintScreen, showmousePreparePaintScreen);
+		ss->ps->slowdown = option_slowdown->f;
+		ss->ps->darken = option_darken->f;
+		ss->ps->blendMode = (option_blend->b) ? GL_ONE :
+		                                        GL_ONE_MINUS_SRC_ALPHA;
+
+		glGenTextures (1, &ss->ps->tex);
+		glBindTexture (GL_TEXTURE_2D, ss->ps->tex);
+
+		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, 32, 32, 0,
+		              GL_RGBA, GL_UNSIGNED_BYTE, starTex);
+
+		glBindTexture (GL_TEXTURE_2D, 0);
+	}
+
+	const BananaValue *
+	option_rotation_speed = bananaGetOption (bananaIndex,
+	                                         "rotation_speed",
+	                                         s->screenNum);
+
+	if (ss->active)
+		ss->rot = fmod (ss->rot + (((float)time / 1000.0) * 2 * M_PI *
+		          option_rotation_speed->f), 2 * M_PI);
+
+	if (ss->ps && ss->ps->active)
+	{
+		updateParticles (ss->ps, time);
+		damageRegion (s);
+	}
+
+	if (ss->ps && ss->active)
+		genNewParticles (s, ss->ps, time);
+
+	UNWRAP (ss, s, preparePaintScreen);
+	(*s->preparePaintScreen) (s, time);
+	WRAP (ss, s, preparePaintScreen, showmousePreparePaintScreen);
 }
 
 static void
 showmouseDonePaintScreen (CompScreen *s)
 {
-    SHOWMOUSE_SCREEN (s);
-    SHOWMOUSE_DISPLAY (s->display);
+	SHOWMOUSE_SCREEN (s);
 
-    if (ss->active || (ss->ps && ss->ps->active))
-	damageRegion (s);
+	if (ss->active || (ss->ps && ss->ps->active))
+		damageRegion (s);
 
-    if (!ss->active && ss->pollHandle)
-    {
-	(*sd->mpFunc->removePositionPolling) (s, ss->pollHandle);
-	ss->pollHandle = 0;
-    }
+	if (!ss->active && ss->pollHandle)
+	{
+		removePositionPollingCallback (s, ss->pollHandle);
+		ss->pollHandle = 0;
+	}
 
-    if (!ss->active && ss->ps && !ss->ps->active)
-    {
-	finiParticles (ss->ps);
-	free (ss->ps);
-	ss->ps = NULL;
-    }
+	if (!ss->active && ss->ps && !ss->ps->active)
+	{
+		finiParticles (ss->ps);
+		free (ss->ps);
+		ss->ps = NULL;
+	}
 
-    UNWRAP (ss, s, donePaintScreen);
-    (*s->donePaintScreen) (s);
-    WRAP (ss, s, donePaintScreen, showmouseDonePaintScreen);
+	UNWRAP (ss, s, donePaintScreen);
+	(*s->donePaintScreen) (s);
+	WRAP (ss, s, donePaintScreen, showmouseDonePaintScreen);
 }
 
 static Bool
 showmousePaintOutput (CompScreen              *s,
-		      const ScreenPaintAttrib *sa,
-		      const CompTransform     *transform,
-		      Region                  region,
-		      CompOutput              *output,
-		      unsigned int            mask)
+                      const ScreenPaintAttrib *sa,
+                      const CompTransform     *transform,
+                      Region                  region,
+                      CompOutput              *output,
+                      unsigned int            mask)
 {
-    Bool           status;
-    CompTransform  sTransform;
+	Bool           status;
+	CompTransform  sTransform;
 
-    SHOWMOUSE_SCREEN (s);
+	SHOWMOUSE_SCREEN (s);
 
-    UNWRAP (ss, s, paintOutput);
-    status = (*s->paintOutput) (s, sa, transform, region, output, mask);
-    WRAP (ss, s, paintOutput, showmousePaintOutput);
+	UNWRAP (ss, s, paintOutput);
+	status = (*s->paintOutput) (s, sa, transform, region, output, mask);
+	WRAP (ss, s, paintOutput, showmousePaintOutput);
 
-    if (!ss->ps || !ss->ps->active)
+	if (!ss->ps || !ss->ps->active)
+		return status;
+
+	matrixGetIdentity (&sTransform);
+
+	transformToScreenSpace (s, output, -DEFAULT_Z_CAMERA, &sTransform);
+
+	glPushMatrix ();
+	glLoadMatrixf (sTransform.m);
+
+	drawParticles (s, ss->ps);
+
+	glPopMatrix();
+
+	glColor4usv (defaultColor);
+
 	return status;
-
-    matrixGetIdentity (&sTransform);
-
-    transformToScreenSpace (s, output, -DEFAULT_Z_CAMERA, &sTransform);
-
-    glPushMatrix ();
-    glLoadMatrixf (sTransform.m);
-
-    drawParticles (s, ss->ps);
-
-    glPopMatrix();
-
-    glColor4usv (defaultColor);
-
-    return status;
 }
-
-static Bool
-showmouseTerminate (CompDisplay     *d,
-		    CompAction      *action,
-		    CompActionState state,
-		    CompOption      *option,
-		    int             nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-    {
-	SHOWMOUSE_SCREEN (s);
-
-	ss->active = FALSE;
-	damageRegion (s);
-
-	return TRUE;
-    }
-    return FALSE;
-}
-
-static Bool
-showmouseInitiate (CompDisplay     *d,
-		   CompAction      *action,
-		   CompActionState state,
-		   CompOption      *option,
-		   int             nOption)
-{
-    CompScreen *s;
-    Window     xid;
-
-    xid    = getIntOptionNamed (option, nOption, "root", 0);
-
-    s = findScreenAtDisplay (d, xid);
-    if (s)
-    {
-	SHOWMOUSE_SCREEN (s);
-
-	if (ss->active)
-	    return showmouseTerminate (d, action, state, option, nOption);
-
-	ss->active = TRUE;
-
-	return TRUE;
-    }
-    return FALSE;
-}
-
 
 static Bool
 showmouseInitScreen (CompPlugin *p,
-		     CompScreen *s)
+                     CompScreen *s)
 {
-    SHOWMOUSE_DISPLAY (s->display);
+	SHOWMOUSE_DISPLAY (&display);
 
-    ShowmouseScreen *ss = (ShowmouseScreen *) calloc (1, sizeof (ShowmouseScreen) );
+	ShowmouseScreen *ss = malloc (sizeof (ShowmouseScreen));
 
-    if (!ss)
-	return FALSE;
+	if (!ss)
+		return FALSE;
 
-    s->base.privates[sd->screenPrivateIndex].ptr = ss;
+	ss->active = FALSE;
 
-    WRAP (ss, s, paintOutput, showmousePaintOutput);
-    WRAP (ss, s, preparePaintScreen, showmousePreparePaintScreen);
-    WRAP (ss, s, donePaintScreen, showmouseDonePaintScreen);
+	ss->pollHandle = 0;
 
-    ss->active = FALSE;
+	ss->ps  = NULL;
+	ss->rot = 0;
 
-    ss->pollHandle = 0;
+	WRAP (ss, s, paintOutput, showmousePaintOutput);
+	WRAP (ss, s, preparePaintScreen, showmousePreparePaintScreen);
+	WRAP (ss, s, donePaintScreen, showmouseDonePaintScreen);
 
-    ss->ps  = NULL;
-    ss->rot = 0;
+	s->privates[sd->screenPrivateIndex].ptr = ss;
 
-    return TRUE;
+	return TRUE;
 }
-
 
 static void
 showmouseFiniScreen (CompPlugin *p,
-		     CompScreen *s)
+                     CompScreen *s)
 {
-    SHOWMOUSE_SCREEN (s);
-    SHOWMOUSE_DISPLAY (s->display);
+	SHOWMOUSE_SCREEN (s);
 
-    //Restore the original function
-    UNWRAP (ss, s, paintOutput);
-    UNWRAP (ss, s, preparePaintScreen);
-    UNWRAP (ss, s, donePaintScreen);
+	UNWRAP (ss, s, paintOutput);
+	UNWRAP (ss, s, preparePaintScreen);
+	UNWRAP (ss, s, donePaintScreen);
 
-    if (ss->pollHandle)
-	(*sd->mpFunc->removePositionPolling) (s, ss->pollHandle);
+	if (ss->pollHandle)
+		removePositionPollingCallback (s, ss->pollHandle);
 
-    if (ss->ps && ss->ps->active)
-	damageScreen (s);
+	if (ss->ps && ss->ps->active)
+		damageScreen (s);
 
-    //Free the pointer
-    free (ss);
+	free (ss);
+}
+
+static void
+showmouseHandleEvent (XEvent      *event)
+{
+	CompScreen *s;
+
+	SHOWMOUSE_DISPLAY (&display);
+
+	switch (event->type) {
+	case KeyPress:
+		if (isKeyPressEvent (event, &sd->initiate_key))
+		{
+			s = findScreenAtDisplay (event->xkey.root);
+			if (s)
+			{
+				SHOWMOUSE_SCREEN (s);
+
+				if (ss->active)
+				{
+					ss->active = FALSE;
+					damageRegion (s);
+				}
+				else
+				{
+					ss->active = TRUE;
+					damageRegion (s);
+				}
+			}
+		}
+		break;
+	case ButtonPress:
+		if (isButtonPressEvent (event, &sd->initiate_button))
+		{
+			s = findScreenAtDisplay (event->xbutton.root);
+			if (s)
+			{
+				SHOWMOUSE_SCREEN (s);
+
+				if (ss->active)
+				{
+					ss->active = FALSE;
+					damageRegion (s);
+				}
+				else
+					ss->active = TRUE;
+			}
+		}
+	default:
+		break;
+	}
+
+	UNWRAP (sd, &display, handleEvent);
+	(*display.handleEvent) (event);
+	WRAP (sd, &display, handleEvent, showmouseHandleEvent);
 }
 
 static Bool
 showmouseInitDisplay (CompPlugin  *p,
-		      CompDisplay *d)
+                      CompDisplay *d)
 {
-    //Generate a showmouse display
-    ShowmouseDisplay *sd;
-    int              index;
+	ShowmouseDisplay *sd;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION) ||
-        !checkPluginABI ("mousepoll", MOUSEPOLL_ABIVERSION))
-	return FALSE;
+	sd = malloc (sizeof (ShowmouseDisplay));
 
-    if (!getPluginDisplayIndex (d, "mousepoll", &index))
-	return FALSE;
+	if (!sd)
+		return FALSE;
 
-    sd = (ShowmouseDisplay *) malloc (sizeof (ShowmouseDisplay));
+	sd->screenPrivateIndex = allocateScreenPrivateIndex ();
 
-    if (!sd)
-	return FALSE;
- 
-    //Allocate a private index
-    sd->screenPrivateIndex = allocateScreenPrivateIndex (d);
+	if (sd->screenPrivateIndex < 0)
+	{
+		free (sd);
+		return FALSE;
+	}
 
-    //Check if its valid
-    if (sd->screenPrivateIndex < 0)
-    {
-	//Its invalid so free memory and return
-	free (sd);
-	return FALSE;
-    }
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button",
+	                                          -1);
 
-    sd->mpFunc = d->base.privates[index].ptr;
+	const BananaValue *
+	option_initiate_key = bananaGetOption (bananaIndex,
+	                                       "initiate_key",
+	                                       -1);
 
-    showmouseSetInitiateInitiate (d, showmouseInitiate);
-    showmouseSetInitiateTerminate (d, showmouseTerminate);
-    showmouseSetInitiateButtonInitiate (d, showmouseInitiate);
-    showmouseSetInitiateButtonTerminate (d, showmouseTerminate);
-    showmouseSetInitiateEdgeInitiate (d, showmouseInitiate);
-    showmouseSetInitiateEdgeTerminate (d, showmouseTerminate);
+	registerButton (option_initiate_button->s, &sd->initiate_button);
+	registerKey (option_initiate_key->s, &sd->initiate_key);
 
-    //Record the display
-    d->base.privates[displayPrivateIndex].ptr = sd;
-    return TRUE;
+	WRAP (sd, d, handleEvent, showmouseHandleEvent);
+
+	d->privates[displayPrivateIndex].ptr = sd;
+
+	return TRUE;
 }
 
 static void
 showmouseFiniDisplay (CompPlugin  *p,
-		      CompDisplay *d)
+                      CompDisplay *d)
 {
-    SHOWMOUSE_DISPLAY (d);
-    //Free the private index
-    freeScreenPrivateIndex (d, sd->screenPrivateIndex);
-    //Free the pointer
-    free (sd);
+	SHOWMOUSE_DISPLAY (d);
+
+	freeScreenPrivateIndex (sd->screenPrivateIndex);
+
+	UNWRAP (sd, d, handleEvent);
+
+	free (sd);
 }
 
+static void
+showmouseChangeNotify (const char        *optionName,
+                       BananaType        optionType,
+                       const BananaValue *optionValue,
+                       int               screenNum)
+{
+	SHOWMOUSE_DISPLAY (&display);
 
+	if (strcasecmp (optionName, "initiate_button") == 0)
+		updateButton (optionValue->s, &sd->initiate_button);
+
+	else if (strcasecmp (optionName, "initiate_key") == 0)
+		updateKey (optionValue->s, &sd->initiate_key);
+}
 
 static Bool
-showmouseInit (CompPlugin * p)
+showmouseInit (CompPlugin *p)
 {
-    displayPrivateIndex = allocateDisplayPrivateIndex();
+	if (getCoreABI() != CORE_ABIVERSION)
+	{
+		compLogMessage ("showmouse", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
 
-    if (displayPrivateIndex < 0)
-	return FALSE;
+		return FALSE;
+	}
 
-    return TRUE;
+	displayPrivateIndex = allocateDisplayPrivateIndex();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("showmouse");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, showmouseChangeNotify);
+
+	return TRUE;
 }
 
 static void
-showmouseFini (CompPlugin * p)
+showmouseFini (CompPlugin *p)
 {
-    if (displayPrivateIndex >= 0)
 	freeDisplayPrivateIndex (displayPrivateIndex);
+
+	bananaUnloadPlugin (bananaIndex);
 }
 
-static CompBool
-showmouseInitObject (CompPlugin *p,
-		     CompObject *o)
-{
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) showmouseInitDisplay,
-	(InitPluginObjectProc) showmouseInitScreen
-    };
-
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-showmouseFiniObject (CompPlugin *p,
-		     CompObject *o)
-{
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) showmouseFiniDisplay,
-	(FiniPluginObjectProc) showmouseFiniScreen
-    };
-
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
-
-CompPluginVTable showmouseVTable = {
-    "showmouse",
-    0,
-    showmouseInit,
-    showmouseFini,
-    showmouseInitObject,
-    showmouseFiniObject,
-    0,
-    0
+static CompPluginVTable showmouseVTable = {
+	"showmouse",
+	showmouseInit,
+	showmouseFini,
+	showmouseInitDisplay,
+	showmouseFiniDisplay,
+	showmouseInitScreen,
+	showmouseFiniScreen,
+	NULL, /* showmouseInitWindow */
+	NULL  /* showmouseFiniWindow */
 };
 
 CompPluginVTable *
-getCompPluginInfo (void)
+getCompPluginInfo20141205 (void)
 {
-    return &showmouseVTable;
+	return &showmouseVTable;
 }
