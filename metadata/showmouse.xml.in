@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<compiz>
+	<plugin name="showmouse" useBcop="true">
+		<_short>Show mouse</_short>
+		<_long>Increases the visibility of the mouse pointer</_long>
+		<category>Accessibility</category>
+		<deps>
+			<relation type="after">
+				<plugin>cube</plugin>
+			</relation>
+			<requirement>
+				<plugin>mousepoll</plugin>
+			</requirement>
+		</deps>
+		<display>
+			<group>
+				<_short>General</_short>
+				<option name="initiate" type="key">
+					<_short>Initiate</_short>
+					<_long>Toggle the mouse pointer trail.</_long>
+					<default>&lt;Super&gt;k</default>
+				</option>
+				<option name="initiate_button" type="button">
+					<_short>Initiate</_short>
+					<_long>Toggle the mouse pointer trail.</_long>
+					<default/>
+				</option>
+				<option name="initiate_edge" type="edge">
+					<_short>Initiate</_short>
+					<_long>Toggle the mouse pointer trail.</_long>
+					<default/>
+				</option>
+			</group>
+		</display>
+		<screen>
+			<group>
+				<_short>Particle Options</_short>
+				<option name="num_particles" type="int">
+					<_short>Number Of Particles</_short>
+					<_long>Number of particles.</_long>
+					<default>500</default>
+					<min>10</min>
+					<max>2000</max>
+				</option>
+				<option name="size" type="float">
+					<_short>Particle Size</_short>
+					<_long>Particle size.</_long>
+					<default>10.0</default>
+					<min>0.1</min>
+					<max>20</max>
+					<precision>0.1</precision>
+				</option>
+				<option name="slowdown" type="float">
+					<_short>Particle Slowdown</_short>
+					<_long>Particle slowdown.</_long>
+					<default>1.0</default>
+					<min>0.1</min>
+					<max>10</max>
+					<precision>0.1</precision>
+				</option>
+				<option name="life" type="float">
+					<_short>Particle Life</_short>
+					<_long>Particle life.</_long>
+					<default>0.7</default>
+					<min>0.1</min>
+					<max>1</max>
+					<precision>0.1</precision>
+				</option>
+				<option name="darken" type="float">
+					<_short>Darken backgound</_short>
+					<_long>Darken background under particles</_long>
+					<default>0.9</default>
+					<min>0.0</min>
+					<max>1.0</max>
+					<precision>0.1</precision>
+				</option>
+				<option name="blend" type="bool">
+					<_short>Additive blending</_short>
+					<_long>Additive blending of particles</_long>
+					<default>true</default>
+				</option>
+				<option name="color" type="color">
+					<_short>Particle Color</_short>
+					<_long>Particle color.</_long>
+					<default>
+					<red>0xffff</red>
+					<green>0xdfff</green>
+					<blue>0x3fff</blue>
+					<alpha>0xffff</alpha>
+					</default>
+				</option>
+				<option name="random" type="bool">
+					<_short>Randomly Colored Particles</_short>
+					<_long>Have random colors for the particles</_long>
+					<default>false</default>
+				</option>
+			    </group>
+			    <group>
+				<_short>General</_short>
+				<option name="rotation_speed" type="float">
+					<_short>Rotation speed</_short>
+					<_long>Rotation speed.</_long>
+					<default>0.5</default>
+					<min>0.1</min>
+					<max>10.0</max>
+					<precision>0.1</precision>
+				</option>
+				<option name="radius" type="int">
+					<_short>Radius</_short>
+					<_long>Ring radius</_long>
+					<default>100</default>
+					<min>10</min>
+					<max>1000</max>
+				</option>
+				<option name="emiters" type="int">
+					<_short>Emiters</_short>
+					<_long>Number of particle emiters.</_long>
+					<default>3</default>
+					<min>1</min>
+					<max>10</max>
+				</option>
+			</group>
+		</screen>
+	</plugin>
+</compiz>
