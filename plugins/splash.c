@@ -571,6 +571,12 @@ splashInitScreen (CompPlugin *p,
 	initTexture (s, &ss->logo_img);
 
 	ss->initiate = FALSE;
+	ss->fade_in = 0;
+	ss->fade_out = 0;
+	ss->time = 0;
+	ss->hasInit = FALSE;
+	ss->hasLogo = FALSE;
+	ss->hasBack = FALSE;
 
 	const BananaValue *
 	option_firststart = bananaGetOption (bananaIndex,
