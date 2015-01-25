@@ -14,10 +14,10 @@ Fusilli is currently under heavy development (no releases yet)
 ## Plugins Currently Available
 
 3d, addhelper, annotate, blur, clone, commands, cube, decoration, fade, firepaint, grid, matecompat,
-minimize, move, neg, obs, place, resize, rotate, scale, screenshot, snow, splash,
+minimize, move, neg, obs, place, resize, rotate, scale, screenshot, showmouse, snow, splash,
 staticswitcher, svg, switcher, wall, wallpaper, water, wobbly, wsnames(formerly workspacenames), zoom
 
-Plugins png, imgjpeg, text, regex, inotify were consolidated into core.
+Plugins png, imgjpeg, text, regex, inotify, mousepoll were consolidated into core.
 
 The functionality of plugin vpswitch can be simulated by prefixing button bindings with
 ```
