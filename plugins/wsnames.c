@@ -23,6 +23,7 @@
  *
  */
 
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -63,6 +64,86 @@ typedef struct _WSNamesScreen {
 #define WSNAMES_SCREEN(s) \
         WSNamesScreen *ws = GET_WSNAMES_SCREEN (s, GET_WSNAMES_DISPLAY (&display))
 
+static void
+dbusComposeNamesList (CompScreen        *s,
+                      DBusMessage       *message)
+{
+	DBusMessageIter iter;
+	DBusMessageIter listIter;
+
+	char sig[2];
+
+	sig[0] = DBUS_TYPE_STRING;
+	sig[1] = '\0';
+
+	dbus_message_iter_init_append (message, &iter);
+
+	if (dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY,
+	                                             sig, &listIter))
+	{
+		int i, j, listSize;
+
+		const BananaValue *
+		option_workspace_number = bananaGetOption (bananaIndex,
+		                                           "workspace_number",
+		                                           s->screenNum);
+
+		const BananaValue *
+		option_workspace_name = bananaGetOption (bananaIndex,
+		                                         "workspace_name",
+		                                         s->screenNum);
+
+		listSize  = MIN (option_workspace_name->list.nItem,
+		                 option_workspace_number->list.nItem);
+
+		for (i = 1; i <= s->hsize; i++)
+		{
+			Bool found = FALSE;
+
+			for (j = 0; j < listSize; j++)
+				if (option_workspace_number->list.item[j].i == i)
+				{
+					found = TRUE;
+					dbus_message_iter_append_basic (&listIter, sig[0],
+					            &option_workspace_name->list.item[j].s);
+					break;
+				}
+
+			if (!found)
+			{
+				char *tmp = malloc(50);
+				sprintf (tmp, "Workspace %d", i);
+				dbus_message_iter_append_basic (&listIter, sig[0], &tmp);
+				free (tmp);
+			}
+		}
+	}
+
+	dbus_message_iter_close_container (&iter, &listIter);
+}
+
+static void
+sendChangeSignal (CompScreen *s)
+{
+	DBusMessage *signal;
+	DBusMessageIter iter;
+
+	if (core.dbusConnection == NULL)
+		return;
+
+	signal = dbus_message_new_signal ("/org/fusilli/wsnames",
+	                                  "org.fusilli",
+	                                  "namesChanged");
+
+	dbus_message_iter_init_append (signal, &iter);
+	dbus_message_iter_append_basic (&iter, DBUS_TYPE_INT32, &s->screenNum);
+
+	dbus_connection_send (core.dbusConnection, signal, NULL);
+	dbus_connection_flush (core.dbusConnection);
+
+	dbus_message_unref (signal);
+}
+
 static DBusHandlerResult
 wsnamesDbusHandleMessage (DBusConnection *connection,
                           DBusMessage    *message,
@@ -93,9 +174,6 @@ wsnamesDbusHandleMessage (DBusConnection *connection,
 		                                      "getNames"))
 		{
 			DBusMessage *reply = NULL;
-			DBusMessageIter iter;
-			DBusMessageIter listIter;
-			char sig[2];
 
 			DBusMessageIter param_iter;
 			CompScreen *s;
@@ -107,72 +185,32 @@ wsnamesDbusHandleMessage (DBusConnection *connection,
 				                                            DBUS_TYPE_INT32)
 					dbus_message_iter_get_basic (&param_iter, &screenNum);
 
-			s = getScreenFromScreenNum(screenNum);
+			s = getScreenFromScreenNum (screenNum);
+
 			if (!s)
 			{
 				reply = dbus_message_new_error (message,
 				        DBUS_ERROR_FAILED,
 				        "Invalid or missing parameter");
+
 				dbus_connection_send (connection, reply, NULL);
 				dbus_connection_flush (connection);
 				dbus_message_unref (reply);
 				dbus_free_string_array (path);
+
 				return DBUS_HANDLER_RESULT_HANDLED;
 			}
 
 			//give the reply
-			sig[0] = DBUS_TYPE_STRING;
-			sig[1] = '\0';
-
 			reply = dbus_message_new_method_return (message);
 
-			dbus_message_iter_init_append (reply, &iter);
+			dbusComposeNamesList (s, reply);
 
-			if (dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY,
-			                                             sig, &listIter))
-			{
-				int i, j, listSize;
-
-				const BananaValue *
-				option_workspace_number = bananaGetOption (bananaIndex,
-				                                           "workspace_number",
-				                                           s->screenNum);
-
-				const BananaValue *
-				option_workspace_name = bananaGetOption (bananaIndex,
-				                                         "workspace_name",
-				                                         s->screenNum);
-
-				listSize  = MIN (option_workspace_name->list.nItem,
-				                 option_workspace_number->list.nItem);
-
-				for (i = 1; i <= s->hsize; i++)
-				{
-					Bool found = FALSE;
-					for (j = 0; j < listSize; j++)
-						if (option_workspace_number->list.item[j].i == i)
-						{
-							found = TRUE;
-							dbus_message_iter_append_basic (&listIter, sig[0],
-							            &option_workspace_name->list.item[j].s);
-							break;
-						}
-
-					if (!found)
-					{
-						char *tmp = malloc(50);
-						sprintf (tmp, "Workspace %d", i);
-						dbus_message_iter_append_basic (&listIter, sig[0], &tmp);
-						free (tmp);
-					}
-				}
-			}
-
-			dbus_message_iter_close_container (&iter, &listIter);
 			dbus_connection_send (connection, reply, NULL);
 			dbus_connection_flush (connection);
 			dbus_message_unref (reply);
 			dbus_free_string_array (path);
+
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 	}
@@ -561,6 +599,21 @@ wsnamesFiniScreen (CompPlugin *p,
 	free (ws);
 }
 
+static void
+wsnamesChangeNotify (const char        *optionName,
+                     BananaType        optionType,
+                     const BananaValue *optionValue,
+                     int               screenNum)
+{
+	CompScreen *s;
+
+	if (strcasecmp (optionName, "workspace_name") == 0)
+	{
+		s = getScreenFromScreenNum (screenNum);
+		sendChangeSignal (s);
+	}
+}
+
 static Bool
 wsnamesInit (CompPlugin *p)
 {
@@ -584,6 +637,8 @@ wsnamesInit (CompPlugin *p)
 
 	if (bananaIndex == -1)
 		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, wsnamesChangeNotify);
 
 	if (core.dbusConnection != NULL)
 	{
