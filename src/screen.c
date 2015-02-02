@@ -47,6 +47,7 @@
 #include <X11/cursorfont.h>
 
 #include <fusilli-core.h>
+#include <fusilli-mousepoll.h>
 
 static int
 reallocScreenPrivate (int  size,
