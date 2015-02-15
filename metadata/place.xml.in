@@ -95,11 +95,15 @@
 				<option name="position_x_values" type="list_int" per_screen="true">
 					<_short>X Positions</_short>
 					<_long>X position values</_long>
+					<min>0</min>
+					<max>100000</max>
 				</option>
 
 				<option name="position_y_values" type="list_int" per_screen="true">
 					<_short>Y Positions</_short>
 					<_long>Y position values</_long>
+					<min>0</min>
+					<max>100000</max>
 				</option>
 
 				<option name="position_constrain_workarea" type="list_bool" per_screen="true">

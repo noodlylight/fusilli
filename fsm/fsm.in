@@ -847,7 +847,7 @@ class Banana():
             elif option.attrib.get("type") == "float" or option.attrib.get("type") == "list_float":
                 max_ = float(max_[0].text)
         else:
-            max_ = 0.0
+            max_ = 100000
 
         #<precision></precision>
         precision = option.findall("precision")
