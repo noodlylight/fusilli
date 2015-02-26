@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<compiz>
+  <plugin name="colorfilter" useBcop="true">
+    <_short>Color filter</_short>
+    <_long>Filter colors for accessibility purposes</_long>
+    <category>Accessibility</category>
+    <deps>
+      <relation type="after">
+	<plugin>blur</plugin>
+      </relation>
+    </deps>
+    <display>
+      <option name="toggle_window_key" type="key">
+        <_short>Toggle window filtering</_short>
+        <_long>Toggle filtering for currently focused window.</_long>
+        <default>&lt;Super&gt;f</default>
+      </option>
+      <option name="toggle_screen_key" type="key">
+        <_short>Toggle screen filtering</_short>
+        <_long>Toggle filtering for every window on the screen.</_long>
+        <default>&lt;Super&gt;d</default>
+      </option>
+      <option name="switch_filter_key" type="key">
+        <_short>Switch filter</_short>
+        <_long>Select filter to use from filters list : either apply all filters or only one specific filter (triggering this action switches filters one by one and eventually comes back to the "all filters" mode).</_long>
+        <default>&lt;Control&gt;&lt;Super&gt;s</default>
+      </option>
+    </display>
+    <screen>
+      <option name="filters" type="list">
+        <_short>Filters files</_short>
+        <_long>List of plain text filter files that should be applied when filtering windows or screen.</_long>
+        <type>string</type>
+        <default>
+	    <value>negative</value>
+	    <value>negative-green</value>
+	    <value>blueish-filter</value>
+	    <value>sepia</value>
+	    <value>grayscale</value>
+	    <value>deuteranopia</value>
+	    <value>protonopia</value>
+	</default>
+        <hints>file;</hints>
+      </option>
+      <option name="filter_decorations" type="bool">
+        <_short>Filter window decorations</_short>
+        <_long>Window decorations (borders and titlebar) will be filtered as well as window contents if enabled.</_long>
+        <default>false</default>
+      </option>
+      <option name="filter_match" type="match">
+        <_short>Filtered windows</_short>
+        <_long>Windows to be filtered by default.</_long>
+        <default>any</default>
+      </option>
+    </screen>
+    <screen>
+      <option name="exclude_match" type="match">
+        <_short>Exclude windows</_short>
+        <_long>Windows to exclude from filtering.</_long>
+        <default>type=Desktop</default>
+      </option>
+    </screen>
+  </plugin>
+</compiz>

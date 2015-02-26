@@ -1,0 +1,6 @@
+!!ARBfp1.0
+TEMP tex;
+TEX tex, fragment.texcoord[0], texture[0], RECT;
+DP3 tex.r, tex, {0.33333, 0.33333, 0.33333, 0};
+MOV result.color, tex.rrra;
+END

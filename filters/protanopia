@@ -1,0 +1,43 @@
+!!ARBfp1.0
+TEMP ab, ci, texv, temp1, temp2;
+TEX texv, fragment.texcoord[0], texture[0], RECT;
+
+MOV ab, {-0.0615003999429, 0.058589396688,
+	  0.0827700165681, -0.0793451999536};
+MOV ci, {-0.01320014122, 0.013289415272,
+	  0.57638336864, 0.0};
+
+POW texv.r, texv.r, {0.4761904, 0, 0, 0}.r;
+POW texv.g, texv.g, {0.5, 0, 0, 0}.r;
+POW texv.b, texv.b, {0.4761904, 0, 0, 0}.r;
+
+DP3 temp1.r, {0.05059983, 0.08585369, 0.00952420, 0.0}, texv;
+DP3 temp1.g, {0.01893033, 0.08925308, 0.01370054, 0.0}, texv;
+DP3 temp1.b, {0.00292202, 0.00975732, 0.07145979, 0.0}, texv;
+
+RCP temp2.r, temp1.g;
+MAD temp2.r, temp2.r, temp1.b, -ci.b;
+
+MUL temp2.g, ab.b, temp1.g;
+MAD temp2.g, ci.r, temp1.b, temp2.g;
+RCP temp2.a, -ab.r;
+MUL temp2.g, temp2.g, temp2.a;
+
+MUL temp2.b, ab.a, temp1.g;
+MAD temp2.b, ci.g, temp1.b, temp2.b;
+RCP temp2.a, -ab.g;
+MUL temp2.b, temp2.b, temp2.a;
+
+CMP temp1.r, temp2.r, temp2.g, temp2.b;
+
+DP3 temp2.r, {30.830854, -29.832659, 1.610474, 0.0}, temp1;
+DP3 temp2.g, {-6.481468, 17.715578, -2.532642, 0.0}, temp1;
+DP3 temp2.b, {-0.375690, -1.199062, 14.273846, 0.0}, temp1;
+
+POW temp2.r, temp2.r, {2.1, 0, 0, 0}.r;
+POW temp2.g, temp2.g, {2.0, 0, 0, 0}.r;
+POW temp2.b, temp2.b, {2.1, 0, 0, 0}.r;
+
+MOV temp2.a, texv.a;
+MOV result.color, temp2;
+END
