@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<compiz>
+    <plugin name="ezoom">
+	<deps>
+	    <relation type="after">
+		<plugin>expo</plugin>
+	    </relation>
+	    <relation type="before">
+		<plugin>staticswitcher</plugin>
+		<plugin>switcher</plugin>
+	    </relation>
+	    <requirement>
+		<plugin>mousepoll</plugin>
+	    </requirement>
+	</deps>
+	<_short>Enhanced Zoom Desktop</_short>
+	<_long>Enhanced zoom functions for the visually impaired and other users</_long>
+	<category>Accessibility</category>
+	<display>
+	    <group>
+		<_short>Zoom In/Out</_short>
+		<option type="button" name="zoom_in_button">
+		    <_short>Zoom In</_short>
+		    <_long>Zoom In</_long>
+		    <default>&lt;Super&gt;Button4</default>
+		</option>
+		<option type="key" name="zoom_in_key">
+		    <_short>Zoom In</_short>
+		    <_long>Zoom In</_long>
+		</option>
+		<option type="button" name="zoom_out_button">
+		    <_short>Zoom Out</_short>
+		    <_long>Zoom Out</_long>
+		    <default>&lt;Super&gt;Button5</default>
+		</option>
+		<option type="key" name="zoom_out_key">
+		    <_short>Zoom Out</_short>
+		    <_long>Zoom Out</_long>
+		</option>
+		<option type="button" name="zoom_box_button">
+		    <_short>Zoom Box</_short>
+		    <_long>Zoom in on a boxed area</_long>
+		    <default>&lt;Super&gt;Button2</default>
+		</option>
+	    </group>
+	    <group>
+		<_short>Mouse Behaviour</_short>
+		<option type="key" name="center_mouse_key">
+		    <_short>Center the mouse</_short>
+		    <_long>Puts the mouse in the middle of the screen (Regardless of zoom level)</_long>
+		    <default></default>
+		</option>
+	    </group>
+	    <group>
+		<_short>Specific Zoom</_short>
+		<option type="key" name="zoom_specific_1_key">
+		    <_short>Zoom Specific Level 1</_short>
+		    <_long>Zoom to the specific zoom level 1</_long>
+		    <default></default>
+		</option>
+		<option type="float" name="zoom_spec1">
+		    <_short>Specific zoom factor 1</_short>
+		    <_long>Zoom level to go to when triggering hotkey 1</_long>
+		    <default>1.0</default>
+		    <min>0.1</min>
+		    <max>1.0</max>
+		    <precision>0.01</precision>
+		</option>
+		<option type="key" name="zoom_specific_2_key">
+		    <_short>Zoom Specific Level 2</_short>
+		    <_long>Zoom to the specific zoom level 2</_long>
+		    <default></default>
+		</option>
+		<option type="float" name="zoom_spec2">
+		    <_short>Specific zoom factor 2</_short>
+		    <_long>Zoom level to go to when triggering hotkey 2</_long>
+		    <default>0.5</default>
+		    <min>0.1</min>
+		    <max>1.0</max>
+		    <precision>0.01</precision>
+		</option>
+		<option type="key" name="zoom_specific_3_key">
+		    <_short>Zoom Specific Level 3</_short>
+		    <_long>Zoom to the specific zoom level 3</_long>
+		    <default></default>
+		</option>
+		<option type="float" name="zoom_spec3">
+		    <_short>Specific zoom factor 3</_short>
+		    <_long>Zoom level to go to when triggering hotkey 3</_long>
+		    <default>0.2</default>
+		    <min>0.1</min>
+		    <max>1.0</max>
+		    <precision>0.01</precision>
+		</option>
+		<option type="bool" name="spec_target_focus">
+		    <_short>Target Focused Window on Specific level</_short>
+		    <_long>Enable this to target the focused window when jumping to a specific zoom level. Disable to target mouse.</_long>
+		    <default>true</default>
+		</option>
+	    </group>
+	    <group>
+		<_short>Zoom Area Movement</_short>
+		<option type="key" name="lock_zoom_key">
+		    <_short>Toggle zoom area lock</_short>
+		    <_long>Toggles a lock on the zoom area so it doesn't change on various events</_long>
+		    <default></default>
+		</option>
+		<subgroup>
+		    <_short>Panning</_short>
+		    <option type="key" name="pan_left_key">
+			<_short>Pan Zoom Left</_short>
+			<_long>Pan (move) the zoom area left</_long>
+		    </option>
+		    <option type="key" name="pan_right_key">
+			<_short>Pan Zoom Right</_short>
+			<_long>Pan (move) the zoom area right</_long>
+		    </option>
+		    <option type="key" name="pan_up_key">
+			<_short>Pan Zoom Up</_short>
+			<_long>Pan (move) the zoom area up</_long>
+		    </option>
+		    <option type="key" name="pan_down_key">
+			<_short>Pan Zoom Down</_short>
+			<_long>Pan (move) the zoom area down</_long>
+		    </option>
+		</subgroup>
+		<subgroup>
+		    <_short>Fitting</_short>
+		    <option type="key" name="fit_to_zoom_key">
+			<_short>Fit the window to the zoom level</_short>
+			<_long>Resize the window so it matches the current zoom level.  </_long>
+			<default></default>
+		    </option>
+		    <option type="key" name="fit_to_window_key">
+			<_short>Fit zoomed area to window</_short>
+			<_long>Zooms in/out so the focused window is zoomed to the maximum while still being fully visible.</_long>
+			<default>&lt;Super&gt;r</default>
+		    </option>
+		</subgroup>
+	    </group>
+	</display>
+	<screen>
+	    <group>
+		<_short>Zoom In/Out</_short>
+		<option type="float" name="zoom_factor">
+		    <_short>Zoom factor</_short>
+		    <_long>Zoom in/out by this factor. Higher value means quicker zooming.</_long>
+		    <default>1.150</default>
+		    <min>1.01</min>
+		    <max>3</max>
+		    <precision>0.01</precision>
+		</option>
+		<option type="float" name="minimum_zoom">
+		    <_short>Minimum zoom factor</_short>
+		    <_long>The minimum allowed zoom factor. A value of 0.5 equals 2x zoom, a value of 0.25 equals 4x zoom.</_long>
+		    <default>0.125</default>
+		    <min>0.000001</min>
+		    <max>0.999999</max>
+		    <precision>0.0001</precision>
+		</option>
+	    </group>
+	    <group>
+		<_short>Mouse Behaviour</_short>
+		<option type="bool" name="sync_mouse">
+		    <_short>Sync Mouse</_short>
+		    <_long>Always keep the zoomed area in sync with where the mouse is, and vice versa. Use this if you don't intend to draw a scaled pointer or hide the original pointer. The zoomed area will move as you move your mouse.</_long>
+		    <default>true</default>
+		</option>
+		<option type="bool" name="scale_mouse">
+		    <_short>Scale the mouse pointer</_short>
+		    <_long>Enable this to get a gradually larger mouse pointer as you zoom in</_long>
+		    <default>false</default>
+		</option>
+		<option type="bool" name="scale_mouse_dynamic">
+		    <_short>Dynamic mouse pointer scale</_short>
+		    <_long>When scaling the mouse pointer, this option makes the scale adjust according to the current level of zoom.</_long>
+		    <default>true</default>
+		</option>
+		<option type="float" name="scale_mouse_static">
+		    <_short>Static mouse pointer scale</_short>
+		    <_long>When not using a dynamic mouse pointer scale, this is the scale factor for the mouse pointer.</_long>
+		    <default>0.2</default>
+		    <min>0.1</min>
+		    <max>1.0</max>
+		    <precision>0.01</precision>
+		</option>
+		<option type="bool" name="hide_original_mouse">
+		    <_short>Hide original mouse pointer</_short>
+		    <_long>Hides the original mouse pointer when zoomed in and scaling the mouse</_long>
+		    <default>false</default>
+		</option>
+		<option type="bool" name="restrain_mouse">
+		    <_short>Restrain the mouse to the zoom area</_short>
+		    <_long>Attempt to keep the zoomed mouse visible by warping it when it is moved outside the zoom area.</_long>
+		    <default>false</default>
+		</option>
+		<option type="bool" name="mouse_pan">
+		    <_short>Mouse panning</_short>
+		    <_long>Pan the zoom area when the mouse cursor moves outside the visible area.</_long>
+		    <default>false</default>
+		</option>
+		<option type="int" name="restrain_margin">
+		    <_short>Mouse Restrain Margin</_short>
+		    <_long>The size of the margin to add when attempting to restrain the mouse.</_long>
+		    <default>5</default>
+		    <min>0</min>
+		    <max>50</max>
+		</option>
+	    </group>
+	    <group>
+		<_short>Zoom Area Movement</_short>
+		<subgroup>
+		    <_short>Panning</_short>
+		    <option type="float" name="pan_factor">
+			<_short>Pan Factor</_short>
+			<_long>Move the zoomed area this much whenever you pan the zoomed area with keys.</_long>
+			<default>0.1</default>
+			<min>0.001</min>
+			<max>1.0</max>
+			<precision>0.001</precision>
+		    </option>
+		</subgroup>
+	    </group>
+	    <group>
+		<_short>Focus Tracking</_short>
+		<option type="bool" name="follow_focus">
+		    <_short>Enable focus tracking</_short>
+		    <_long>Move the zoom area when focus changes.</_long>
+		    <default>true</default>
+		</option>
+		<option type="bool" name="focus_fit_window">
+		    <_short>Fit zoom level to window on focus change</_short>
+		    <_long>Fit the zoomed area to the window when the zoomed area moves as a result of focus tracking.</_long>
+		    <default>false</default>
+		</option>
+		<option type="float" name="autoscale_min">
+		    <_short>Autoscale threshold</_short>
+		    <_long>Only change zoom level (scale) on focus change if the target value is higher than this. Prevents zooming too far in on small popups etc.</_long>
+		    <default>0.25</default>
+		    <min>0.000001</min>
+		    <max>0.999999</max>
+		    <precision>0.0001</precision>
+		</option>
+		<option type="bool" name="always_focus_fit_window">
+		    <_short>Always fit to window on focus track</_short>
+		    <_long>Fit the zoomed area to the window when the zoomed area moves as a result of focus tracking. Even when not initially zoomed in. </_long>
+		    <default>false</default>
+		</option>
+		<option type="int" name="follow_focus_delay">
+		    <_short>Follow Focus Delay</_short>
+		    <_long>Only attempt to center newly focused windows if the mouse hasn't moved in this amount of seconds. Use this to avoid jumping when using sloppy focus.</_long>
+		    <default>1</default>
+		    <min>0</min>
+		    <max>15</max>
+		</option>
+	    </group>
+	    <group>
+		<_short>Animation</_short>
+		<option type="float" name="speed">
+		    <_short>Speed</_short>
+		    <_long>Zoom Speed</_long>
+		    <default>25</default>
+		    <min>0.1</min>
+		    <max>100</max>
+		    <precision>0.1</precision>
+		</option>
+		<option type="float" name="timestep">
+		    <_short>Timestep</_short>
+		    <_long>Zoom Timestep</_long>
+		    <default>1.2</default>
+		    <min>0.1</min>
+		    <max>50</max>
+		    <precision>0.1</precision>
+		</option>
+		<option type="bool" name="filter_linear">
+		    <_short>Filter Linear</_short>
+		    <_long>Use linear filter when zoomed in</_long>
+		    <default>true</default>
+		</option>
+	    </group>
+	</screen>
+    </plugin>
+</compiz>
