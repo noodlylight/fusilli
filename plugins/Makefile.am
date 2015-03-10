@@ -1,3 +1,6 @@
+libcolorfilter_la_LDFLAGS = -module -avoid-version -no-undefined
+libcolorfilter_la_SOURCES = colorfilter.c colorfilter-parser.c
+
 lib3d_la_LDFLAGS = -module -avoid-version -no-undefined
 lib3d_la_SOURCES = 3d.c
 
@@ -112,6 +115,7 @@ AM_CPPFLAGS =                           \
 	@FUSILLI_CFLAGS@                    \
 	@LIBRSVG_CFLAGS@                    \
 	-DALL_LINGUAS="\"@ALL_LINGUAS@\""   \
+	-DDATADIR="\"@datadir@\""           \
 	-DLOCALEDIR="\"@datadir@/locale\""  \
 	-DPLUGINDIR=\"$(plugindir)\"        \
 	-DIMAGEDIR=\"$(imagedir)\"          \
@@ -122,6 +126,7 @@ AM_CPPFLAGS =                           \
 moduledir = $(plugindir)
 
 module_LTLIBRARIES =      \
+	libcolorfilter.la     \
 	lib3d.la              \
 	libaddhelper.la       \
 	libannotate.la        \

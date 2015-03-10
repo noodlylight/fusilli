@@ -7,6 +7,7 @@ xml_in_files =         \
 	blur.xml.in        \
 	clone.xml.in       \
 	commands.xml.in    \
+	colorfilter.xml.in \
 	cube.xml.in        \
 	wall.xml.in        \
 	decoration.xml.in  \

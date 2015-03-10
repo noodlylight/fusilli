@@ -333,6 +333,7 @@ libfusillidecoration/libfusillidecoration.pc
 include/Makefile
 plugins/Makefile
 images/Makefile
+filters/Makefile
 gtk/Makefile
 gtk/window-decorator/Makefile
 kde/Makefile
