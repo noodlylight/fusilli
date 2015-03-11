@@ -11,6 +11,7 @@ xml_in_files =         \
 	cube.xml.in        \
 	wall.xml.in        \
 	decoration.xml.in  \
+	ezoom.xml.in       \
 	fade.xml.in        \
 	firepaint.xml.in   \
 	matecompat.xml.in  \

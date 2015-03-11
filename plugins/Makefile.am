@@ -10,6 +10,9 @@ libaddhelper_la_SOURCES = addhelper.c
 libannotate_la_LDFLAGS = -module -avoid-version -no-undefined
 libannotate_la_SOURCES = annotate.c
 
+libezoom_la_LDFLAGS = -module -avoid-version -no-undefined
+libezoom_la_SOURCES = ezoom.c
+
 libfade_la_LDFLAGS = -module -avoid-version -no-undefined
 libfade_la_SOURCES = fade.c
 
@@ -131,6 +134,7 @@ module_LTLIBRARIES =      \
 	libaddhelper.la       \
 	libannotate.la        \
 	libdecoration.la      \
+	libezoom.la           \
 	libwobbly.la          \
 	libfade.la            \
 	libfirepaint.la       \
