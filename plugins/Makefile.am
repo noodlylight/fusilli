@@ -72,6 +72,9 @@ libdecoration_la_SOURCES = decoration.c
 libswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libswitcher_la_SOURCES = switcher.c
 
+libthumbnail_la_LDFLAGS = -module -avoid-version -no-undefined
+libthumbnail_la_SOURCES = thumbnail.c
+
 libstaticswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libstaticswitcher_la_SOURCES = staticswitcher.c
 
@@ -153,6 +156,7 @@ module_LTLIBRARIES =      \
 	libresize.la          \
 	libplace.la           \
 	libswitcher.la        \
+	libthumbnail.la       \
 	libstaticswitcher.la  \
 	libwallpaper.la       \
 	libwater.la           \
