@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<compiz>
+  <plugin name="thumbnail" useBcop="true">
+    <_short>Window Previews</_short>
+    <_long>Window thumbnails at the taskbar</_long>
+	<category>Extras</category>
+	<deps>
+		<relation type="after">
+			<plugin>text</plugin>
+		</relation>
+		<requirement>
+			<plugin>mousepoll</plugin>
+		</requirement>
+	</deps>
+    <screen>
+      <group>
+        <_short>Settings</_short>
+        <option name="thumb_size" type="int">
+          <_short>Thumbnail Window Size</_short>
+          <_long>Thumbnail window size.</_long>
+          <default>200</default>
+          <min>50</min>
+          <max>1500</max>
+        </option>
+        <option name="show_delay" type="int">
+          <_short>Show Delay</_short>
+          <_long>Time (in ms) before Thumbnail is shown.</_long>
+          <default>100</default>
+          <min>100</min>
+          <max>10000</max>
+        </option>
+        <option name="border" type="int">
+          <_short>Thumbnail Border Size</_short>
+          <_long>Size of Thumbnail Border.</_long>
+          <default>16</default>
+          <min>1</min>
+          <max>32</max>
+        </option>
+        <option name="thumb_color" type="color">
+          <_short>Thumbnail Border Glow Color</_short>
+          <_long>Thumbnail Background and Border Glow Color.</_long>
+          <default>
+            <red>0x0000</red>
+            <green>0x0000</green>
+            <blue>0x0000</blue>
+            <alpha>0x7fff</alpha>
+          </default>
+        </option>
+        <option name="fade_speed" type="float">
+          <_short>Fade In/Out Duration</_short>
+          <_long>Fade In/Out Duration in seconds.</_long>
+          <default>0.5</default>
+          <min>0.0</min>
+          <max>5.0</max>
+          <precision>0.1</precision>
+        </option>
+        <subgroup>
+          <_short>Taskbar</_short>
+          <option name="current_viewport" type="bool">
+            <_short>Taskbar Shows Only Windows of Current Viewport</_short>
+            <_long>Set it if the Taskbar shows only Windows of Current Viewport.</_long>
+            <default>true</default>
+          </option>
+          <option name="always_on_top" type="bool">
+            <_short>Thumbnails Always on Top</_short>
+            <_long>Paint Thumbnails Always on Top.</_long>
+            <default>true</default>
+          </option>
+        </subgroup>
+        <option name="window_like" type="bool">
+          <_short>Paint Window Like Background</_short>
+          <_long>Paint Window Like Background instead of Glow.</_long>
+          <default>true</default>
+        </option>
+        <option name="mipmap" type="bool">
+          <_short>Generate Mipmaps</_short>
+          <_long>Generate mipmaps when possible for higher quality scaling.</_long>
+          <default>false</default>
+        </option>
+        <subgroup>
+          <_short>Window title</_short>
+          <option name="title_enabled" type="bool">
+            <_short>Enable Titles</_short>
+            <_long>Show Window Title in Thumbnail.</_long>
+            <default>true</default>
+          </option>
+          <option name="font_bold" type="bool">
+            <_short>Bold Font</_short>
+            <_long>Should be the window title Bold.</_long>
+            <default>true</default>
+          </option>
+          <option name="font_size" type="int">
+            <_short>Font Size</_short>
+            <_long>Window title Font Size.</_long>
+            <default>12</default>
+            <min>6</min>
+            <max>36</max>
+          </option>
+          <option name="font_color" type="color">
+            <_short>Font Color</_short>
+            <_long>Window title Font Color.</_long>
+            <default>
+              <red>0x0000</red>
+              <green>0x0000</green>
+              <blue>0x0000</blue>
+              <alpha>0xffff</alpha>
+            </default>
+          </option>
+        </subgroup>
+      </group>
+    </screen>
+  </plugin>
+</compiz>
