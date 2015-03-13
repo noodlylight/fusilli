@@ -1,6 +1,6 @@
-<?xml version="1.0"?>
-<compiz>
-	<plugin name="mag" useBcop="true">
+<?xml version="1.0" encoding="UTF-8"?>
+<fusilli>
+	<plugin name="mag">
 		<_short>Magnifier</_short>
 		<_long>Magnifier box</_long>
 		<category>Accessibility</category>
@@ -8,34 +8,40 @@
 			<relation type="after">
 				<plugin>cube</plugin>
 			</relation>
-			<requirement>
-				<plugin>mousepoll</plugin>
-			</requirement>
 		</deps>
-		<display>
-			<group>
-				<_short>Bindings</_short>
-				<option name="initiate" type="key">
-					<_short>Initiate</_short>
-					<_long>Zoom In</_long>
+
+		<group>
+			<_short>Bindings</_short>
+
+			<subgroup>
+				<option name="toggle_key" type="string">
+					<_short>Toggle</_short>
+					<_long>Activate/deactivate zoom box</_long>
+					<hint>key</hint>
 					<default>&lt;Super&gt;m</default>
 				</option>
-				<option name="zoom_in_button" type="button">
+
+				<option name="zoom_in_button" type="string">
 					<_short>Zoom In</_short>
 					<_long>Zoom In</_long>
+					<hint>button</hint>
 					<default>&lt;Super&gt;&lt;Shift&gt;Button4</default>
 				</option>
-				<option name="zoom_out_button" type="button">
+
+				<option name="zoom_out_button" type="string">
 					<_short>Zoom Out</_short>
 					<_long>Zoom Out</_long>
+					<hint>button</hint>
 					<default>&lt;Super&gt;&lt;Shift&gt;Button5</default>
 				</option>
-			</group>
-		</display>
-		<screen>
-			<group>
-				<_short>General</_short>
-				<option name="mode" type="int">
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>General</_short>
+
+			<subgroup>
+				<option name="mode" type="int" per_screen="true">
 					<_short>Mode</_short>
 					<_long>Mode.</_long>
 					<default>0</default>
@@ -54,7 +60,8 @@
 						<_name>Fisheye</_name>
 					</desc>
 				</option>
-				<option name="zoom_factor" type="float">
+
+				<option name="zoom_factor" type="float" per_screen="true">
 					<_short>Zoom</_short>
 					<_long>Zoom factor for keyboard initiated magnifier.</_long>
 					<default>2.0</default>
@@ -62,7 +69,8 @@
 					<max>32.0</max>
 					<precision>0.1</precision>
 				</option>
-				<option name="speed" type="float">
+
+				<option name="speed" type="float" per_screen="true">
 					<_short>Speed</_short>
 					<_long>Zoom Speed</_long>
 					<default>1.5</default>
@@ -70,7 +78,8 @@
 					<max>50</max>
 					<precision>0.1</precision>
 				</option>
-				<option name="timestep" type="float">
+
+				<option name="timestep" type="float" per_screen="true">
 					<_short>Timestep</_short>
 					<_long>Zoom Timestep</_long>
 					<default>1.2</default>
@@ -78,85 +87,94 @@
 					<max>50</max>
 					<precision>0.1</precision>
 				</option>
-				<subgroup>
+			</subgroup>
+
+			<subgroup collapsible="true">
 				<_short>Simple</_short>
-					<option name="keep_screen" type="bool">
-						<_short>Keep fully on screen</_short>
-						<_long>Keep fully on screen.</_long>
-						<default>true</default>
-					</option>
-					<option name="box_width" type="int">
-						<_short>Width</_short>
-						<_long>Box width.</_long>
-						<default>300</default>
-						<min>20</min>
-						<max>1000</max>
-					</option>
-					<option name="box_height" type="int">
-						<_short>Height</_short>
-						<_long>Box height.</_long>
-						<default>200</default>
-						<min>20</min>
-						<max>1000</max>
-					</option>
-					<option name="border" type="int">
-						<_short>Border width</_short>
-						<_long>Border widtht.</_long>
-						<default>2</default>
-						<min>0</min>
-						<max>20</max>
-					</option>
-					<option name="box_color" type="color">
-						<_short>Border color</_short>
-						<_long>Border color</_long>
-						<default>
-							<red>0x0</red>
-							<green>0x0</green>
-							<blue>0x0</blue>
-							<alpha>0xffff</alpha>
-						</default>
-					</option>
-				</subgroup>
-				<subgroup>
-					<_short>Image overlay</_short>
-					<option name="overlay" type="string">
-						<_short>Magnifier image</_short>
-						<_long>Magnifier image.</_long>
-						<hints>file;image;</hints>
-						<default>Gnome/overlay.png</default>
-					</option>
-					<option name="mask" type="string">
-						<_short>Clip mask</_short>
-						<_long>Clip mask.</_long>
-						<hints>file;image;</hints>
-						<default>Gnome/mask.png</default>
-					</option>
-					<option name="x_offset" type="int">
-						<_short>X offset of the cursor</_short>
-						<_long>X offset of the cursor.</_long>
-						<default>155</default>
-						<min>0</min>
-						<max>1000</max>
-					</option>
-					<option name="y_offset" type="int">
-						<_short>Y offset of the cursor</_short>
-						<_long>Y offset of the cursor.</_long>
-						<default>155</default>
-						<min>0</min>
-						<max>1000</max>
-					</option>
-				</subgroup>
-				<subgroup>
-					<_short>Fisheye</_short>
-					<option name="radius" type="int">
-						<_short>Radius</_short>
-						<_long>Radius of the magnification area.</_long>
-						<default>200</default>
-						<min>10</min>
-						<max>1000</max>
-					</option>
-				</subgroup>
-			</group>
-		</screen>
+
+				<option name="keep_screen" type="bool" per_screen="true">
+					<_short>Keep fully on screen</_short>
+					<_long>Keep fully on screen.</_long>
+					<default>true</default>
+				</option>
+
+				<option name="box_width" type="int" per_screen="true">
+					<_short>Width</_short>
+					<_long>Box width.</_long>
+					<default>300</default>
+					<min>20</min>
+					<max>1000</max>
+				</option>
+
+				<option name="box_height" type="int" per_screen="true">
+					<_short>Height</_short>
+					<_long>Box height.</_long>
+					<default>200</default>
+					<min>20</min>
+					<max>1000</max>
+				</option>
+
+				<option name="border" type="int" per_screen="true">
+					<_short>Border width</_short>
+					<_long>Border widtht.</_long>
+					<default>2</default>
+					<min>0</min>
+					<max>20</max>
+				</option>
+
+				<option name="box_color" type="string" per_screen="true">
+					<_short>Border color</_short>
+					<_long>Border color</_long>
+					<hint>color</hint>
+					<default>#000000ff</default>
+				</option>
+			</subgroup>
+
+			<subgroup collapsible="true">
+				<_short>Image overlay</_short>
+
+				<option name="overlay" type="string" per_screen="true">
+					<_short>Magnifier image</_short>
+					<_long>Magnifier image.</_long>
+					<hints>file;image;</hints>
+					<default>overlay.png</default>
+				</option>
+
+				<option name="mask" type="string" per_screen="true">
+					<_short>Clip mask</_short>
+					<_long>Clip mask.</_long>
+					<hints>file;image;</hints>
+					<default>mask.png</default>
+				</option>
+
+				<option name="x_offset" type="int" per_screen="true">
+					<_short>X offset of the cursor</_short>
+					<_long>X offset of the cursor.</_long>
+					<default>155</default>
+					<min>0</min>
+					<max>1000</max>
+				</option>
+
+				<option name="y_offset" type="int" per_screen="true">
+					<_short>Y offset of the cursor</_short>
+					<_long>Y offset of the cursor.</_long>
+					<default>155</default>
+					<min>0</min>
+					<max>1000</max>
+				</option>
+			</subgroup>
+
+			<subgroup collapsible="true">
+				<_short>Fisheye</_short>
+
+				<option name="radius" type="int" per_screen="true">
+					<_short>Radius</_short>
+					<_long>Radius of the magnification area.</_long>
+					<default>200</default>
+					<min>10</min>
+					<max>1000</max>
+				</option>
+			</subgroup>
+		</group>
 	</plugin>
-</compiz>
+</fusilli>

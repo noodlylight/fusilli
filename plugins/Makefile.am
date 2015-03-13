@@ -98,6 +98,9 @@ libblur_la_SOURCES = blur.c
 libobs_la_LDFLAGS = -module -avoid-version -no-undefined
 libobs_la_SOURCES = obs.c
 
+libmag_la_LDFLAGS = -module -avoid-version -no-undefined
+libmag_la_SOURCES = mag.c
+
 libcommands_la_LDFLAGS = -module -avoid-version -no-undefined
 libcommands_la_SOURCES = commands.c
 
@@ -153,6 +156,7 @@ module_LTLIBRARIES =      \
 	libshowmouse.la       \
 	libneg.la             \
 	libmove.la            \
+	libmag.la             \
 	libresize.la          \
 	libplace.la           \
 	libswitcher.la        \

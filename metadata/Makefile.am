@@ -14,6 +14,7 @@ xml_in_files =         \
 	ezoom.xml.in       \
 	fade.xml.in        \
 	firepaint.xml.in   \
+	mag.xml.in         \
 	matecompat.xml.in  \
 	minimize.xml.in    \
 	move.xml.in        \
