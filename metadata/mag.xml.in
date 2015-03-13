@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<compiz>
+	<plugin name="mag" useBcop="true">
+		<_short>Magnifier</_short>
+		<_long>Magnifier box</_long>
+		<category>Accessibility</category>
+		<deps>
+			<relation type="after">
+				<plugin>cube</plugin>
+			</relation>
+			<requirement>
+				<plugin>mousepoll</plugin>
+			</requirement>
+		</deps>
+		<display>
+			<group>
+				<_short>Bindings</_short>
+				<option name="initiate" type="key">
+					<_short>Initiate</_short>
+					<_long>Zoom In</_long>
+					<default>&lt;Super&gt;m</default>
+				</option>
+				<option name="zoom_in_button" type="button">
+					<_short>Zoom In</_short>
+					<_long>Zoom In</_long>
+					<default>&lt;Super&gt;&lt;Shift&gt;Button4</default>
+				</option>
+				<option name="zoom_out_button" type="button">
+					<_short>Zoom Out</_short>
+					<_long>Zoom Out</_long>
+					<default>&lt;Super&gt;&lt;Shift&gt;Button5</default>
+				</option>
+			</group>
+		</display>
+		<screen>
+			<group>
+				<_short>General</_short>
+				<option name="mode" type="int">
+					<_short>Mode</_short>
+					<_long>Mode.</_long>
+					<default>0</default>
+					<min>0</min>
+					<max>2</max>
+					<desc>
+						<value>0</value>
+						<_name>Simple</_name>
+					</desc>
+					<desc>
+						<value>1</value>
+						<_name>Image overlay</_name>
+					</desc>
+					<desc>
+						<value>2</value>
+						<_name>Fisheye</_name>
+					</desc>
+				</option>
+				<option name="zoom_factor" type="float">
+					<_short>Zoom</_short>
+					<_long>Zoom factor for keyboard initiated magnifier.</_long>
+					<default>2.0</default>
+					<min>1.1</min>
+					<max>32.0</max>
+					<precision>0.1</precision>
+				</option>
+				<option name="speed" type="float">
+					<_short>Speed</_short>
+					<_long>Zoom Speed</_long>
+					<default>1.5</default>
+					<min>0.1</min>
+					<max>50</max>
+					<precision>0.1</precision>
+				</option>
+				<option name="timestep" type="float">
+					<_short>Timestep</_short>
+					<_long>Zoom Timestep</_long>
+					<default>1.2</default>
+					<min>0.1</min>
+					<max>50</max>
+					<precision>0.1</precision>
+				</option>
+				<subgroup>
+				<_short>Simple</_short>
+					<option name="keep_screen" type="bool">
+						<_short>Keep fully on screen</_short>
+						<_long>Keep fully on screen.</_long>
+						<default>true</default>
+					</option>
+					<option name="box_width" type="int">
+						<_short>Width</_short>
+						<_long>Box width.</_long>
+						<default>300</default>
+						<min>20</min>
+						<max>1000</max>
+					</option>
+					<option name="box_height" type="int">
+						<_short>Height</_short>
+						<_long>Box height.</_long>
+						<default>200</default>
+						<min>20</min>
+						<max>1000</max>
+					</option>
+					<option name="border" type="int">
+						<_short>Border width</_short>
+						<_long>Border widtht.</_long>
+						<default>2</default>
+						<min>0</min>
+						<max>20</max>
+					</option>
+					<option name="box_color" type="color">
+						<_short>Border color</_short>
+						<_long>Border color</_long>
+						<default>
+							<red>0x0</red>
+							<green>0x0</green>
+							<blue>0x0</blue>
+							<alpha>0xffff</alpha>
+						</default>
+					</option>
+				</subgroup>
+				<subgroup>
+					<_short>Image overlay</_short>
+					<option name="overlay" type="string">
+						<_short>Magnifier image</_short>
+						<_long>Magnifier image.</_long>
+						<hints>file;image;</hints>
+						<default>Gnome/overlay.png</default>
+					</option>
+					<option name="mask" type="string">
+						<_short>Clip mask</_short>
+						<_long>Clip mask.</_long>
+						<hints>file;image;</hints>
+						<default>Gnome/mask.png</default>
+					</option>
+					<option name="x_offset" type="int">
+						<_short>X offset of the cursor</_short>
+						<_long>X offset of the cursor.</_long>
+						<default>155</default>
+						<min>0</min>
+						<max>1000</max>
+					</option>
+					<option name="y_offset" type="int">
+						<_short>Y offset of the cursor</_short>
+						<_long>Y offset of the cursor.</_long>
+						<default>155</default>
+						<min>0</min>
+						<max>1000</max>
+					</option>
+				</subgroup>
+				<subgroup>
+					<_short>Fisheye</_short>
+					<option name="radius" type="int">
+						<_short>Radius</_short>
+						<_long>Radius of the magnification area.</_long>
+						<default>200</default>
+						<min>10</min>
+						<max>1000</max>
+					</option>
+				</subgroup>
+			</group>
+		</screen>
+	</plugin>
+</compiz>
