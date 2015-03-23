@@ -11,9 +11,9 @@ Utilizes banana-oriented programming.
 
 ## Plugins (aka appendages)
 
-3d, addhelper, annotate, blur, clone, colorfilter, commands, cube, decoration, ezoom, fade, firepaint, grid, matecompat,
+3d, addhelper, annotate, blur, clone, colorfilter, commands, cube, decoration, ezoom, fade, firepaint, grid, mag, matecompat,
 minimize, move, neg, obs, place, resize, rotate, scale, screenshot, showmouse, snow, splash,
-staticswitcher, svg, switcher, wall, wallpaper, water, wobbly, wsnames, zoom
+staticswitcher, svg, switcher, thumbnail, wall, wallpaper, water, wobbly, wsnames
 
 Plugins png, imgjpeg, text, regex, inotify, mousepoll were boiled into a soup.
 
