@@ -31,9 +31,6 @@ librotate_la_SOURCES = rotate.c
 libgrid_la_LDFLAGS = -module -avoid-version -no-undefined
 libgrid_la_SOURCES = grid.c
 
-libzoom_la_LDFLAGS = -module -avoid-version -no-undefined
-libzoom_la_SOURCES = zoom.c
-
 libscale_la_LDFLAGS = -module -avoid-version -no-undefined
 libscale_la_SOURCES = scale.c
 
@@ -149,7 +146,6 @@ module_LTLIBRARIES =      \
 	libwall.la            \
 	librotate.la          \
 	libgrid.la            \
-	libzoom.la            \
 	libscale.la           \
 	libsnow.la            \
 	libsplash.la          \
