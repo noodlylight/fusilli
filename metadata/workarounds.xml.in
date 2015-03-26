@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<compiz>
+    <!-- workarounds metadata -->
+    <plugin name="workarounds" useBcop="true">
+        <category>Utility</category>
+        <deps>
+        </deps>
+        <_short>Workarounds</_short>
+        <_long>Metacity-like workarounds.</_long>
+        <display>
+            <option type="bool" name="legacy_fullscreen">
+                <_short>Legacy Fullscreen Support</_short>
+                <_long>Make Wine and legacy applications fullscreen properly.</_long>
+                <default>false</default>
+            </option>
+            <option type="bool" name="firefox_menu_fix">
+                <_short>Firefox Menu Fix</_short>
+                <_long>Fix window type of Firefox and Thunderbird menus.</_long>
+                <default>false</default>
+            </option>
+            <option type="bool" name="ooo_menu_fix">
+                <_short>OpenOffice.org Menu Fix</_short>
+                <_long>Fix window type of OpenOffice.org menus.</_long>
+                <default>true</default>
+            </option>
+            <option type="bool" name="notification_daemon_fix">
+                <_short>Notification Daemon Fix</_short>
+                <_long>Fix window type of notification daemon windows.</_long>
+                <default>false</default>
+            </option>
+            <option type="bool" name="java_fix">
+                <_short>Java Window Fix</_short>
+                <_long>Fix window type of various Java windows.</_long>
+                <default>true</default>
+            </option>
+            <option type="bool" name="java_taskbar_fix">
+                <_short>Java Taskbar Fix</_short>
+                <_long>Fix Java windows disappearing from the taskbar.</_long>
+                <default>false</default>
+            </option>
+            <option type="bool" name="qt_fix">
+                <_short>Qt Window Fix</_short>
+                <_long>Fix window type of various Qt windows.</_long>
+                <default>false</default>
+	    </option>
+	    <option type="bool" name="convert_urgency">
+		<_short>Convert Urgency to Demands Attention</_short>
+		<_long>Make "urgent" windows also "demand attention".</_long>
+		<default>false</default>
+	    </option>
+	    <option type="bool" name="aiglx_fragment_fix">
+                <_short>AIGLX Fragment Parameter Fix</_short>
+                <_long>Fix broken glProgramEnvParameter4f implementation.</_long>
+                <default>true</default>
+            </option>
+            <option type="bool" name="fglrx_xgl_fix">
+                <_short>Fix screen updates in XGL with fglrx.</_short>
+                <_long>Fix for broken GLX_MESA_copy_sub_buffer on XGL in fglrx.</_long>
+                <default>false</default>
+            </option>
+            <option type="bool" name="force_glx_sync">
+                <_short>Force synchronization between X and GLX</_short>
+                <_long>Force synchronization between X and GLX, which may help for window parts not redrawing correctly when using Nvidia drivers, but also may decrease performance.</_long>
+                <default>true</default>
+            </option>
+            <subgroup>
+                <_short>Window stickyness</_short>
+                <option type="bool" name="sticky_alldesktops">
+                    <_short>Make "on all desktops" windows "sticky"</_short>
+                    <_long>Make "on all desktops" windows sticky. Sticky windows are visible on all viewports.</_long>
+                    <default>false</default>
+                </option>
+                <option name="alldesktop_sticky_match" type="match">
+                    <_short>"On all desktops" sticky match</_short>
+                    <_long>Windows on all desktops that should be made sticky</_long>
+                    <default>any</default>
+                </option>
+            </subgroup>
+        </display>
+        <screen>
+        </screen>
+    </plugin>
+</compiz>
