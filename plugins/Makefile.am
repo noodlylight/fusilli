@@ -107,6 +107,9 @@ libmatecompat_la_SOURCES = matecompat.c
 libwsnames_la_LDFLAGS = -module -avoid-version -no-undefined
 libwsnames_la_SOURCES = wsnames.c
 
+libworkarounds_la_LDFLAGS = -module -avoid-version -no-undefined
+libworkarounds_la_SOURCES = workarounds.c
+
 if USE_LIBRSVG
 libsvg_la_DEPENDENCIES = $(top_builddir)/libfusillidecoration/libfusillidecoration.la
 libsvg_la_LDFLAGS = -module -avoid-version -no-undefined
@@ -159,6 +162,7 @@ module_LTLIBRARIES =      \
 	libthumbnail.la       \
 	libstaticswitcher.la  \
 	libwallpaper.la       \
+	libworkarounds.la     \
 	libwater.la           \
 	libscreenshot.la      \
 	libclone.la           \

@@ -36,6 +36,7 @@ xml_in_files =         \
 	wallpaper.xml.in   \
 	water.xml.in       \
 	wobbly.xml.in      \
+	workarounds.xml.in \
 	wsnames.xml.in
 
 xml_files    = $(xml_in_files:.xml.in=.xml)
