@@ -275,11 +275,11 @@ workaroundsUpdateSticky (CompWindow *w)
 	Bool makeSticky = FALSE;
 
 	const BananaValue *
-	option_sticky_all_desktops = bananaGetOption (bananaIndex,
-	                                              "sticky_all_desktops",
+	option_sticky_alldesktops = bananaGetOption (bananaIndex,
+	                                              "sticky_alldesktops",
 	                                              -1);
 
-	if (option_sticky_all_desktops->b && w->desktop == 0xffffffff &&
+	if (option_sticky_alldesktops->b && w->desktop == 0xffffffff &&
 	    matchEval (&wd->alldesktop_sticky_match, w))
 		makeSticky = TRUE;
 
