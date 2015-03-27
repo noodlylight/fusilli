@@ -4,6 +4,7 @@ fusilliinclude_HEADERS = \
 	fusilli-plugin.h     \
 	fusilli-core.h       \
 	fusilli-cube.h       \
+	fusilli-mousepoll.h  \
 	fusilli-scale.h      \
 	fusilli-text.h       \
 	decoration.h
