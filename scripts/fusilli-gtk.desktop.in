@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Fusilli GTK
+Comment=start or restart Fusilli with GTK windows-decorator
+Exec=fusilli-gtk
+Icon=fusilli-gtk
+NoDisplay=false
+StartupNotify=true
+Categories=Utility;

@@ -341,6 +341,7 @@ kde/window-decorator-kde4/Makefile
 po/Makefile.in
 metadata/Makefile
 fsm/Makefile
+scripts/Makefile
 ])
 
 echo ""
