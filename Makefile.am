@@ -1,6 +1,6 @@
-SUBDIRS = include src libfusillidecoration plugins images filters gtk kde po metadata fsm
+SUBDIRS = include src libfusillidecoration plugins images filters gtk kde po metadata fsm scripts
 
-desktopfilesdir	      = $(DESTDIR)$(datadir)/applications
+desktopfilesdir       = $(DESTDIR)$(datadir)/applications
 desktopfiles_in_files = fusilli.desktop.in
 desktopfiles_files    = $(desktopfiles_in_files:.desktop.in=.desktop)
 

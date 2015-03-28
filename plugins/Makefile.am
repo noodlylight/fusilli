@@ -1,5 +1,5 @@
 libcolorfilter_la_LDFLAGS = -module -avoid-version -no-undefined
-libcolorfilter_la_SOURCES = colorfilter.c colorfilter-parser.c
+libcolorfilter_la_SOURCES = colorfilter.c colorfilter-parser.c colorfilter-parser.h
 
 lib3d_la_LDFLAGS = -module -avoid-version -no-undefined
 lib3d_la_SOURCES = 3d.c
@@ -17,7 +17,7 @@ libfade_la_LDFLAGS = -module -avoid-version -no-undefined
 libfade_la_SOURCES = fade.c
 
 libfirepaint_la_LDFLAGS = -module -avoid-version -no-undefined
-libfirepaint_la_SOURCES = firepaint.c
+libfirepaint_la_SOURCES = firepaint.c firepaint_tex.h
 
 libcube_la_LDFLAGS = -module -avoid-version -no-undefined
 libcube_la_SOURCES = cube.c
@@ -41,7 +41,7 @@ libsplash_la_LDFLAGS = -module -avoid-version -no-undefined
 libsplash_la_SOURCES = splash.c
 
 libshowmouse_la_LDFLAGS = -module -avoid-version -no-undefined
-libshowmouse_la_SOURCES = showmouse.c
+libshowmouse_la_SOURCES = showmouse.c showmouse_tex.h
 
 libwobbly_la_LDFLAGS = -module -avoid-version -no-undefined
 libwobbly_la_SOURCES = wobbly.c
@@ -70,7 +70,7 @@ libswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libswitcher_la_SOURCES = switcher.c
 
 libthumbnail_la_LDFLAGS = -module -avoid-version -no-undefined
-libthumbnail_la_SOURCES = thumbnail.c
+libthumbnail_la_SOURCES = thumbnail.c thumbnail_tex.h
 
 libstaticswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libstaticswitcher_la_SOURCES = staticswitcher.c

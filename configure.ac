@@ -18,7 +18,7 @@ AC_SUBST(FUSILLI_VERSION_MAJOR)
 AC_SUBST(FUSILLI_VERSION_MINOR)
 AC_SUBST(FUSILLI_VERSION_MICRO)
 
-AM_INIT_AUTOMAKE([1.7 foreign])
+AM_INIT_AUTOMAKE([1.7 foreign tar-ustar dist-xz no-dist-gzip])
 AM_SILENT_RULES([yes])
 AC_CONFIG_HEADER([config.h])
 AC_PROG_INTLTOOL([0.23])
@@ -341,6 +341,7 @@ kde/window-decorator-kde4/Makefile
 po/Makefile.in
 metadata/Makefile
 fsm/Makefile
+scripts/Makefile
 ])
 
 echo ""
