@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Fusilli GTK
+Name=Fusilli MATE GTK
 Comment=start or reload Fusilli with GTK windows-decorator
 Exec=fusilli-mate-gtk
 Icon=fusilli-mate-gtk
