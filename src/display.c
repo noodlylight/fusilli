@@ -1022,6 +1022,9 @@ eventLoop (void)
 
 					makeScreenCurrent (s);
 
+					/* make sure X is ready for us to draw */
+					glXWaitX ();
+
 					if (s->slowAnimations)
 					{
 						(*s->preparePaintScreen) (s,
