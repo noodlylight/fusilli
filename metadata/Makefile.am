@@ -35,6 +35,7 @@ xml_in_files =         \
 	staticswitcher.xml.in \
 	wallpaper.xml.in   \
 	water.xml.in       \
+	winrules.xml.in    \
 	wobbly.xml.in      \
 	workarounds.xml.in \
 	wsnames.xml.in
