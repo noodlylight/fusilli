@@ -13,7 +13,7 @@ Utilizes banana-oriented programming.
 
 3d, addhelper, annotate, blur, clone, colorfilter, commands, cube, decoration, ezoom, fade, firepaint, grid, mag, matecompat,
 minimize, move, neg, obs, place, resize, rotate, scale, screenshot, showmouse, snow, splash,
-staticswitcher, svg, switcher, thumbnail, wall, wallpaper, water, winrules, wobbly, wsnames
+staticswitcher, svg, switcher, thumbnail, wall, wallpaper, water, winrules, wobbly, workarounds, wsnames
 
 Plugins png, imgjpeg, text, regex, inotify, mousepoll were boiled into a soup.
 
