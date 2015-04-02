@@ -3,36 +3,28 @@ Fusilli Window Manager
 
 ## Introduction
 
-Fusilli is a fork of Compiz.
+Fusilli is an OpenGL compositing window manager for the X Window System.
 
-It is written under the guidance of his noodly appendages.
+It is a fork of Compiz (0.8)
 
-Utilizes banana-oriented programming.
-
-## Plugins (aka appendages)
+## Plugins Currently Available
 
 3d, addhelper, annotate, blur, clone, colorfilter, commands, cube, decoration, ezoom, fade, firepaint, grid, mag, matecompat,
 minimize, move, neg, obs, place, resize, rotate, scale, screenshot, showmouse, snow, splash,
 staticswitcher, svg, switcher, thumbnail, wall, wallpaper, water, winrules, wobbly, workarounds, wsnames
 
-Plugins png, imgjpeg, text, regex, inotify, mousepoll were boiled into a soup.
+Plugins png, imgjpeg, text, regex, inotify, mousepoll were consolidated into core.
 
 ## Option System
 
-The main innovation offered by fusilli is the Banana Configuration System.
-
-It is based on XML and Cavendish bananas.
-
-Critical parts of the source code (file banana.c) were written under the influence of fusilloni all'arrabiata (both from Lidl)
-
 Options are stored in ~/.config/fusilli/banana.xml (you can change this file using the --bananafile parameter of fusilli)
 
-Configuration happens using Fusilli Settings Manager.
+You can edit this file directly, but it is easier to use the GUI configuration tool - fsm (Fusilli Settings Manager)
 
-It can be invoked from the command-line with:
-```
-fsm
-```
+## Changes to Compiz
+
+* CCSM was removed and replaced with FSM.
+* The gtk window decorator (fusilli-decorator-gtk) now supports marco-1.8 instead of metacity.
 
 ## Installing
 
