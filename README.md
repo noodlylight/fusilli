@@ -31,6 +31,10 @@ You can edit this file directly, but it is easier to use the GUI configuration t
 ### Arch Linux
 Package available in AUR: https://aur.archlinux.org/packages/fusilli-git/
 
+### Gentoo Linux
+
+An ebuild is available in folder gentoo/ of this repo.
+
 ### Other distros
 
 Standard procedure applies:
