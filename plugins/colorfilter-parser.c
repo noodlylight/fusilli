@@ -135,18 +135,26 @@ programReadSource (char *fname)
 	/* If failed, try as user filter file (in ~/.fusilli/data/filters) */
 	if (!fp && home && strlen (home))
 	{
-		asprintf (&path, "%s/.fusilli/data/filters/%s", home, fname);
-		fp = fopen (path, "r");
-		free (path);
+		int retval = asprintf (&path, "%s/.fusilli/data/filters/%s", home, fname);
+
+		if (retval != -1)
+		{
+			fp = fopen (path, "r");
+			free (path);
+		}
 	}
 
 	/* If failed again, try as system wide data file 
 	 * (in PREFIX/share/fusilli/filters) */
 	if (!fp)
 	{
-		asprintf (&path, "%s/filters/%s", DATADIR, fname);
-		fp = fopen (path, "r");
-		free (path);
+		int retval = asprintf (&path, "%s/filters/%s", DATADIR, fname);
+
+		if (retval != -1)
+		{
+			fp = fopen (path, "r");
+			free (path);
+		}
 	}
 
 	/* If failed again & again, abort */
@@ -444,9 +452,15 @@ programParseSource (CompFunctionData *data,
 		{
 		/* Data op : just copy paste the whole instruction plus a ";" */
 		case DataOp:
-			asprintf (&arg1, "%s;", current);
-			addDataOpToFunctionData (data, arg1);
-			free (arg1);
+		{
+			int retval = asprintf (&arg1, "%s;", current);
+
+			if (retval != -1)
+			{
+				addDataOpToFunctionData (data, arg1);
+				free (arg1);
+			}
+		}
 			break;
 		/* Parse arguments one by one */
 		case TempOp:
