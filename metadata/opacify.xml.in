@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<compiz>
+  <plugin name="opacify" useBcop="true">
+    <_short>Opacify</_short>
+	<_long>Make windows easily visible by hovering the mouse over them</_long>
+	<category>Accessibility</category>
+	<deps>
+		<relation type="after">
+			<plugin>fade</plugin>
+		</relation>
+	</deps>
+    <display>
+      <group>
+        <_short>Bindings</_short>
+        <option name="toggle_key" type="key">
+          <_short>Toggle Opacify</_short>
+          <_long>Use this to enable/disable Opacify on the fly. Previously opacified windows will not be reset once you disable it like this.</_long>
+          <default>&lt;Super&gt;o</default>
+        </option>
+      </group>
+      <group>
+        <_short>Misc. Options</_short>
+        <option name="toggle_reset" type="bool">
+          <_short>Reset opacity to original values when toggling</_short>
+          <_long>Reset the opacity of all windows modified by opacify when toggling Opacify with the defined key-combination.</_long>
+          <default>true</default>
+        </option>
+        <option name="timeout" type="int">
+          <_short>Delay until Opacification</_short>
+          <_long>The delay (in ms) before Opacify changes opacity after the active window has changed.</_long>
+          <default>700</default>
+          <min>0</min>
+          <max>10000</max>
+        </option>
+        <option name="init_toggle" type="bool">
+          <_short>Toggle Opacify on by default</_short>
+          <_long>With this enabled, opacify will be on when you load Opacify, 
+          which is usually when you start Compiz.</_long>
+          <default>true</default>
+        </option>
+      </group>
+    </display>
+    <screen>
+      <group>
+        <_short>Misc. Options</_short>
+        <option name="only_if_block" type="bool">
+          <_short>Only increase opacity if a window is blocking</_short>
+          <_long>Only increase the opacity on the targeted window if it has one or more windows blocking it from view.</_long>
+          <default>false</default>
+        </option>
+        <option name="focus_instant" type="bool">
+          <_short>Bypass delay when the new active window is the focused window.</_short>
+          <_long>Do not wait if the window we are hovering is the focused window. This allows us to instantly see the focused window. You probably want to disable this if you are not using 'Click to Focus'.</_long>
+          <default>false</default>
+        </option>
+        <option name="no_delay_change" type="bool">
+          <_short>Bypass delay when Opacify is reducing the opacity on one or more windows already.</_short>
+          <_long>This enables you to let Opacify instantly opacify new windows when you're already making one or more windows invisible. Makes for faster behavior while looking through layers of hidden windows.</_long>
+          <default>false</default>
+        </option>
+        <option name="window_match" type="match">
+          <_short>Window Match</_short>
+          <_long>Windows that should be opacified.</_long>
+          <default>Normal | Dialog | ModalDialog | Utility | Toolbar | Fullscreen</default>
+        </option>
+        <subgroup>
+          <_short>Opacity Levels</_short>
+          <option name="active_opacity" type="int">
+            <_short>Active Opacity</_short>
+            <_long>The minimum opacity percentage to ensure a targeted window has. A target window will have either this opacity or the preset opacity, whichever is higher.</_long>
+            <default>100</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+          <option name="passive_opacity" type="int">
+            <_short>Passive Opacity</_short>
+            <_long>The maximum opacity percentage a window blocking the current targeted window can have. A blocking window will have either this opacity or the preset opacity, whichever is lower.</_long>
+            <default>10</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+        </subgroup>
+      </group>
+    </screen>
+  </plugin>
+</compiz>
