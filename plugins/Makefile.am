@@ -99,6 +99,9 @@ libblur_la_SOURCES = blur.c
 libobs_la_LDFLAGS = -module -avoid-version -no-undefined
 libobs_la_SOURCES = obs.c
 
+libopacify_la_LDFLAGS = -module -avoid-version -no-undefined
+libopacify_la_SOURCES = opacify.c
+
 libmag_la_LDFLAGS = -module -avoid-version -no-undefined
 libmag_la_SOURCES = mag.c
 
@@ -177,6 +180,7 @@ module_LTLIBRARIES =      \
 	libclone.la           \
 	libblur.la            \
 	libobs.la             \
+	libopacify.la         \
 	libcommands.la        \
 	libmatecompat.la      \
 	libwsnames.la         \

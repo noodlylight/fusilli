@@ -22,6 +22,7 @@ xml_in_files =         \
 	neg.xml.in         \
 	thumbnail.xml.in   \
 	obs.xml.in         \
+	opacify.xml.in     \
 	place.xml.in       \
 	resize.xml.in      \
 	rotate.xml.in      \

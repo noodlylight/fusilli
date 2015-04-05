@@ -22,6 +22,7 @@ metadata/minimize.xml.in
 metadata/move.xml.in
 metadata/neg.xml.in
 metadata/obs.xml.in
+metadata/opacify.xml.in
 metadata/place.xml.in
 metadata/resize.xml.in
 metadata/rotate.xml.in
