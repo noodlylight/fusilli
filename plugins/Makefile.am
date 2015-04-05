@@ -13,6 +13,10 @@ libannotate_la_SOURCES = annotate.c
 libezoom_la_LDFLAGS = -module -avoid-version -no-undefined
 libezoom_la_SOURCES = ezoom.c
 
+libexpo_la_LDFLAGS = -module -avoid-version -no-undefined
+libexpo_la_SOURCES = expo.c
+libexpo_la_LIBADD =  @FUSILLI_LIBS@ -lGLU
+
 libfade_la_LDFLAGS = -module -avoid-version -no-undefined
 libfade_la_SOURCES = fade.c
 
@@ -143,6 +147,7 @@ module_LTLIBRARIES =      \
 	libaddhelper.la       \
 	libannotate.la        \
 	libdecoration.la      \
+	libexpo.la            \
 	libezoom.la           \
 	libwobbly.la          \
 	libfade.la            \
