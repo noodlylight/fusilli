@@ -359,7 +359,7 @@ programParseSource (CompFunctionData *data,
                     char             *source)
 {
 	char *line, *next, *current;
-	char *strtok_ptr;
+	char *strtok_ptr = NULL;
 	int   length, oplength, type;
 	FragmentOffset *offsets = NULL;
 
@@ -485,6 +485,7 @@ programParseSource (CompFunctionData *data,
 					free (arg1);
 					continue;
 				}
+
 				/* Add ops */
 				if (type == TempOp)
 					addTempHeaderOpToFunctionData (data, arg1);
