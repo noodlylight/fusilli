@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<compiz>
+    <plugin name="titleinfo" useBcop="true">
+	<_short>Title Bar Info</_short>
+	<_long>Shows additional information in the window title bar</_long>
+	<category>Utility</category>
+	<screen>
+	    <option name="show_remote_machine" type="bool">
+		<_short>Show Remote Machine Name</_short>
+		<_long>Show name of remote machine if a certain application is executed remotely.</_long>
+		<default>true</default>
+	    </option>
+	    <option name="show_root" type="bool">
+		<_short>Show Root</_short>
+		<_long>Show marker if you're logged in as root.</_long>
+		<default>true</default>
+	    </option>
+	</screen>
+    </plugin>
+</compiz>
