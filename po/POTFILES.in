@@ -35,6 +35,7 @@ metadata/staticswitcher.xml.in
 metadata/svg.xml.in
 metadata/switcher.xml.in
 metadata/thumbnail.xml.in
+metadata/titleinfo.xml.in
 metadata/wall.xml.in
 metadata/wallpaper.xml.in
 metadata/water.xml.in

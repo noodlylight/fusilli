@@ -7,6 +7,9 @@
  * Copyright : (C) 2009 by Danny Baumann
  * E-mail    : maniac@compiz.org
  *
+ * Copyright : (C) 2015 by Michail Bitzes
+ * E-mail    : noodlylight@gmail.com
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -30,462 +33,500 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <compiz-core.h>
-#include "titleinfo_options.h"
+#include <fusilli-core.h>
 
-static int TitleinfoDisplayPrivateIndex;
+static int bananaIndex;
+
+static int displayPrivateIndex;
 
 typedef struct _TitleinfoDisplay {
-    int screenPrivateIndex;
+	int screenPrivateIndex;
 
-    Atom visibleNameAtom;
-    Atom wmPidAtom;
+	Atom visibleNameAtom;
+	Atom wmPidAtom;
 
-    HandleEventProc handleEvent;
+	HandleEventProc handleEvent;
 } TitleinfoDisplay;
 
 typedef struct _TitleinfoScreen {
-    int windowPrivateIndex;
+	int windowPrivateIndex;
 
-    AddSupportedAtomsProc addSupportedAtoms;
+	AddSupportedAtomsProc addSupportedAtoms;
 } TitleinfoScreen;
 
 typedef struct _TitleinfoWindow {
-    char *title;
-    char *remoteMachine;
-    int  owner;
+	char *title;
+	char *remoteMachine;
+	int owner;
 } TitleinfoWindow;
 
-#define TITLEINFO_DISPLAY(display) PLUGIN_DISPLAY(display, Titleinfo, t)
-#define TITLEINFO_SCREEN(screen) PLUGIN_SCREEN(screen, Titleinfo, t)
-#define TITLEINFO_WINDOW(window) PLUGIN_WINDOW(window, Titleinfo, t)
+#define GET_TITLEINFO_DISPLAY(d) \
+	((TitleinfoDisplay *) (d)->privates[displayPrivateIndex].ptr)
+
+#define TITLEINFO_DISPLAY(d) \
+	TitleinfoDisplay *td = GET_TITLEINFO_DISPLAY (d)
+
+#define GET_TITLEINFO_SCREEN(s, td) \
+	((TitleinfoScreen *) (s)->privates[(td)->screenPrivateIndex].ptr)
+
+#define TITLEINFO_SCREEN(s) \
+	TitleinfoScreen *ts = GET_TITLEINFO_SCREEN (s, \
+	                                          GET_TITLEINFO_DISPLAY (&display))
+
+#define GET_TITLEINFO_WINDOW(w, ts) \
+	((TitleinfoWindow *) (w)->privates[(ts)->windowPrivateIndex].ptr)
+
+#define TITLEINFO_WINDOW(w) \
+	TitleinfoWindow *tw = GET_TITLEINFO_WINDOW  (w, \
+	                                             GET_TITLEINFO_SCREEN  (w->screen, \
+	                                                                 GET_TITLEINFO_DISPLAY (&display)))
 
 static void
 titleinfoUpdateVisibleName (CompWindow *w)
 {
-    CompDisplay *d = w->screen->display;
-    char        *text = NULL, *machine = NULL;
-    const char  *root = "", *title;
+	CompDisplay *d = &display;
+	char        *text = NULL, *machine = NULL;
+	const char  *root = "", *title;
 
-    TITLEINFO_DISPLAY (d);
-    TITLEINFO_WINDOW (w);
+	TITLEINFO_DISPLAY (d);
+	TITLEINFO_WINDOW (w);
 
-    title = tw->title ? tw->title : "";
+	title = tw->title ? tw->title : "";
 
-    if (titleinfoGetShowRoot (w->screen) && tw->owner == 0)
-	root = "ROOT: ";
+	const BananaValue *
+	option_show_root = bananaGetOption (bananaIndex,
+	                                    "show_root",
+	                                    w->screen->screenNum);
 
-    if (titleinfoGetShowRemoteMachine (w->screen) && tw->remoteMachine)
-    {
-	char hostname[256];
+	const BananaValue *
+	option_show_remote_machine = bananaGetOption (bananaIndex,
+	                                              "show_remote_machine",
+	                                              w->screen->screenNum);
 
-	if (gethostname (hostname, 256) || strcmp (hostname, tw->remoteMachine))
-	    machine = tw->remoteMachine;
-    }
+	if (option_show_root->b && tw->owner == 0)
+		root = "ROOT: ";
 
-    if (machine)
-	asprintf (&text, "%s%s (@%s)", root, title, machine);
-    else if (root[0])
-	asprintf (&text, "%s%s", root, title);
+	if (option_show_remote_machine->b && tw->remoteMachine)
+	{
+		char hostname[256];
 
-    if (text)
-    {
-	XChangeProperty (d->display, w->id, td->visibleNameAtom,
-			 d->utf8StringAtom, 8, PropModeReplace,
-			 (unsigned char *) text, strlen (text));
-	free (text);
-    }
-    else
-    {
-	XDeleteProperty (d->display, w->id, td->visibleNameAtom);
-    }
+		if (gethostname (hostname, 256) || strcmp (hostname, tw->remoteMachine))
+			machine = tw->remoteMachine;
+	}
+
+	if (machine)
+	{
+#pragma GCC diagnostic ignored "-Wunused-variable"
+		int retval = asprintf (&text, "%s%s (@%s)", root, title, machine);
+	}
+	else if (root[0])
+	{
+#pragma GCC diagnostic ignored "-Wunused-variable"
+		int retval = asprintf (&text, "%s%s", root, title);
+	}
+
+	if (text)
+	{
+		XChangeProperty (d->display, w->id, td->visibleNameAtom,
+		                 d->utf8StringAtom, 8, PropModeReplace,
+		                 (unsigned char *) text, strlen (text));
+		free (text);
+	}
+	else
+	{
+		XDeleteProperty (d->display, w->id, td->visibleNameAtom);
+	}
 }
 
 static void
 titleinfoUpdatePid (CompWindow *w)
 {
-    CompDisplay   *d = w->screen->display;
-    int           pid = -1;
-    Atom          type;
-    int           result, format;
-    unsigned long nItems, bytesAfter;
-    unsigned char *propVal;
+	CompDisplay   *d = &display;
+	int pid = -1;
+	Atom type;
+	int result, format;
+	unsigned long nItems, bytesAfter;
+	unsigned char *propVal;
 
-    TITLEINFO_DISPLAY (d);
-    TITLEINFO_WINDOW (w);
+	TITLEINFO_DISPLAY (d);
+	TITLEINFO_WINDOW (w);
 
-    tw->owner = -1;
+	tw->owner = -1;
 
-    result = XGetWindowProperty (d->display, w->id, td->wmPidAtom,
-				 0L, 1L, False, XA_CARDINAL, &type,
-				 &format, &nItems, &bytesAfter, &propVal);
+	result = XGetWindowProperty (d->display, w->id, td->wmPidAtom,
+	                             0L, 1L, False, XA_CARDINAL, &type,
+	                             &format, &nItems, &bytesAfter, &propVal);
 
-    if (result == Success && propVal)
-    {
-	if (nItems)
+	if (result == Success && propVal)
 	{
-	    unsigned long value;
+		if (nItems)
+		{
+			unsigned long value;
 
-	    memcpy (&value, propVal, sizeof (unsigned long));
-	    pid = value;
+			memcpy (&value, propVal, sizeof (unsigned long));
+			pid = value;
+		}
+
+		XFree (propVal);
 	}
 
-	XFree (propVal);
-    }
+	if (pid >= 0)
+	{
+		char path[512];
+		struct stat fileStat;
 
-    if (pid >= 0)
-    {
-	char        path[512];
-	struct stat fileStat;
+		snprintf (path, 512, "/proc/%d", pid);
+		if (!lstat (path, &fileStat))
+			tw->owner = fileStat.st_uid;
+	}
 
-	snprintf (path, 512, "/proc/%d", pid);
-	if (!lstat (path, &fileStat))
-	    tw->owner = fileStat.st_uid;
-    }
+	const BananaValue *
+	option_show_root = bananaGetOption (bananaIndex,
+	                                    "show_root",
+	                                    w->screen->screenNum);
 
-    if (titleinfoGetShowRoot (w->screen))
-	titleinfoUpdateVisibleName (w);
+	if (option_show_root->b)
+		titleinfoUpdateVisibleName (w);
 }
 
 static char *
 titleinfoGetUtf8Property (CompDisplay *d,
-			  Window      id,
-			  Atom        atom)
+                          Window      id,
+                          Atom        atom)
 {
-    Atom          type;
-    int           result, format;
-    unsigned long nItems, bytesAfter;
-    char          *val, *retval = NULL;
+	Atom type;
+	int result, format;
+	unsigned long nItems, bytesAfter;
+	char          *val, *retval = NULL;
 
-    result = XGetWindowProperty (d->display, id, atom, 0L, 65536, False,
-				 d->utf8StringAtom, &type, &format, &nItems,
-				 &bytesAfter, (unsigned char **) &val);
+	result = XGetWindowProperty (d->display, id, atom, 0L, 65536, False,
+	                             d->utf8StringAtom, &type, &format, &nItems,
+	                             &bytesAfter, (unsigned char **) &val);
 
-    if (result != Success)
-	return NULL;
+	if (result != Success)
+		return NULL;
 
-    if (type == d->utf8StringAtom && format == 8 && val && nItems > 0)
-    {
-	retval = malloc (sizeof (char) * (nItems + 1));
-	if (retval)
+	if (type == d->utf8StringAtom && format == 8 && val && nItems > 0)
 	{
-	    strncpy (retval, val, nItems);
-	    retval[nItems] = 0;
+		retval = malloc (sizeof (char) * (nItems + 1));
+		if (retval)
+		{
+			strncpy (retval, val, nItems);
+			retval[nItems] = 0;
+		}
 	}
-    }
 
-    if (val)
-	XFree (val);
+	if (val)
+		XFree (val);
 
-    return retval;
+	return retval;
 }
 
 static char *
 titleinfoGetTextProperty (CompDisplay *d,
-			  Window      id,
-			  Atom        atom)
+                          Window      id,
+                          Atom        atom)
 {
-    XTextProperty text;
-    char          *retval = NULL;
+	XTextProperty text;
+	char          *retval = NULL;
 
-    text.nitems = 0;
-    if (XGetTextProperty (d->display, id, &text, atom))
-    {
-        if (text.value)
+	text.nitems = 0;
+
+	if (XGetTextProperty (d->display, id, &text, atom))
 	{
-	    retval = malloc (sizeof (char) * (text.nitems + 1));
-	    if (retval)
-	    {
-		strncpy (retval, (char *) text.value, text.nitems);
-		retval[text.nitems] = 0;
-	    }
+		if (text.value)
+		{
+			retval = malloc (sizeof (char) * (text.nitems + 1));
+			if (retval)
+			{
+				strncpy (retval, (char *) text.value, text.nitems);
+				retval[text.nitems] = 0;
+			}
 
-	    XFree (text.value);
+			XFree (text.value);
+		}
 	}
-    }
 
-    return retval;
+	return retval;
 }
 
 static void
 titleinfoUpdateTitle (CompWindow *w)
 {
-    CompDisplay *d = w->screen->display;
-    char        *title;
+	CompDisplay *d = &display;
+	char        *title;
 
-    TITLEINFO_WINDOW (w);
+	TITLEINFO_WINDOW (w);
 
-    title = titleinfoGetUtf8Property (d, w->id, d->wmNameAtom);
+	title = titleinfoGetUtf8Property (d, w->id, d->wmNameAtom);
 
-    if (!title)
-	title = titleinfoGetTextProperty (d, w->id, XA_WM_NAME);
+	if (!title)
+		title = titleinfoGetTextProperty (d, w->id, XA_WM_NAME);
 
-    if (tw->title)
-	free (tw->title);
+	if (tw->title)
+		free (tw->title);
 
-    tw->title = title;
-    titleinfoUpdateVisibleName (w);
+	tw->title = title;
+
+	titleinfoUpdateVisibleName (w);
 }
 
 
 static void
 titleinfoUpdateMachine (CompWindow *w)
 {
-    TITLEINFO_WINDOW (w);
+	TITLEINFO_WINDOW (w);
 
-    if (tw->remoteMachine)
-	free (tw->remoteMachine);
+	if (tw->remoteMachine)
+		free (tw->remoteMachine);
 
-    tw->remoteMachine = titleinfoGetTextProperty (w->screen->display, w->id,
-						  XA_WM_CLIENT_MACHINE);
+	tw->remoteMachine = titleinfoGetTextProperty (&display, w->id,
+	                                              XA_WM_CLIENT_MACHINE);
 
-    if (titleinfoGetShowRemoteMachine (w->screen))
-	titleinfoUpdateVisibleName (w);
+	const BananaValue *
+	option_show_remote_machine = bananaGetOption (bananaIndex,
+	                                              "show_remote_machine",
+	                                              w->screen->screenNum);
+
+	if (option_show_remote_machine->b)
+		titleinfoUpdateVisibleName (w);
 }
 
 static unsigned int
 titleinfoAddSupportedAtoms (CompScreen   *s,
-			    Atom         *atoms,
-			    unsigned int size)
+                            Atom         *atoms,
+                            unsigned int size)
 {
-    unsigned int count;
+	unsigned int count;
 
-    TITLEINFO_DISPLAY (s->display);
-    TITLEINFO_SCREEN (s);
+	TITLEINFO_DISPLAY (&display);
+	TITLEINFO_SCREEN (s);
 
-    UNWRAP (ts, s, addSupportedAtoms);
-    count = (*s->addSupportedAtoms) (s, atoms, size);
-    WRAP (ts, s, addSupportedAtoms, titleinfoAddSupportedAtoms);
+	UNWRAP (ts, s, addSupportedAtoms);
+	count = (*s->addSupportedAtoms)(s, atoms, size);
+	WRAP (ts, s, addSupportedAtoms, titleinfoAddSupportedAtoms);
 
-    if ((size - count) >= 2)
-    {
-	atoms[count++] = td->visibleNameAtom;
-	atoms[count++] = td->wmPidAtom;
-    }
+	if ((size - count) >= 2)
+	{
+		atoms[count++] = td->visibleNameAtom;
+		atoms[count++] = td->wmPidAtom;
+	}
 
-    return count;
+	return count;
 }
 
 static void
-titleinfoHandleEvent (CompDisplay *d,
-		      XEvent      *event)
+titleinfoHandleEvent (XEvent      *event)
 {
-    TITLEINFO_DISPLAY (d);
+	TITLEINFO_DISPLAY (&display);
 
-    UNWRAP (td, d, handleEvent);
-    (*d->handleEvent) (d, event);
-    WRAP (td, d, handleEvent, titleinfoHandleEvent);
+	UNWRAP (td, &display, handleEvent);
+	(display.handleEvent) (event);
+	WRAP (td, &display, handleEvent, titleinfoHandleEvent);
 
-    if (event->type == PropertyNotify)
-    {
-	CompWindow *w;
+	if (event->type == PropertyNotify)
+	{
+		CompWindow *w;
 
-	if (event->xproperty.atom == XA_WM_CLIENT_MACHINE)
-	{
-	    w = findWindowAtDisplay (d, event->xproperty.window);
-	    if (w)
-		titleinfoUpdateMachine (w);
+		if (event->xproperty.atom == XA_WM_CLIENT_MACHINE)
+		{
+			w = findWindowAtDisplay (event->xproperty.window);
+
+			if (w)
+				titleinfoUpdateMachine (w);
+		}
+		else if (event->xproperty.atom == td->wmPidAtom)
+		{
+			w = findWindowAtDisplay (event->xproperty.window);
+
+			if (w)
+				titleinfoUpdatePid (w);
+		}
+		else if (event->xproperty.atom == display.wmNameAtom ||
+		         event->xproperty.atom == XA_WM_NAME)
+		{
+			w = findWindowAtDisplay (event->xproperty.window);
+
+			if (w)
+				titleinfoUpdateTitle (w);
+		}
 	}
-	else if (event->xproperty.atom == td->wmPidAtom)
-	{
-	    w = findWindowAtDisplay (d, event->xproperty.window);
-	    if (w)
-		titleinfoUpdatePid (w);
-	}
-	else if (event->xproperty.atom == d->wmNameAtom ||
-		 event->xproperty.atom == XA_WM_NAME)
-	{
-	    w = findWindowAtDisplay (d, event->xproperty.window);
-	    if (w)
-		titleinfoUpdateTitle (w);
-	}
-    }
 }
 
 static Bool
 titleinfoInitDisplay (CompPlugin  *p,
-		      CompDisplay *d)
+                      CompDisplay *d)
 {
-    TitleinfoDisplay *td;
+	TitleinfoDisplay *td;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+	td = malloc (sizeof (TitleinfoDisplay));
+	if (!td)
+		return FALSE;
 
-    td = malloc (sizeof (TitleinfoDisplay));
-    if (!td)
-	return FALSE;
+	td->screenPrivateIndex = allocateScreenPrivateIndex ();
+	if (td->screenPrivateIndex < 0)
+	{
+		free (td);
+		return FALSE;
+	}
 
-    td->screenPrivateIndex = allocateScreenPrivateIndex (d);
-    if (td->screenPrivateIndex < 0)
-    {
-	free (td);
-	return FALSE;
-    }
+	td->visibleNameAtom = XInternAtom (d->display, "_NET_WM_VISIBLE_NAME", 0);
+	td->wmPidAtom       = XInternAtom (d->display, "_NET_WM_PID", 0);
 
-    td->visibleNameAtom = XInternAtom (d->display, "_NET_WM_VISIBLE_NAME", 0);
-    td->wmPidAtom       = XInternAtom (d->display, "_NET_WM_PID", 0);
+	WRAP (td, d, handleEvent, titleinfoHandleEvent);
 
-    WRAP (td, d, handleEvent, titleinfoHandleEvent);
+	d->privates[displayPrivateIndex].ptr = td;
 
-    d->base.privates[TitleinfoDisplayPrivateIndex].ptr = td;
-
-    return TRUE;
+	return TRUE;
 }
 
 static void
 titleinfoFiniDisplay (CompPlugin  *p,
-		      CompDisplay *d)
+                      CompDisplay *d)
 {
-    TITLEINFO_DISPLAY (d);
+	TITLEINFO_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, td->screenPrivateIndex);
+	freeScreenPrivateIndex (td->screenPrivateIndex);
 
-    UNWRAP (td, d, handleEvent);
+	UNWRAP (td, d, handleEvent);
 
-    free (td);
+	free (td);
 }
 
 static Bool
 titleinfoInitScreen (CompPlugin *p,
-		     CompScreen *s)
+                     CompScreen *s)
 {
-    TitleinfoScreen *ts;
+	TitleinfoScreen *ts;
 
-    TITLEINFO_DISPLAY (s->display);
+	TITLEINFO_DISPLAY (&display);
 
-    ts = malloc (sizeof (TitleinfoScreen));
-    if (!ts)
-	return FALSE;
+	ts = malloc (sizeof (TitleinfoScreen));
+	if (!ts)
+		return FALSE;
 
-    ts->windowPrivateIndex = allocateWindowPrivateIndex (s);
-    if (ts->windowPrivateIndex < 0) 
-    {
-	free (ts);
-	return FALSE;
-    }
+	ts->windowPrivateIndex = allocateWindowPrivateIndex (s);
+	if (ts->windowPrivateIndex < 0)
+	{
+		free (ts);
+		return FALSE;
+	}
 
-    s->base.privates[td->screenPrivateIndex].ptr = ts;
+	s->privates[td->screenPrivateIndex].ptr = ts;
 
-    WRAP (ts, s, addSupportedAtoms, titleinfoAddSupportedAtoms);
+	WRAP (ts, s, addSupportedAtoms, titleinfoAddSupportedAtoms);
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 titleinfoFiniScreen (CompPlugin *p,
-		     CompScreen *s)
+                     CompScreen *s)
 {
-    TITLEINFO_SCREEN (s);
+	TITLEINFO_SCREEN (s);
 
-    UNWRAP (ts, s, addSupportedAtoms);
+	UNWRAP (ts, s, addSupportedAtoms);
 
-    freeWindowPrivateIndex (s, ts->windowPrivateIndex);
+	freeWindowPrivateIndex (s, ts->windowPrivateIndex);
 
-    free (ts);
+	free (ts);
 }
 
 static Bool
 titleinfoInitWindow (CompPlugin *p,
-		     CompWindow *w)
+                     CompWindow *w)
 {
-    TitleinfoWindow *tw;
+	TitleinfoWindow *tw;
 
-    TITLEINFO_SCREEN (w->screen);
+	TITLEINFO_SCREEN (w->screen);
 
-    tw = malloc (sizeof (TitleinfoWindow));
-    if (!tw)
-	return FALSE;
+	tw = malloc (sizeof (TitleinfoWindow));
+	if (!tw)
+		return FALSE;
 
-    tw->remoteMachine = NULL;
-    tw->title         = NULL;
-    tw->owner         = -1;
+	tw->remoteMachine = NULL;
+	tw->title         = NULL;
+	tw->owner         = -1;
 
-    w->base.privates[ts->windowPrivateIndex].ptr = tw;
+	w->privates[ts->windowPrivateIndex].ptr = tw;
 
-    titleinfoUpdateTitle (w);
-    titleinfoUpdateMachine (w);
-    titleinfoUpdatePid (w);
-    titleinfoUpdateVisibleName (w);
+	titleinfoUpdateTitle (w);
+	titleinfoUpdateMachine (w);
+	titleinfoUpdatePid (w);
+	titleinfoUpdateVisibleName (w);
 
-    return TRUE;
+	return TRUE;
 }
 
 static void
 titleinfoFiniWindow (CompPlugin *p,
-		     CompWindow *w)
+                     CompWindow *w)
 {
-    TITLEINFO_WINDOW (w);
+	TITLEINFO_WINDOW (w);
 
-    if (tw->title)
-	free (tw->title);
+	if (tw->title)
+		free (tw->title);
 
-    if (tw->remoteMachine)
-	free (tw->remoteMachine);
+	if (tw->remoteMachine)
+		free (tw->remoteMachine);
 
-    tw->remoteMachine = NULL;
-    titleinfoUpdateVisibleName (w);
+	tw->remoteMachine = NULL;
 
-    free (tw);
-}
+	titleinfoUpdateVisibleName (w);
 
-static CompBool
-titleinfoInitObject (CompPlugin *p,
-		     CompObject *o)
-{
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) titleinfoInitDisplay,
-	(InitPluginObjectProc) titleinfoInitScreen,
-	(InitPluginObjectProc) titleinfoInitWindow
-    };
-
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-titleinfoFiniObject (CompPlugin *p,
-		     CompObject *o)
-{
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) titleinfoFiniDisplay,
-	(FiniPluginObjectProc) titleinfoFiniScreen,
-	(FiniPluginObjectProc) titleinfoFiniWindow
-    };
-
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
+	free (tw);
 }
 
 static Bool
 titleinfoInit (CompPlugin *p)
 {
-    TitleinfoDisplayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (TitleinfoDisplayPrivateIndex < 0)
-	return FALSE;
+	if (getCoreABI() != CORE_ABIVERSION)
+	{
+		compLogMessage ("titleinfo", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
 
-    return TRUE;
+		return FALSE;
+	}
+
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("titleinfo");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	return TRUE;
 }
 
 static void
 titleinfoFini (CompPlugin *p)
 {
-    freeDisplayPrivateIndex (TitleinfoDisplayPrivateIndex);
+	freeDisplayPrivateIndex (displayPrivateIndex);
+
+	bananaUnloadPlugin (bananaIndex);
 }
 
-CompPluginVTable titleinfoVTable = {
-    "titleinfo",
-    0,
-    titleinfoInit,
-    titleinfoFini,
-    titleinfoInitObject,
-    titleinfoFiniObject,
-    0,
-    0
+static CompPluginVTable titleinfoVTable = {
+	"titleinfo",
+	titleinfoInit,
+	titleinfoFini,
+	titleinfoInitDisplay,
+	titleinfoFiniDisplay,
+	titleinfoInitScreen,
+	titleinfoFiniScreen,
+	titleinfoInitWindow,
+	titleinfoFiniWindow
 };
 
 CompPluginVTable *
-getCompPluginInfo (void)
+getCompPluginInfo20141205 (void)
 {
-    return &titleinfoVTable;
+	return &titleinfoVTable;
 }
 

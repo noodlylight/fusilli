@@ -20,6 +20,7 @@ xml_in_files =         \
 	minimize.xml.in    \
 	move.xml.in        \
 	neg.xml.in         \
+	titleinfo.xml.in   \
 	thumbnail.xml.in   \
 	obs.xml.in         \
 	opacify.xml.in     \

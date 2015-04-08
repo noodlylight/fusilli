@@ -76,6 +76,9 @@ libswitcher_la_SOURCES = switcher.c
 libthumbnail_la_LDFLAGS = -module -avoid-version -no-undefined
 libthumbnail_la_SOURCES = thumbnail.c thumbnail_tex.h
 
+libtitleinfo_la_LDFLAGS = -module -avoid-version -no-undefined
+libtitleinfo_la_SOURCES = titleinfo.c
+
 libstaticswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libstaticswitcher_la_SOURCES = staticswitcher.c
 
@@ -171,6 +174,7 @@ module_LTLIBRARIES =      \
 	libplace.la           \
 	libswitcher.la        \
 	libthumbnail.la       \
+	libtitleinfo.la       \
 	libstaticswitcher.la  \
 	libwallpaper.la       \
 	libwinrules.la        \
