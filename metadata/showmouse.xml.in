@@ -48,10 +48,37 @@
 
 				<option name="emitters" type="int" per_screen="true">
 					<_short>Emitters</_short>
-					<_long>Number of particle emitters.</_long>
+					<_long>Number of particle emitters (0 to disable).</_long>
 					<default>3</default>
-					<min>1</min>
+					<min>0</min>
 					<max>10</max>
+				</option>
+			</subgroup>
+
+			<subgroup collapsible="true">
+				<_short>Guides</_short>
+
+				<option name="guide_thickness" type="int" per_screen="true">
+					<_short>Guide thickness</_short>
+					<_long>How thick mouse guides should be, in pixels.</_long>
+					<default>0</default>
+					<min>0</min>
+					<max>20</max>
+				</option>
+
+				<option name="guide_empty_radius" type="int" per_screen="true">
+					<_short>Guide empty radius</_short>
+					<_long>Radius of the disk around the cursor which doesn't contain guides.</_long>
+					<default>20</default>
+					<min>0</min>
+					<max>100</max>
+				</option>
+
+				<option name="guide_color" type="string" per_screen="true">
+					<_short>Guide Color</_short>
+					<_long>Guide color.</_long>
+					<hint>color</hint>
+					<default>#ff000099</default>
 				</option>
 			</subgroup>
 		</group>

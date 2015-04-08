@@ -10,6 +10,10 @@
  * Copyright : (C) 2015 by Michail Bitzes
  * E-mail    : noodlylight@gmail.com
  *
+ * Copyright (C) 2015 Hypra
+ * http://www.hypra.fr
+ * Added guides.
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -378,6 +382,19 @@ genNewParticles (CompScreen     *s,
 	                               "life",
 	                               s->screenNum);
 
+	const BananaValue *
+	option_emitters = bananaGetOption (bananaIndex,
+	                                   "emitters",
+	                                   s->screenNum);
+
+	unsigned int nE = option_emitters->i;
+
+	if (nE == 0)
+	{
+		ps->active = TRUE; // Don't stop drawing: we may have guides.
+		return;
+	}
+
 	Bool rColor     = option_random->b;
 	float life      = option_life->f;
 	float lifeNeg   = 1 - life;
@@ -414,17 +431,11 @@ genNewParticles (CompScreen     *s,
 	int i, j;
 
 	const BananaValue *
-	option_emitters = bananaGetOption (bananaIndex,
-	                                   "emitters",
-	                                   s->screenNum);
-
-	const BananaValue *
 	option_radius = bananaGetOption (bananaIndex,
 	                                 "radius",
 	                                 s->screenNum);
 
 	float pos[10][2];
-	int nE       = MIN (10, option_emitters->i);
 	float rA     = (2 * M_PI) / nE;
 	int radius   = option_radius->i;
 
@@ -667,6 +678,68 @@ showmouseDonePaintScreen (CompScreen *s)
 	WRAP (ss, s, donePaintScreen, showmouseDonePaintScreen);
 }
 
+static void
+drawLine (double         x1,
+          double         y1,
+          double         x2,
+          double         y2,
+          unsigned short *color)
+{
+	glBegin (GL_LINES);
+
+	glColor3f ((float)color[0] / (float)256,
+	           (float)color[1] / (float)256,
+	           (float)color[2] / (float)256);
+
+	glVertex2f ((GLfloat) x1, (GLfloat) y1);
+	glVertex2f ((GLfloat) x2, (GLfloat) y2);
+	glEnd ();
+}
+
+static void
+drawGuides (CompScreen *s)
+{
+	const BananaValue *
+	option_guide_color = bananaGetOption (bananaIndex,
+	                                      "guide_color",
+	                                      s->screenNum);
+
+	const BananaValue *
+	option_guide_thickness = bananaGetOption (bananaIndex,
+	                                          "guide_thickness",
+	                                          s->screenNum);
+
+	const BananaValue *
+	option_guide_empty_radius = bananaGetOption (bananaIndex,
+	                                             "guide_empty_radius",
+	                                             s->screenNum);
+
+	unsigned short color[] = { 0, 0, 0, 0 };
+	stringToColor (option_guide_color->s, color);
+
+	int x, y;
+	getCurrentMousePosition (s, &x, &y);
+
+	if (option_guide_thickness->i > 0)
+	{
+		glLineWidth (option_guide_thickness->i);
+		glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glEnable (GL_BLEND);
+
+		drawLine (x, 0, x, y - option_guide_empty_radius->i, color);
+		drawLine (x, y + option_guide_empty_radius->i, x, s->height, color);
+		drawLine (0, y, x - option_guide_empty_radius->i, y, color);
+		drawLine (x + option_guide_empty_radius->i, y, s->width, y, color);
+
+		glDisable (GL_BLEND);
+	}
+
+	//TODO: maybe use damageScreenRegion instead ? 
+	//see the patch in commit dfd65b0ee4f2629cbb528f5617bfa00ca97173a9
+	damageScreen (s);
+}
+
 static Bool
 showmousePaintOutput (CompScreen              *s,
                       const ScreenPaintAttrib *sa,
@@ -694,7 +767,15 @@ showmousePaintOutput (CompScreen              *s,
 	glPushMatrix ();
 	glLoadMatrixf (sTransform.m);
 
-	drawParticles (s, ss->ps);
+	drawGuides (s);
+
+	const BananaValue *
+	option_emitters = bananaGetOption (bananaIndex,
+	                                   "emitters",
+	                                   s->screenNum);
+
+	if (option_emitters->i > 0)
+		drawParticles (s, ss->ps);
 
 	glPopMatrix();
 
