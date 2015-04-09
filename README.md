@@ -11,7 +11,7 @@ It is a fork of Compiz (0.8)
 
 3d, addhelper, annotate, blur, clone, colorfilter, commands, cube, decoration, expo, ezoom, fade, firepaint, grid, mag, matecompat,
 minimize, move, neg, obs, opacify, place, resize, rotate, scale, screenshot, showmouse, snow, splash,
-staticswitcher, svg, switcher, thumbnail, titleinfo, wall, wallpaper, water, winrules, wobbly, workarounds, wsnames
+staticswitcher, svg, switcher, thumbnail, titleinfo, trailfocus, wall, wallpaper, water, winrules, wobbly, workarounds, wsnames
 
 Plugins png, imgjpeg, text, regex, inotify, mousepoll were consolidated into core.
 

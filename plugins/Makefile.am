@@ -79,6 +79,9 @@ libthumbnail_la_SOURCES = thumbnail.c thumbnail_tex.h
 libtitleinfo_la_LDFLAGS = -module -avoid-version -no-undefined
 libtitleinfo_la_SOURCES = titleinfo.c
 
+libtrailfocus_la_LDFLAGS = -module -avoid-version -no-undefined
+libtrailfocus_la_SOURCES = trailfocus.c
+
 libstaticswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libstaticswitcher_la_SOURCES = staticswitcher.c
 
@@ -175,6 +178,7 @@ module_LTLIBRARIES =      \
 	libswitcher.la        \
 	libthumbnail.la       \
 	libtitleinfo.la       \
+	libtrailfocus.la      \
 	libstaticswitcher.la  \
 	libwallpaper.la       \
 	libwinrules.la        \

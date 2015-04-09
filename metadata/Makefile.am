@@ -22,6 +22,7 @@ xml_in_files =         \
 	neg.xml.in         \
 	titleinfo.xml.in   \
 	thumbnail.xml.in   \
+	trailfocus.xml.in  \
 	obs.xml.in         \
 	opacify.xml.in     \
 	place.xml.in       \
