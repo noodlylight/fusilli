@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<compiz>
+  <plugin name="trailfocus" useBcop="true">
+    <_short>Trailfocus</_short>
+    <_long>Adjust the opacity, saturation and brightness of windows based on when they last had focus.</_long>
+	<category>Effects</category>
+	<deps>
+		<relation type="after">
+			<plugin>fade</plugin>
+		</relation>
+	</deps>
+    <screen>
+      <group>
+        <_short>Behaviour</_short>
+        <option name="window_match" type="match">
+          <_short>Window Types</_short>
+          <_long>Window types that should be handled by Trailfocus</_long>
+          <default>(type=toolbar | type=utility | type=dialog | type=normal) &amp; !(state=skiptaskbar | state=skippager)</default>
+        </option>
+        <option name="windows_count" type="int">
+          <_short>Number of Windows to Track</_short>
+          <_long>Number of windows Trailfocus will keep track of. Windows that had focus this amount of windows ago or more will be considered completly unfocused.</_long>
+          <default>5</default>
+          <min>1</min>
+          <max>150</max>
+        </option>
+        <option name="windows_start" type="int">
+          <_short>Window to Start Fading</_short>
+          <_long>This defines when Trailfocus will start fading windows. This lets you set up trailfocus to treat the N first Windows as fully focused.</_long>
+          <default>2</default>
+          <min>1</min>
+          <max>20</max>
+        </option>
+      </group>
+      <group>
+        <_short>Appearance</_short>
+        <subgroup>
+          <_short>Opacity</_short>
+          <option name="max_opacity" type="int">
+            <_short>Opacity Level of Focused Windows</_short>
+            <_long>Opacity of the currently focused window. Windows will get opacity levels between the focused and minimum.</_long>
+            <default>100</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+          <option name="min_opacity" type="int">
+            <_short>Opacity Level of Unfocused Windows</_short>
+            <_long>Opacity of the least focused window. Windows will get opacity levels between the focused and minimum.</_long>
+            <default>70</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+        </subgroup>
+        <subgroup>
+          <_short>Brightness</_short>
+          <option name="max_brightness" type="int">
+            <_short>Brightness Level of Focused Windows</_short>
+            <_long>Brightness of the currently focused window. Windows will get brightness levels between the focused and minimum.</_long>
+            <default>100</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+          <option name="min_brightness" type="int">
+            <_short>Brightness Level of Unfocused Windows</_short>
+            <_long>Brightness of the least focused window. Windows will get brightness levels between the focused and minimum.</_long>
+            <default>100</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+        </subgroup>
+        <subgroup>
+          <_short>Saturation</_short>
+          <option name="max_saturation" type="int">
+            <_short>Saturation Level of Focused Windows</_short>
+            <_long>Saturation of the currently focused window. Windows will get saturation levels between the focused and minimum.</_long>
+            <default>100</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+          <option name="min_saturation" type="int">
+            <_short>Saturation Level of Unfocused Windows</_short>
+            <_long>Saturation of the least focused window. Windows will get saturation levels between the focused and minimum.</_long>
+            <default>100</default>
+            <min>1</min>
+            <max>100</max>
+          </option>
+        </subgroup>
+      </group>
+    </screen>
+  </plugin>
+</compiz>
