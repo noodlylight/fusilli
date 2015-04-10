@@ -40,6 +40,8 @@
 			<subgroup collapsible="true">
 				<_short>Move within wall</_short>
 
+				<_long>&lt;span size="small"&gt;Remember: you can use &amp;lt;ClickOnDesktop&amp;gt;Button4 in Move Prev Button and &amp;lt;ClickOnDesktop&amp;gt;Button5 in Move Next Button if you want to move within workspaces using the mouse wheel&lt;/span&gt;</_long>
+
 				<option name="left_key" type="string">
 					<_short>Move Left Key</_short>
 					<_long>Move along the wall to the left</_long>
@@ -102,7 +104,7 @@
 					<_short>Move Prev Button</_short>
 					<_long>Move along the wall to the previous viewport</_long>
 					<hint>button</hint>
-					<default>&lt;ClickOnDesktop&gt;Button4</default>
+					<default></default>
 				</option>
 
 				<option name="next_key" type="string">
@@ -115,7 +117,7 @@
 					<_short>Move Next Button</_short>
 					<_long>Move along the wall to the next viewport</_long>
 					<hint>button</hint>
-					<default>&lt;ClickOnDesktop&gt;Button5</default>
+					<default></default>
 				</option>
 
 			</subgroup>

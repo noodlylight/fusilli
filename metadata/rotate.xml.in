@@ -100,6 +100,8 @@
 			<subgroup collapsible="true">
 				<_short>Rotate cube</_short>
 
+				<_long>&lt;span size="small"&gt;Remember: you can use &amp;lt;ClickOnDesktop&amp;gt;Button4 in Rotate Left Button and &amp;lt;ClickOnDesktop&amp;gt;Button5 in Rotate Right Button if you want to move within workspaces using the mouse wheel&lt;/span&gt;</_long>
+
 				<option name="initiate_button" type="string">
 					<_short>Initiate</_short>
 					<_long>Start Rotation</_long>
@@ -109,30 +111,30 @@
 
 				<option name="rotate_left_key" type="string">
 					<_short>Rotate Left Key</_short>
-					<_long>Rotate left</_long>
+					<_long>Rotate Left Key</_long>
 					<hint>key</hint>
 					<default>&lt;Control&gt;&lt;Alt&gt;Left</default>
 				</option>
 
 				<option name="rotate_left_button" type="string">
 					<_short>Rotate Left Button</_short>
-					<_long>Rotate left</_long>
+					<_long>Rotate Left Button</_long>
 					<hint>button</hint>
-					<default>&lt;ClickOnDesktop&gt;Button4</default>
+					<default></default>
 				</option>
 
 				<option name="rotate_right_key" type="string">
 					<_short>Rotate Right Key</_short>
-					<_long>Rotate right</_long>
+					<_long>Rotate Right Key</_long>
 					<hint>key</hint>
 					<default>&lt;Control&gt;&lt;Alt&gt;Right</default>
 				</option>
 
 				<option name="rotate_right_button" type="string">
 					<_short>Rotate Right Button</_short>
-					<_long>Rotate right</_long>
+					<_long>Rotate Right Button</_long>
 					<hint>button</hint>
-					<default>&lt;ClickOnDesktop&gt;Button5</default>
+					<default></default>
 				</option>
 
 				<option name="rotate_left_window_key" type="string">
