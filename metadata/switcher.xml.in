@@ -8,6 +8,7 @@
 		<deps>
 			<conflict>
 				<plugin>staticswitcher</plugin>
+				<plugin>ring</plugin>
 			</conflict>
 		</deps>
 

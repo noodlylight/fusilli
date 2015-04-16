@@ -15,6 +15,7 @@
 
 			<conflict>
 				<plugin>switcher</plugin>
+				<plugin>ring</plugin>
 			</conflict>
 		</deps>
 

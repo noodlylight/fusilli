@@ -73,6 +73,9 @@ libdecoration_la_SOURCES = decoration.c
 libswitcher_la_LDFLAGS = -module -avoid-version -no-undefined
 libswitcher_la_SOURCES = switcher.c
 
+libring_la_LDFLAGS = -module -avoid-version -no-undefined
+libring_la_SOURCES = ring.c
+
 libthumbnail_la_LDFLAGS = -module -avoid-version -no-undefined
 libthumbnail_la_SOURCES = thumbnail.c thumbnail_tex.h
 
@@ -176,6 +179,7 @@ module_LTLIBRARIES =      \
 	libresize.la          \
 	libplace.la           \
 	libswitcher.la        \
+	libring.la            \
 	libthumbnail.la       \
 	libtitleinfo.la       \
 	libtrailfocus.la      \
