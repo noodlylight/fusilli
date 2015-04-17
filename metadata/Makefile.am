@@ -29,6 +29,7 @@ xml_in_files =         \
 	resize.xml.in      \
 	rotate.xml.in      \
 	ring.xml.in        \
+	shift.xml.in       \
 	grid.xml.in        \
 	scale.xml.in       \
 	screenshot.xml.in  \

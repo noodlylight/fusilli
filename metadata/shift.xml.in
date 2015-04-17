@@ -1,112 +1,95 @@
-<?xml version="1.0"?>
-<compiz>
-	<plugin name="shift" useBcop="true">
+<?xml version="1.0" encoding="UTF-8"?>
+<fusilli>
+	<plugin name="shift">
 		<_short>Shift Switcher</_short>
 		<_long>Shift Switcher Plugin</_long>
 		<category>Window Management</category>
+
 		<deps>
 			<relation type="before">
 				<plugin>fade</plugin>
-				<plugin>bs</plugin>
+				<plugin>obs</plugin>
 			</relation>
-			<relation type="after">
-				<plugin>text</plugin>
-			</relation>
+
+			<conflict>
+				<plugin>switcher</plugin>
+				<plugin>staticswitcher</plugin>
+				<plugin>ring</plugin>
+			</conflict>
 		</deps>
-		<display>
-			<group>
-				<_short>Key bindings</_short>
-				<option name="initiate_key" type="key">
-					<_short>Initiate</_short>
+
+		<group>
+			<_short>Key bindings</_short>
+
+			<subgroup>
+				<option name="initiate_key" type="string">
+					<_short>Initiate Key</_short>
 					<_long>Initiate switcher.</_long>
+					<hint>key</hint>
 					<default>&lt;Super&gt;&lt;Shift&gt;s</default>
 				</option>
-				<option name="initiate_button" type="button">
-					<_short>Initiate</_short>
+
+				<option name="initiate_button" type="string">
+					<_short>Initiate Button</_short>
 					<_long>Initiate switcher.</_long>
+					<hint>button</hint>
 				</option>
-				<option name="initiate_edge" type="edge">
-					<_short>Initiate</_short>
-					<_long>Initiate switcher.</_long>
-				</option>
-				<option name="initiate_all_key" type="key">
-					<_short>Initiate (All Workspaces)</_short>
+
+				<option name="initiate_all_key" type="string">
+					<_short>Initiate Key (All Workspaces)</_short>
 					<_long>Initiate switcher (All Workspaces).</_long>
+					<hint>key</hint>
 				</option>
-				<option name="initiate_all_button" type="button">
-					<_short>Initiate (All Workspaces)</_short>
+
+				<option name="initiate_all_button" type="string">
+					<_short>Initiate Button (All Workspaces)</_short>
 					<_long>Initiate switcher (All Workspaces).</_long>
+					<hint>button</hint>
 				</option>
-				<option name="initiate_all_edge" type="edge">
-					<_short>Initiate (All Workspaces)</_short>
-					<_long>Initiate switcher (All Workspaces).</_long>
-				</option>
-				<option name="terminate_button" type="button">
-					<_short>Terminate</_short>
+
+				<option name="terminate_button" type="string">
+					<_short>Terminate Button</_short>
 					<_long>Terminate switcher.</_long>
+					<hint>button</hint>
 					<default>Button3</default>
 				</option>
-				<option name="next_key" type="key">
-					<_short>Next Window</_short>
+
+				<option name="next_key" type="string">
+					<_short>Next Window Key</_short>
 					<_long>Show switcher if not visible and select next window.</_long>
+					<hint>key</hint>
 					<default>&lt;Super&gt;Tab</default>
 				</option>
-				<option name="next_button" type="button">
-					<_short>Next Window</_short>
-					<_long>Show switcher if not visible and select next window.</_long>
-				</option>
-				<option name="prev_key" type="key">
-					<_short>Previous Window</_short>
+
+				<option name="prev_key" type="string">
+					<_short>Previous Window Key</_short>
 					<_long>Show switcher if not visible and select previous window.</_long>
+					<hint>key</hint>
 					<default>&lt;Super&gt;&lt;Shift&gt;Tab</default>
 				</option>
-				<option name="prev_button" type="button">
-					<_short>Previous Window</_short>
-					<_long>Show switcher if not visible and select previous window.</_long>
-				</option>
-				<option name="next_all_key" type="key">
-					<_short>Next Window (All Workspaces)</_short>
+
+				<option name="next_all_key" type="string">
+					<_short>Next Window Key (All Workspaces)</_short>
 					<_long>Show switcher if not visible and select next window out of all windows.</_long>
+					<hint>key</hint>
 					<default>&lt;Super&gt;&lt;Alt&gt;Tab</default>
 				</option>
-				<option name="next_all_button" type="button">
-					<_short>Next Window (All Workspaces)</_short>
-					<_long>Show switcher if not visible and select next window out of all windows.</_long>
-				</option>
-				<option name="prev_all_key" type="key">
-					<_short>Previous Window (All Workspaces)</_short>
+
+				<option name="prev_all_key" type="string">
+					<_short>Previous Window Key (All Workspaces)</_short>
 					<_long>Show switcher if not visible and select previous window out of all windows.</_long>
+					<hint>key</hint>
 					<default>&lt;Super&gt;&lt;Shift&gt;&lt;Alt&gt;Tab</default>
 				</option>
-				<option name="prev_all_button" type="button">
-					<_short>Previous Window (All Workspaces)</_short>
-					<_long>Show switcher if not visible and select previous window out of all windows.</_long>
-				</option>
-				<option name="next_group_key" type="key">
-					<_short>Next Window (Group)</_short>
-					<_long>Show switcher if not visible and select next window of the current application.</_long>
-				</option>
-				<option name="next_group_button" type="button">
-					<_short>Next Window (Group)</_short>
-					<_long>Show switcher if not visible and select next window of the current application.</_long>
-					<allowed key="true" button="true"/>
-					<default/>
-				</option>
-				<option name="prev_group_key" type="key">
-					<_short>Previous Window (Group)</_short>
-					<_long>Show switcher if not visible and select previous window of the current application.</_long>
-				</option>
-				<option name="prev_group_button" type="button">
-					<_short>Previous Window (Group)</_short>
-					<_long>Show switcher if not visible and select previous window of the current application.</_long>
-				</option>
-				
-			</group>
-		</display>
-		<screen>
-			<group>
-				<_short>Misc. Options</_short>
-				<option name="speed" type="float">
+
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>Misc. Options</_short>
+
+			<subgroup>
+				<option name="speed" type="float" per_screen="true">
 					<_short>Fade speed</_short>
 					<_long>Fade in/out speed</_long>
 					<default>1.5</default>
@@ -114,7 +97,8 @@
 					<max>10.0</max>
 					<precision>0.1</precision>
 				</option>
-				<option name="shift_speed" type="float">
+
+				<option name="shift_speed" type="float" per_screen="true">
 					<_short>Shift speed</_short>
 					<_long>Shift animation speed</_long>
 					<default>1.0</default>
@@ -122,7 +106,8 @@
 					<max>5.0</max>
 					<precision>0.01</precision>
 				</option>
-				<option name="timestep" type="float">
+
+				<option name="timestep" type="float" per_screen="true">
 					<_short>Timestep</_short>
 					<_long>Shift timestep</_long>
 					<default>1.2</default>
@@ -130,17 +115,21 @@
 					<max>50.0</max>
 					<precision>0.1</precision>
 				</option>
-				<option name="window_match" type="match">
+
+				<option name="window_match" type="string" per_screen="true">
 					<_short>Shift Windows</_short>
 					<_long>Windows that should be shown in the shift switcher</_long>
+					<hint>match</hint>
 					<default>Normal | Dialog | ModalDialog | Utility | Unknown</default>
 				</option>
-				<option name="minimized" type="bool">
+
+				<option name="minimized" type="bool" per_screen="true">
 					<_short>Show Minimized</_short>
 					<_long>Show windows that are minimized, shaded or in show desktop mode.</_long>
 					<default>true</default>
 				</option>
-				<option name="mouse_speed" type="float">
+
+				<option name="mouse_speed" type="float" per_screen="true">
 					<_short>Mouse speed</_short>
 					<_long>Mouse movement speed</_long>
 					<default>10.0</default>
@@ -148,17 +137,22 @@
 					<max>50.0</max>
 					<precision>0.1</precision>
 				</option>
-				<option name="click_duration" type="int">
+
+				<option name="click_duration" type="int" per_screen="true">
 					<_short>Click duration</_short>
 					<_long>Maximum click duration in miliseconds.</_long>
 					<default>500</default>
 					<min>10</min>
 					<max>2000</max>
 				</option>
-			</group>
-			<group>
-				<_short>Appearance</_short>
-				<option name="mode" type="int">
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>Appearance</_short>
+
+			<subgroup>
+				<option name="mode" type="int" per_screen="true">
 					<_short>Switcher mode</_short>
 					<_long>Switcher mode.</_long>
 					<default>0</default>
@@ -173,14 +167,16 @@
 						<_name>Flip</_name>
 					</desc>
 				</option>
-				<option name="size" type="int">
+
+				<option name="size" type="int" per_screen="true">
 					<_short>Max window size</_short>
 					<_long>Maximum window size (in percent of the screen width)</_long>
 					<default>50</default>
 					<min>1</min>
 					<max>100</max>
 				</option>
-				<option name="background_intensity" type="float">
+
+				<option name="background_intensity" type="float" per_screen="true">
 					<_short>Background intensity</_short>
 					<_long>Background intensity.</_long>
 					<default>0.5</default>
@@ -188,63 +184,65 @@
 					<max>1.0</max>
 					<precision>0.01</precision>
 				</option>
-				<option name="hide_all" type="bool">
+
+				<option name="hide_all" type="bool" per_screen="true">
 					<_short>Hide non Desktop windows</_short>
 					<_long>Hide all non Desktop windows during switching</_long>
 					<default>false</default>
 				</option>
-				<subgroup>
-					<short>Reflection</short>
-					<option name="reflection" type="bool">
-						<_short>Reflection</_short>
-						<_long>Show a reflection of the viewports on the ground</_long>
-						<default>true</default>
-					</option>
-					<option name="ground_color1" type="color">
-						<_short>Ground color(near)</_short>
-						<_long>Color of the ground (near).</_long>
-						<default>
-							<red>0xb333</red>
-							<green>0xb333</green>
-							<blue>0xb333</blue>
-							<alpha>0xcccc</alpha>
-						</default>
-					</option>
-					<option name="ground_color2" type="color">
-						<_short>Ground color(far)</_short>
-						<_long>Color of the ground (far).</_long>
-						<default>
-							<red>0xb333</red>
-							<green>0xb333</green>
-							<blue>0xb333</blue>
-							<alpha>0x0000</alpha>
-						</default>
-					</option>
-					<option name="ground_size" type="float">
-						<_short>Reflection ground size</_short>
-						<_long>Reflection ground size.</_long>
-						<default>0.5</default>
-						<min>0.0</min>
-						<max>1.0</max>
-						<precision>0.01</precision>
-					</option>
-					<option name="intensity" type="float">
-						<_short>Intensity</_short>
-						<_long>Reflection intensity</_long>
-						<default>0.4</default>
-						<min>0.0</min>
-						<max>1.0</max>
-						<precision>0.01</precision>
-					</option>
-				</subgroup>
-				<option name="flip_rotation" type="int">
+			</subgroup>
+
+			<subgroup>
+				<short>Reflection</short>
+
+				<option name="reflection" type="bool" per_screen="true">
+					<_short>Reflection</_short>
+					<_long>Show a reflection of the viewports on the ground</_long>
+					<default>true</default>
+				</option>
+
+				<option name="ground_color1" type="string" per_screen="true">
+					<_short>Ground color(near)</_short>
+					<_long>Color of the ground (near).</_long>
+					<hint>color</hint>
+					<default>#b3b3b3cc</default>
+				</option>
+
+				<option name="ground_color2" type="string" per_screen="true">
+					<_short>Ground color(far)</_short>
+					<_long>Color of the ground (far).</_long>
+					<default>#b3b3b300</default>
+				</option>
+
+				<option name="ground_size" type="float" per_screen="true">
+					<_short>Reflection ground size</_short>
+					<_long>Reflection ground size.</_long>
+					<default>0.5</default>
+					<min>0.0</min>
+					<max>1.0</max>
+					<precision>0.01</precision>
+				</option>
+
+				<option name="intensity" type="float" per_screen="true">
+					<_short>Intensity</_short>
+					<_long>Reflection intensity</_long>
+					<default>0.4</default>
+					<min>0.0</min>
+					<max>1.0</max>
+					<precision>0.01</precision>
+				</option>
+			</subgroup>
+
+			<subgroup>
+				<option name="flip_rotation" type="int" per_screen="true">
 					<_short>Flip angle</_short>
 					<_long>Rotation angle of the flip animation</_long>
 					<default>30</default>
 					<min>-80</min>
 					<max>80</max>
 				</option>
-				<option name="cover_offset" type="float">
+
+				<option name="cover_offset" type="float" per_screen="true">
 					<_short>Cover offset</_short>
 					<_long>Cover movement offset.</_long>
 					<default>0.0</default>
@@ -252,7 +250,8 @@
 					<max>0.4</max>
 					<precision>0.01</precision>
 				</option>
-				<option name="overlay_icon" type="int">
+
+				<option name="overlay_icon" type="int" per_screen="true">
 					<_short>Overlay Icon</_short>
 					<_long>Overlay an icon on windows in the shift switcher</_long>
 					<default>1</default>
@@ -271,12 +270,14 @@
 						<_name>Big</_name>
 					</desc>
 				</option>
-				<option name="mipmaps" type="bool">
+
+				<option name="mipmaps" type="bool" per_screen="true">
 					<_short>Mipmaps</_short>
 					<_long>Generate mipmaps</_long>
 					<default>false</default>
 				</option>
-				<option name="multioutput_mode" type="int">
+
+				<option name="multioutput_mode" type="int" per_screen="true">
 					<_short>Multi Output Mode</_short>
 					<_long>Selects how the switcher is displayed if multiple output devices are used.</_long>
 					<min>0</min>
@@ -294,48 +295,48 @@
 						<value>2</value>
 						<_name>One big switcher</_name>
 					</desc>
-	    			</option>
-			</group>
-			<group>
-				<_short>Window title display</_short>
-				<option name="window_title" type="bool">
+				</option>
+			</subgroup>
+		</group>
+
+		<group>
+			<_short>Window title display</_short>
+
+			<subgroup>
+				<option name="window_title" type="bool" per_screen="true">
 					<_short>Show Window Title</_short>
 					<_long>Show window title of currently selected window.</_long>
 					<default>true</default>
 				</option>
-				<option name="title_font_bold" type="bool">
+
+				<option name="title_font_bold" type="bool" per_screen="true">
 					<_short>Bold Font</_short>
 					<_long>Selects if the window title should be displayed in bold font or not.</_long>
 					<default>false</default>
 				</option>
-				<option name="title_font_size" type="int">
+
+				<option name="title_font_size" type="int" per_screen="true">
 					<_short>Font Size</_short>
 					<_long>Font size for the window title</_long>
 					<default>16</default>
 					<min>6</min>
 					<max>96</max>
 				</option>
-				<option name="title_back_color" type="color">
+
+				<option name="title_back_color" type="string" per_screen="true">
 					<_short>Background Color</_short>
 					<_long>Background color for the window title</_long>
-					<default>
-						<red>0x0000</red>
-						<green>0x0000</green>
-						<blue>0x0000</blue>
-						<alpha>0x9999</alpha>
-					</default>
+					<hint>color</hint>
+					<default>#00000099</default>
 				</option>
-				<option name="title_font_color" type="color">
+
+				<option name="title_font_color" type="string" per_screen="true">
 					<_short>Font Color</_short>
 					<_long>Font color for the window title</_long>
-					<default>
-						<red>0xffff</red>
-						<green>0xffff</green>
-						<blue>0xffff</blue>
-						<alpha>0xffff</alpha>
-					</default>
+					<default>#ffffffff</default>
 				</option>
-				<option name="title_text_placement" type="int">
+
+				<option name="title_text_placement" type="int" per_screen="true">
 					<_short>Text Placement</_short>
 					<_long>Selects where to place the window title.</_long>
 					<default>2</default>
@@ -354,7 +355,7 @@
 						<_name>Below</_name>
 					</desc>
 				</option>
-			</group>
-		</screen>
+			</subgroup>
+		</group>
 	</plugin>
-</compiz>
+</fusilli>

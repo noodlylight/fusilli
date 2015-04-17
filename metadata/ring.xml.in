@@ -8,6 +8,7 @@
 			<conflict>
 				<plugin>switcher</plugin>
 				<plugin>staticswitcher</plugin>
+				<plugin>shift</plugin>
 			</conflict>
 		</deps>
 

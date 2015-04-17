@@ -28,6 +28,7 @@ metadata/resize.xml.in
 metadata/rotate.xml.in
 metadata/scale.xml.in
 metadata/screenshot.xml.in
+metadata/shift.xml.in
 metadata/showmouse.xml.in
 metadata/snow.xml.in
 metadata/splash.xml.in
