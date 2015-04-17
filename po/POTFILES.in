@@ -25,6 +25,7 @@ metadata/obs.xml.in
 metadata/opacify.xml.in
 metadata/place.xml.in
 metadata/resize.xml.in
+metadata/ring.xml.in
 metadata/rotate.xml.in
 metadata/scale.xml.in
 metadata/screenshot.xml.in
