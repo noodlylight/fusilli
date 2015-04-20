@@ -10,6 +10,7 @@ xml_in_files =         \
 	colorfilter.xml.in \
 	cube.xml.in        \
 	expo.xml.in        \
+	extrawm.xml.in     \
 	wall.xml.in        \
 	decoration.xml.in  \
 	ezoom.xml.in       \

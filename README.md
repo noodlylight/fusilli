@@ -9,7 +9,7 @@ It is a fork of Compiz (0.8)
 
 ## Plugins Currently Available
 
-3d, addhelper, annotate, blur, clone, colorfilter, commands, cube, decoration, expo, ezoom, fade, firepaint, grid, mag, matecompat,
+3d, addhelper, annotate, blur, clone, colorfilter, commands, cube, decoration, expo, extrawm, ezoom, fade, firepaint, grid, mag, matecompat,
 minimize, move, neg, obs, opacify, place, resize, ring, rotate, scale, screenshot, shift, showmouse, snow, splash,
 staticswitcher, svg, switcher, thumbnail, titleinfo, trailfocus, wall, wallpaper, water, winrules, wobbly, workarounds, wsnames
 

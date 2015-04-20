@@ -4,6 +4,9 @@ libcolorfilter_la_SOURCES = colorfilter.c colorfilter-parser.c colorfilter-parse
 lib3d_la_LDFLAGS = -module -avoid-version -no-undefined
 lib3d_la_SOURCES = 3d.c
 
+libextrawm_la_LDFLAGS = -module -avoid-version -no-undefined
+libextrawm_la_SOURCES = extrawm.c
+
 libaddhelper_la_LDFLAGS = -module -avoid-version -no-undefined
 libaddhelper_la_SOURCES = addhelper.c
 
@@ -163,6 +166,7 @@ module_LTLIBRARIES =      \
 	libannotate.la        \
 	libdecoration.la      \
 	libexpo.la            \
+	libextrawm.la         \
 	libezoom.la           \
 	libwobbly.la          \
 	libfade.la            \
