@@ -11,7 +11,8 @@
  * Authors: Patrick Niklaus <patrick.niklaus@googlemail.com>
  *          Roi Cohen       <roico.beryl@gmail.com>
  *          Danny Baumann   <maniac@opencompositing.org>
- *
+ * Copyright : (C) 2015 by Michail Bitzes
+ *            Michail Bitzes <noodlylight@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

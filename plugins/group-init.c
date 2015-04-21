@@ -8,7 +8,8 @@
  * Authors: Patrick Niklaus <patrick.niklaus@googlemail.com>
  *          Roi Cohen       <roico.beryl@gmail.com>
  *          Danny Baumann   <maniac@opencompositing.org>
- *
+ * Copyright : (C) 2015 by Michail Bitzes
+ *            Michail Bitzes <noodlylight@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,104 +26,16 @@
 #include "group-internal.h"
 #include "group_glow.h"
 
-int groupDisplayPrivateIndex;
+int bananaIndex;
+
+int displayPrivateIndex;
 
 static const GlowTextureProperties glowTextureProperties[2] = {
-    /* GlowTextureRectangular */
-    {glowTexRect, 32, 21},
-    /* GlowTextureRing */
-    {glowTexRing, 32, 16}
+	/* GlowTextureRectangular */
+	{glowTexRect, 32, 21},
+	/* GlowTextureRing */
+	{glowTexRing, 32, 16}
 };
-
-static void
-groupScreenOptionChanged (CompScreen         *s,
-			  CompOption         *opt,
-			  GroupScreenOptions num)
-{
-    GroupSelection *group;
-
-    GROUP_SCREEN (s);
-
-    switch (num)
-    {
-	case GroupScreenOptionTabBaseColor:
-	case GroupScreenOptionTabHighlightColor:
-	case GroupScreenOptionTabBorderColor:
-	case GroupScreenOptionTabStyle:
-	case GroupScreenOptionBorderRadius:
-	case GroupScreenOptionBorderWidth:
-	    for (group = gs->groups; group; group = group->next)
-		if (group->tabBar)
-		    groupRenderTabBarBackground (group);
-	    break;
-	case GroupScreenOptionTabbarFontSize:
-	case GroupScreenOptionTabbarFontColor:
-	    for (group = gs->groups; group; group = group->next)
-		groupRenderWindowTitle (group);
-	    break;
-	case GroupScreenOptionThumbSize:
-	case GroupScreenOptionThumbSpace:
-	    for (group = gs->groups; group; group = group->next)
-		if (group->tabBar)
-		{
-		    BoxPtr box = &group->tabBar->region->extents;
-		    groupRecalcTabBarPos (group, (box->x1 + box->x2 ) / 2,
-					  box->x1, box->x2);
-		}
-	    break;
-	case GroupScreenOptionGlow:
-	case GroupScreenOptionGlowSize:
-	    {
-		CompWindow *w;
-
-		for (w = s->windows; w; w = w->next)
-		{
-		    GROUP_WINDOW (w);
-
-		    groupComputeGlowQuads (w, &gs->glowTexture.matrix);
-		    if (gw->glowQuads)
-		    {
-			damageWindowOutputExtents (w);
-			updateWindowOutputExtents (w);
-			damageWindowOutputExtents (w);
-		    }
-		}
-		break;
-	    }
-	case GroupScreenOptionGlowType:
-	    {
-		GroupGlowTypeEnum     glowType;
-		GlowTextureProperties *glowProperty;
-
-		GROUP_DISPLAY (s->display);
-		glowType = groupGetGlowType (s);
-		glowProperty = &gd->glowTextureProperties[glowType];
-
-		finiTexture (s, &gs->glowTexture);
-		initTexture (s, &gs->glowTexture);
-
-		imageDataToTexture (s, &gs->glowTexture,
-				    glowProperty->textureData,
-				    glowProperty->textureSize,
-				    glowProperty->textureSize,
-				    GL_RGBA, GL_UNSIGNED_BYTE);
-
-		if (groupGetGlow (s) && gs->groups)
-		{
-		    CompWindow *w;
-
-		    for (w = s->windows; w; w = w->next)
-			groupComputeGlowQuads (w, &gs->glowTexture.matrix);
-
-		    damageScreen (s);
-		}
-		break;
-	    }
-
-	default:
-	    break;
-    }
-}
 
 /*
  * groupApplyInitialActions
@@ -134,57 +47,62 @@ groupScreenOptionChanged (CompScreen         *s,
 static Bool
 groupApplyInitialActions (void *closure)
 {
-    CompScreen *s = (CompScreen *) closure;
-    CompWindow *w;
+	CompScreen *s = (CompScreen *) closure;
+	CompWindow *w;
 
-    GROUP_SCREEN (s);
+	GROUP_SCREEN (s);
 
-    gs->initialActionsTimeoutHandle = 0;
+	gs->initialActionsTimeoutHandle = 0;
 
-    /* we need to do it from top to buttom of the stack to avoid problems
-       with a reload of Compiz and tabbed static groups. (topTab will always
-       be above the other windows in the group) */
-    for (w = s->reverseWindows; w; w = w->prev)
-    {
-	Bool     tabbed;
-	long int id;
-	GLushort color[3];
-
-	GROUP_WINDOW (w);
-
-	/* read window property to see if window was grouped
-	   before - if it was, regroup */
-	if (groupCheckWindowProperty (w, &id, &tabbed, color))
+	/* we need to do it from top to buttom of the stack to avoid problems
+	   with a reload of Compiz and tabbed static groups. (topTab will always
+	   be above the other windows in the group) */
+	for (w = s->reverseWindows; w; w = w->prev)
 	{
-	    GroupSelection *group;
+		Bool tabbed;
+		long int id;
+		GLushort color[3];
 
-	    for (group = gs->groups; group; group = group->next)
-		if (group->identifier == id)
-		    break;
+		GROUP_WINDOW (w);
 
-	    groupAddWindowToGroup (w, group, id);
-	    if (tabbed)
-		groupTabGroup (w);
+		/* read window property to see if window was grouped
+		   before - if it was, regroup */
+		if (groupCheckWindowProperty (w, &id, &tabbed, color))
+		{
+			GroupSelection *group;
 
-	    gw->group->color[0] = color[0];
-	    gw->group->color[1] = color[1];
-	    gw->group->color[2] = color[2];
+			for (group = gs->groups; group; group = group->next)
+				if (group->identifier == id)
+					break;
 
-	    groupRenderTopTabHighlight (gw->group);
-	    damageScreen (w->screen);
+			groupAddWindowToGroup (w, group, id);
+			if (tabbed)
+				groupTabGroup (w);
+
+			gw->group->color[0] = color[0];
+			gw->group->color[1] = color[1];
+			gw->group->color[2] = color[2];
+
+			groupRenderTopTabHighlight (gw->group);
+			damageScreen (w->screen);
+		}
+
+		const BananaValue *
+		option_autotab_create = bananaGetOption (bananaIndex,
+		                                         "autotab_create",
+		                                         s->screenNum);
+
+		if (option_autotab_create->b && groupIsGroupWindow (w))
+		{
+			if (!gw->group && (gw->windowState == WindowNormal))
+			{
+				groupAddWindowToGroup (w, NULL, 0);
+				groupTabGroup (w);
+			}
+		}
 	}
 
-	if (groupGetAutotabCreate (s) && groupIsGroupWindow (w))
-	{
-	    if (!gw->group && (gw->windowState == WindowNormal))
-	    {
-		groupAddWindowToGroup (w, NULL, 0);
-		groupTabGroup (w);
-	    }
-	}
-    }
-
-    return FALSE;
+	return FALSE;
 }
 
 /*
@@ -193,68 +111,119 @@ groupApplyInitialActions (void *closure)
  */
 static Bool
 groupInitDisplay (CompPlugin  *p,
-		  CompDisplay *d)
+                  CompDisplay *d)
 {
-    GroupDisplay *gd;
-    int          index;
+	GroupDisplay *gd;
 
-    if (!checkPluginABI ("core", CORE_ABIVERSION))
-	return FALSE;
+	gd = malloc (sizeof (GroupDisplay));
+	if (!gd)
+		return FALSE;
 
-    gd = malloc (sizeof (GroupDisplay));
-    if (!gd)
-	return FALSE;
+	gd->screenPrivateIndex = allocateScreenPrivateIndex ();
+	if (gd->screenPrivateIndex < 0)
+	{
+		free (gd);
+		return FALSE;
+	}
 
-    gd->screenPrivateIndex = allocateScreenPrivateIndex (d);
-    if (gd->screenPrivateIndex < 0)
-    {
-	free (gd);
-	return FALSE;
-    }
+	gd->glowTextureProperties =
+	        (GlowTextureProperties*) glowTextureProperties;
+	gd->ignoreMode = FALSE;
+	gd->lastRestackedGroup = NULL;
+	gd->resizeInfo = NULL;
 
-    if (checkPluginABI ("text", TEXT_ABIVERSION) &&
-	getPluginDisplayIndex (d, "text", &index))
-    {
-	gd->textFunc = d->base.privates[index].ptr;
-    }
-    else
-    {
-	compLogMessage ("group", CompLogLevelWarn,
-			"No compatible text plugin loaded.");
-	gd->textFunc = NULL;
-    }
-    gd->glowTextureProperties =
-	(GlowTextureProperties*) glowTextureProperties;
-    gd->ignoreMode = FALSE;
-    gd->lastRestackedGroup = NULL;
-    gd->resizeInfo = NULL;
+	gd->groupWinPropertyAtom = XInternAtom (d->display,
+	                                        "_COMPIZ_GROUP", 0);
+	gd->resizeNotifyAtom     = XInternAtom (d->display,
+	                                        "_COMPIZ_RESIZE_NOTIFY", 0);
 
-    gd->groupWinPropertyAtom = XInternAtom (d->display,
-					    "_COMPIZ_GROUP", 0);
-    gd->resizeNotifyAtom     = XInternAtom (d->display,
-					    "_COMPIZ_RESIZE_NOTIFY", 0);
+	WRAP (gd, d, handleEvent, groupHandleEvent);
 
-    WRAP (gd, d, handleEvent, groupHandleEvent);
+	const BananaValue *
+	option_select_button = bananaGetOption (bananaIndex,
+	                                        "select_button",
+	                                        -1);
 
-    groupSetSelectButtonInitiate (d, groupSelect);
-    groupSetSelectButtonTerminate (d, groupSelectTerminate);
-    groupSetSelectSingleKeyInitiate (d, groupSelectSingle);
-    groupSetGroupKeyInitiate (d, groupGroupWindows);
-    groupSetUngroupKeyInitiate (d, groupUnGroupWindows);
-    groupSetTabmodeKeyInitiate (d, groupInitTab);
-    groupSetChangeTabLeftKeyInitiate (d, groupChangeTabLeft);
-    groupSetChangeTabRightKeyInitiate (d, groupChangeTabRight);
-    groupSetRemoveKeyInitiate (d, groupRemoveWindow);
-    groupSetCloseKeyInitiate (d, groupCloseWindows);
-    groupSetIgnoreKeyInitiate (d, groupSetIgnore);
-    groupSetIgnoreKeyTerminate (d, groupUnsetIgnore);
-    groupSetChangeColorKeyInitiate (d, groupChangeColor);
+	registerButton (option_select_button->s, &gd->select_button);
 
-    d->base.privates[groupDisplayPrivateIndex].ptr = gd;
+	const BananaValue *
+	option_select_single_key = bananaGetOption (bananaIndex,
+	                                            "select_single_key",
+	                                            -1);
 
-    srand (time (NULL));
+	registerKey (option_select_single_key->s, &gd->select_single_key);
 
-    return TRUE;
+	const BananaValue *
+	option_group_key = bananaGetOption (bananaIndex,
+	                                    "group_key",
+	                                    -1);
+
+	registerKey (option_group_key->s, &gd->group_key);
+
+	const BananaValue *
+	option_ungroup_key = bananaGetOption (bananaIndex,
+	                                      "ungroup_key",
+	                                      -1);
+
+	registerKey (option_ungroup_key->s, &gd->ungroup_key);
+
+	const BananaValue *
+	option_remove_key = bananaGetOption (bananaIndex,
+	                                     "remove_key",
+	                                     -1);
+
+	registerKey (option_remove_key->s, &gd->remove_key);
+
+	const BananaValue *
+	option_close_key = bananaGetOption (bananaIndex,
+	                                    "close_key",
+	                                    -1);
+
+	registerKey (option_close_key->s, &gd->close_key);
+
+	const BananaValue *
+	option_ignore_key = bananaGetOption (bananaIndex,
+	                                     "ignore_key",
+	                                     -1);
+
+	registerKey (option_ignore_key->s, &gd->ignore_key);
+
+	const BananaValue *
+	option_tabmode_key = bananaGetOption (bananaIndex,
+	                                      "tabmode_key",
+	                                      -1);
+
+	registerKey (option_tabmode_key->s, &gd->tabmode_key);
+
+	const BananaValue *
+	option_change_tab_left_key = bananaGetOption (bananaIndex,
+	                                              "change_tab_left_key",
+	                                              -1);
+
+	registerKey (option_change_tab_left_key->s,
+	             &gd->change_tab_left_key);
+
+	const BananaValue *
+	option_change_tab_right_key = bananaGetOption (bananaIndex,
+	                                               "change_tab_right_key",
+	                                               -1);
+
+	registerKey (option_change_tab_right_key->s,
+	             &gd->change_tab_right_key);
+
+	const BananaValue *
+	option_change_color_key = bananaGetOption (bananaIndex,
+	                                           "change_color_key",
+	                                           -1);
+
+	registerKey (option_change_color_key->s,
+	             &gd->change_color_key);
+
+	d->privates[displayPrivateIndex].ptr = gd;
+
+	srand (time (NULL));
+
+	return TRUE;
 }
 
 /*
@@ -263,15 +232,15 @@ groupInitDisplay (CompPlugin  *p,
  */
 static void
 groupFiniDisplay (CompPlugin  *p,
-		  CompDisplay *d)
+                  CompDisplay *d)
 {
-    GROUP_DISPLAY (d);
+	GROUP_DISPLAY (d);
 
-    freeScreenPrivateIndex (d, gd->screenPrivateIndex);
+	freeScreenPrivateIndex (gd->screenPrivateIndex);
 
-    UNWRAP (gd, d, handleEvent);
+	UNWRAP (gd, d, handleEvent);
 
-    free (gd);
+	free (gd);
 }
 
 /*
@@ -280,96 +249,96 @@ groupFiniDisplay (CompPlugin  *p,
  */
 static Bool
 groupInitScreen (CompPlugin *p,
-		 CompScreen *s)
+                 CompScreen *s)
 {
-    GroupScreen       *gs;
-    GroupGlowTypeEnum glowType;
+	GroupScreen       *gs;
+	int glowType;
 
-    GROUP_DISPLAY (s->display);
+	GROUP_DISPLAY (&display);
 
-    gs = malloc (sizeof (GroupScreen));
-    if (!gs)
-	return FALSE;
+	gs = malloc (sizeof (GroupScreen));
+	if (!gs)
+		return FALSE;
 
-    gs->windowPrivateIndex = allocateWindowPrivateIndex (s);
-    if (gs->windowPrivateIndex < 0)
-    {
-	free (gs);
-	return FALSE;
-    }
+	gs->windowPrivateIndex = allocateWindowPrivateIndex (s);
+	if (gs->windowPrivateIndex < 0)
+	{
+		free (gs);
+		return FALSE;
+	}
 
-    WRAP (gs, s, windowMoveNotify, groupWindowMoveNotify);
-    WRAP (gs, s, windowResizeNotify, groupWindowResizeNotify);
-    WRAP (gs, s, getOutputExtentsForWindow, groupGetOutputExtentsForWindow);
-    WRAP (gs, s, preparePaintScreen, groupPreparePaintScreen);
-    WRAP (gs, s, paintOutput, groupPaintOutput);
-    WRAP (gs, s, drawWindow, groupDrawWindow);
-    WRAP (gs, s, paintWindow, groupPaintWindow);
-    WRAP (gs, s, paintTransformedOutput, groupPaintTransformedOutput);
-    WRAP (gs, s, donePaintScreen, groupDonePaintScreen);
-    WRAP (gs, s, windowGrabNotify, groupWindowGrabNotify);
-    WRAP (gs, s, windowUngrabNotify, groupWindowUngrabNotify);
-    WRAP (gs, s, damageWindowRect, groupDamageWindowRect);
-    WRAP (gs, s, windowStateChangeNotify, groupWindowStateChangeNotify);
-    WRAP (gs, s, activateWindow, groupActivateWindow);
+	WRAP (gs, s, windowMoveNotify, groupWindowMoveNotify);
+	WRAP (gs, s, windowResizeNotify, groupWindowResizeNotify);
+	WRAP (gs, s, getOutputExtentsForWindow, groupGetOutputExtentsForWindow);
+	WRAP (gs, s, preparePaintScreen, groupPreparePaintScreen);
+	WRAP (gs, s, paintOutput, groupPaintOutput);
+	WRAP (gs, s, drawWindow, groupDrawWindow);
+	WRAP (gs, s, paintWindow, groupPaintWindow);
+	WRAP (gs, s, paintTransformedOutput, groupPaintTransformedOutput);
+	WRAP (gs, s, donePaintScreen, groupDonePaintScreen);
+	WRAP (gs, s, windowGrabNotify, groupWindowGrabNotify);
+	WRAP (gs, s, windowUngrabNotify, groupWindowUngrabNotify);
+	WRAP (gs, s, damageWindowRect, groupDamageWindowRect);
+	WRAP (gs, s, windowStateChangeNotify, groupWindowStateChangeNotify);
+	WRAP (gs, s, activateWindow, groupActivateWindow);
 
-    s->base.privates[gd->screenPrivateIndex].ptr = gs;
+	s->privates[gd->screenPrivateIndex].ptr = gs;
 
-    groupSetTabHighlightColorNotify (s, groupScreenOptionChanged);
-    groupSetTabBaseColorNotify (s, groupScreenOptionChanged);
-    groupSetTabBorderColorNotify (s, groupScreenOptionChanged);
-    groupSetTabbarFontSizeNotify (s, groupScreenOptionChanged);
-    groupSetTabbarFontColorNotify (s, groupScreenOptionChanged);
-    groupSetGlowNotify (s, groupScreenOptionChanged);
-    groupSetGlowTypeNotify (s, groupScreenOptionChanged);
-    groupSetGlowSizeNotify (s, groupScreenOptionChanged);
-    groupSetTabStyleNotify (s, groupScreenOptionChanged);
-    groupSetThumbSizeNotify (s, groupScreenOptionChanged);
-    groupSetThumbSpaceNotify (s, groupScreenOptionChanged);
-    groupSetBorderWidthNotify (s, groupScreenOptionChanged);
-    groupSetBorderRadiusNotify (s, groupScreenOptionChanged);
+	gs->groups = NULL;
 
-    gs->groups = NULL;
+	gs->tmpSel.windows = NULL;
+	gs->tmpSel.nWins   = 0;
 
-    gs->tmpSel.windows = NULL;
-    gs->tmpSel.nWins   = 0;
+	gs->grabIndex = 0;
+	gs->grabState = ScreenGrabNone;
 
-    gs->grabIndex = 0;
-    gs->grabState = ScreenGrabNone;
+	gs->lastHoveredGroup = NULL;
 
-    gs->lastHoveredGroup = NULL;
+	gs->queued          = FALSE;
+	gs->pendingMoves    = NULL;
+	gs->pendingGrabs    = NULL;
+	gs->pendingUngrabs  = NULL;
 
-    gs->queued          = FALSE;
-    gs->pendingMoves    = NULL;
-    gs->pendingGrabs    = NULL;
-    gs->pendingUngrabs  = NULL;
+	gs->dequeueTimeoutHandle = 0;
 
-    gs->dequeueTimeoutHandle = 0;
+	gs->draggedSlot            = NULL;
+	gs->dragged                = FALSE;
+	gs->dragHoverTimeoutHandle = 0;
 
-    gs->draggedSlot            = NULL;
-    gs->dragged                = FALSE;
-    gs->dragHoverTimeoutHandle = 0;
+	gs->prevX = 0;
+	gs->prevY = 0;
 
-    gs->prevX = 0;
-    gs->prevY = 0;
+	gs->showDelayTimeoutHandle = 0;
 
-    gs->showDelayTimeoutHandle = 0;
+	/* one-shot timeout for stuff that needs to be initialized after
+	   all screens and windows are initialized */
+	gs->initialActionsTimeoutHandle =
+	        compAddTimeout (0, 0, groupApplyInitialActions, (void *) s);
 
-    /* one-shot timeout for stuff that needs to be initialized after
-       all screens and windows are initialized */
-    gs->initialActionsTimeoutHandle =
-	compAddTimeout (0, 0, groupApplyInitialActions, (void *) s);
+	initTexture (s, &gs->glowTexture);
 
-    initTexture (s, &gs->glowTexture);
+	const BananaValue *
+	option_glow_type = bananaGetOption (bananaIndex,
+	                                    "glow_type",
+	                                    s->screenNum);
 
-    glowType = groupGetGlowType (s);
-    imageDataToTexture (s, &gs->glowTexture,
-			glowTextureProperties[glowType].textureData,
-			glowTextureProperties[glowType].textureSize,
-			glowTextureProperties[glowType].textureSize,
-			GL_RGBA, GL_UNSIGNED_BYTE);
+	glowType = option_glow_type->i;
+	imageDataToTexture (s, &gs->glowTexture,
+	                    glowTextureProperties[glowType].textureData,
+	                    glowTextureProperties[glowType].textureSize,
+	                    glowTextureProperties[glowType].textureSize,
+	                    GL_RGBA, GL_UNSIGNED_BYTE);
 
-    return TRUE;
+	const BananaValue *
+	option_window_match = bananaGetOption (bananaIndex,
+	                                       "window_match",
+	                                       s->screenNum);
+
+	matchInit (&gs->window_match);
+	matchAddFromString (&gs->window_match, option_window_match->s);
+	matchUpdate (&gs->window_match);
+
+	return TRUE;
 }
 
 /*
@@ -378,90 +347,92 @@ groupInitScreen (CompPlugin *p,
  */
 static void
 groupFiniScreen (CompPlugin *p,
-		 CompScreen *s)
+                 CompScreen *s)
 {
-    GROUP_SCREEN (s);
+	GROUP_SCREEN (s);
 
-    if (gs->groups)
-    {
-	GroupSelection *group, *nextGroup;
-
-	for (group = gs->groups; group;)
+	if (gs->groups)
 	{
-	    if (group->tabBar)
-	    {
-		GroupTabBarSlot *slot, *nextSlot;
+		GroupSelection *group, *nextGroup;
 
-		for (slot = group->tabBar->slots; slot;)
+		for (group = gs->groups; group; )
 		{
-		    if (slot->region)
-			XDestroyRegion (slot->region);
+			if (group->tabBar)
+			{
+				GroupTabBarSlot *slot, *nextSlot;
 
-		    nextSlot = slot->next;
-		    free (slot);
-		    slot = nextSlot;
+				for (slot = group->tabBar->slots; slot; )
+				{
+					if (slot->region)
+						XDestroyRegion (slot->region);
+
+					nextSlot = slot->next;
+					free (slot);
+					slot = nextSlot;
+				}
+
+				groupDestroyCairoLayer (s, group->tabBar->textLayer);
+				groupDestroyCairoLayer (s, group->tabBar->bgLayer);
+				groupDestroyCairoLayer (s, group->tabBar->selectionLayer);
+
+				if (group->inputPrevention)
+					XDestroyWindow (display.display,
+					                group->inputPrevention);
+
+				if (group->tabBar->region)
+					XDestroyRegion (group->tabBar->region);
+
+				if (group->tabBar->timeoutHandle)
+					compRemoveTimeout (group->tabBar->timeoutHandle);
+
+				free (group->tabBar);
+			}
+
+			nextGroup = group->next;
+			free (group);
+			group = nextGroup;
 		}
-
-		groupDestroyCairoLayer (s, group->tabBar->textLayer);
-		groupDestroyCairoLayer (s, group->tabBar->bgLayer);
-		groupDestroyCairoLayer (s, group->tabBar->selectionLayer);
-
-		if (group->inputPrevention)
-		    XDestroyWindow (s->display->display,
-				    group->inputPrevention);
-
-		if (group->tabBar->region)
-		    XDestroyRegion (group->tabBar->region);
-
-		if (group->tabBar->timeoutHandle)
-		    compRemoveTimeout (group->tabBar->timeoutHandle);
-
-		free (group->tabBar);
-	    }
-
-	    nextGroup = group->next;
-	    free (group);
-	    group = nextGroup;
 	}
-    }
 
-    if (gs->tmpSel.windows)
-	free (gs->tmpSel.windows);
+	if (gs->tmpSel.windows)
+		free (gs->tmpSel.windows);
 
-    if (gs->grabIndex)
-	groupGrabScreen (s, ScreenGrabNone);
+	if (gs->grabIndex)
+		groupGrabScreen (s, ScreenGrabNone);
 
-    if (gs->dragHoverTimeoutHandle)
-	compRemoveTimeout (gs->dragHoverTimeoutHandle);
+	if (gs->dragHoverTimeoutHandle)
+		compRemoveTimeout (gs->dragHoverTimeoutHandle);
 
-    if (gs->showDelayTimeoutHandle)
-	compRemoveTimeout (gs->showDelayTimeoutHandle);
+	if (gs->showDelayTimeoutHandle)
+		compRemoveTimeout (gs->showDelayTimeoutHandle);
 
-    if (gs->dequeueTimeoutHandle)
-	compRemoveTimeout (gs->dequeueTimeoutHandle);
+	if (gs->dequeueTimeoutHandle)
+		compRemoveTimeout (gs->dequeueTimeoutHandle);
 
-    if (gs->initialActionsTimeoutHandle)
-	compRemoveTimeout (gs->initialActionsTimeoutHandle);
+	if (gs->initialActionsTimeoutHandle)
+		compRemoveTimeout (gs->initialActionsTimeoutHandle);
 
-    freeWindowPrivateIndex (s, gs->windowPrivateIndex);
+	freeWindowPrivateIndex (s, gs->windowPrivateIndex);
 
-    UNWRAP (gs, s, windowMoveNotify);
-    UNWRAP (gs, s, windowResizeNotify);
-    UNWRAP (gs, s, getOutputExtentsForWindow);
-    UNWRAP (gs, s, preparePaintScreen);
-    UNWRAP (gs, s, paintOutput);
-    UNWRAP (gs, s, drawWindow);
-    UNWRAP (gs, s, paintWindow);
-    UNWRAP (gs, s, paintTransformedOutput);
-    UNWRAP (gs, s, donePaintScreen);
-    UNWRAP (gs, s, windowGrabNotify);
-    UNWRAP (gs, s, windowUngrabNotify);
-    UNWRAP (gs, s, damageWindowRect);
-    UNWRAP (gs, s, windowStateChangeNotify);
-    UNWRAP (gs, s, activateWindow);
+	matchFini (&gs->window_match);
 
-    finiTexture (s, &gs->glowTexture);
-    free (gs);
+	UNWRAP (gs, s, windowMoveNotify);
+	UNWRAP (gs, s, windowResizeNotify);
+	UNWRAP (gs, s, getOutputExtentsForWindow);
+	UNWRAP (gs, s, preparePaintScreen);
+	UNWRAP (gs, s, paintOutput);
+	UNWRAP (gs, s, drawWindow);
+	UNWRAP (gs, s, paintWindow);
+	UNWRAP (gs, s, paintTransformedOutput);
+	UNWRAP (gs, s, donePaintScreen);
+	UNWRAP (gs, s, windowGrabNotify);
+	UNWRAP (gs, s, windowUngrabNotify);
+	UNWRAP (gs, s, damageWindowRect);
+	UNWRAP (gs, s, windowStateChangeNotify);
+	UNWRAP (gs, s, activateWindow);
+
+	finiTexture (s, &gs->glowTexture);
+	free (gs);
 }
 
 /*
@@ -470,53 +441,53 @@ groupFiniScreen (CompPlugin *p,
  */
 static Bool
 groupInitWindow (CompPlugin *p,
-		 CompWindow *w)
+                 CompWindow *w)
 {
-    GroupWindow *gw;
+	GroupWindow *gw;
 
-    GROUP_SCREEN (w->screen);
+	GROUP_SCREEN (w->screen);
 
-    gw = malloc (sizeof (GroupWindow));
-    if (!gw)
-	return FALSE;
+	gw = malloc (sizeof (GroupWindow));
+	if (!gw)
+		return FALSE;
 
-    gw->group        = NULL;
-    gw->slot         = NULL;
-    gw->glowQuads    = NULL;
-    gw->inSelection  = FALSE;
-    gw->needsPosSync = FALSE;
-    gw->readOnlyProperty = FALSE;
+	gw->group        = NULL;
+	gw->slot         = NULL;
+	gw->glowQuads    = NULL;
+	gw->inSelection  = FALSE;
+	gw->needsPosSync = FALSE;
+	gw->readOnlyProperty = FALSE;
 
-    /* for tab */
-    gw->animateState = 0;
+	/* for tab */
+	gw->animateState = 0;
 
-    gw->tx        = 0.0f;
-    gw->ty        = 0.0f;
-    gw->xVelocity = 0.0f;
-    gw->yVelocity = 0.0f;
+	gw->tx        = 0.0f;
+	gw->ty        = 0.0f;
+	gw->xVelocity = 0.0f;
+	gw->yVelocity = 0.0f;
 
-    gw->orgPos.x        = 0;
-    gw->orgPos.y        = 0;
-    gw->mainTabOffset.x = 0;
-    gw->mainTabOffset.y = 0;
-    gw->destination.x   = 0;
-    gw->destination.y   = 0;
+	gw->orgPos.x        = 0;
+	gw->orgPos.y        = 0;
+	gw->mainTabOffset.x = 0;
+	gw->mainTabOffset.y = 0;
+	gw->destination.x   = 0;
+	gw->destination.y   = 0;
 
-    gw->windowHideInfo = NULL;
-    gw->resizeGeometry = NULL;
+	gw->windowHideInfo = NULL;
+	gw->resizeGeometry = NULL;
 
-    if (w->minimized)
-	gw->windowState = WindowMinimized;
-    else if (w->shaded)
-	gw->windowState = WindowShaded;
-    else
-	gw->windowState = WindowNormal;
+	if (w->minimized)
+		gw->windowState = WindowMinimized;
+	else if (w->shaded)
+		gw->windowState = WindowShaded;
+	else
+		gw->windowState = WindowNormal;
 
-    w->base.privates[gs->windowPrivateIndex].ptr = gw;
+	w->privates[gs->windowPrivateIndex].ptr = gw;
 
-    groupComputeGlowQuads (w, &gs->glowTexture.matrix);
+	groupComputeGlowQuads (w, &gs->glowTexture.matrix);
 
-    return TRUE;
+	return TRUE;
 }
 
 /*
@@ -525,101 +496,227 @@ groupInitWindow (CompPlugin *p,
  */
 static void
 groupFiniWindow (CompPlugin *p,
-		 CompWindow *w)
+                 CompWindow *w)
 {
-    GROUP_WINDOW (w);
+	GROUP_WINDOW (w);
 
-    if (gw->windowHideInfo)
-	groupSetWindowVisibility (w, TRUE);
+	if (gw->windowHideInfo)
+		groupSetWindowVisibility (w, TRUE);
 
-    gw->readOnlyProperty = TRUE;
+	gw->readOnlyProperty = TRUE;
 
-    /* FIXME: this implicitly calls the wrapped function activateWindow
-       (via groupDeleteTabBarSlot -> groupUnhookTabBarSlot -> groupChangeTab)
-       --> better wrap into removeObject and call it for removeWindow
-       */
-    if (gw->group)
-	groupDeleteGroupWindow (w);
+	/* FIXME: this implicitly calls the wrapped function activateWindow
+	   (via groupDeleteTabBarSlot -> groupUnhookTabBarSlot -> groupChangeTab)
+	   --> better wrap into removeObject and call it for removeWindow
+	 */
+	if (gw->group)
+		groupDeleteGroupWindow (w);
 
-    if (gw->glowQuads)
-	free (gw->glowQuads);
+	if (gw->glowQuads)
+		free (gw->glowQuads);
 
-    free (gw);
+	free (gw);
 }
 
-/*
- * groupInit
- *
- */
+static void
+groupChangeNotify (const char        *optionName,
+                   BananaType        optionType,
+                   const BananaValue *optionValue,
+                   int               screenNum)
+{
+	GROUP_DISPLAY (&display);
+
+	if (strcasecmp (optionName, "window_match") == 0)
+	{
+		CompScreen *s = getScreenFromScreenNum (screenNum);
+		GROUP_SCREEN (s);
+
+		matchFini (&gs->window_match);
+		matchInit (&gs->window_match);
+		matchAddFromString (&gs->window_match, optionValue->s);
+		matchUpdate (&gs->window_match);
+	}
+	else if (strcasecmp (optionName, "tab_base_color") == 0 ||
+	         strcasecmp (optionName, "tab_highlight_color") == 0 ||
+	         strcasecmp (optionName, "tab_border_color") == 0 ||
+	         strcasecmp (optionName, "tab_style") == 0 ||
+	         strcasecmp (optionName, "border_radius") == 0 ||
+	         strcasecmp (optionName, "border_width") == 0)
+	{
+		GroupSelection *group;
+
+		CompScreen *s = getScreenFromScreenNum (screenNum);
+		GROUP_SCREEN (s);
+
+		for (group = gs->groups; group; group = group->next)
+			if (group->tabBar)
+				groupRenderTabBarBackground (group);
+	}
+	else if (strcasecmp (optionName, "tabbar_font_size") == 0 ||
+	         strcasecmp (optionName, "tabbar_font_color") == 0)
+	{
+		GroupSelection *group;
+
+		CompScreen *s = getScreenFromScreenNum (screenNum);
+		GROUP_SCREEN (s);
+
+		for (group = gs->groups; group; group = group->next)
+			groupRenderWindowTitle (group);
+	}
+	else if (strcasecmp (optionName, "thumb_size") == 0 ||
+	         strcasecmp (optionName, "thumb_space") == 0)
+	{
+		GroupSelection *group;
+
+		CompScreen *s = getScreenFromScreenNum (screenNum);
+		GROUP_SCREEN (s);
+
+		for (group = gs->groups; group; group = group->next)
+			if (group->tabBar)
+			{
+				BoxPtr box = &group->tabBar->region->extents;
+				groupRecalcTabBarPos (group, (box->x1 + box->x2 ) / 2,
+				                      box->x1, box->x2);
+			}
+	}
+	else if (strcasecmp (optionName, "glow") == 0 ||
+	         strcasecmp (optionName, "glow_size") == 0)
+	{
+		CompScreen *s = getScreenFromScreenNum (screenNum);
+		GROUP_SCREEN (s);
+
+		CompWindow *w;
+
+		for (w = s->windows; w; w = w->next)
+		{
+			GROUP_WINDOW (w);
+
+			groupComputeGlowQuads (w, &gs->glowTexture.matrix);
+			if (gw->glowQuads)
+			{
+				damageWindowOutputExtents (w);
+				updateWindowOutputExtents (w);
+				damageWindowOutputExtents (w);
+			}
+		}
+	}
+	else if (strcasecmp (optionName, "glow_type") == 0)
+	{
+		CompScreen *s = getScreenFromScreenNum (screenNum);
+		GROUP_SCREEN (s);
+
+		int glowType;
+		GlowTextureProperties *glowProperty;
+
+		GROUP_DISPLAY (&display);
+
+		const BananaValue *
+		option_glow_type = bananaGetOption (bananaIndex,
+		                                    "glow_type",
+		                                    s->screenNum);
+
+		glowType = option_glow_type->i;
+		glowProperty = &gd->glowTextureProperties[glowType];
+
+		finiTexture (s, &gs->glowTexture);
+		initTexture (s, &gs->glowTexture);
+
+		imageDataToTexture (s, &gs->glowTexture,
+		                    glowProperty->textureData,
+		                    glowProperty->textureSize,
+		                    glowProperty->textureSize,
+		                    GL_RGBA, GL_UNSIGNED_BYTE);
+
+		const BananaValue *
+		option_glow = bananaGetOption (bananaIndex,
+		                               "glow",
+		                               s->screenNum);
+
+		if (option_glow->b && gs->groups)
+		{
+			CompWindow *w;
+
+			for (w = s->windows; w; w = w->next)
+				groupComputeGlowQuads (w, &gs->glowTexture.matrix);
+
+			damageScreen (s);
+		}
+	}
+	else if (strcasecmp (optionName, "select_button") == 0)
+		updateButton (optionValue->s, &gd->select_button);
+	else if (strcasecmp (optionName, "select_single_key") == 0)
+		updateKey (optionValue->s, &gd->select_single_key);
+	else if (strcasecmp (optionName, "group_key") == 0)
+		updateKey (optionValue->s, &gd->group_key);
+	else if (strcasecmp (optionName, "ungroup_key") == 0)
+		updateKey (optionValue->s, &gd->ungroup_key);
+	else if (strcasecmp (optionName, "remove_key") == 0)
+		updateKey (optionValue->s, &gd->remove_key);
+	else if (strcasecmp (optionName, "close_key") == 0)
+		updateKey (optionValue->s, &gd->close_key);
+	else if (strcasecmp (optionName, "ignore_key") == 0)
+		updateKey (optionValue->s, &gd->ignore_key);
+	else if (strcasecmp (optionName, "tabmode_key") == 0)
+		updateKey (optionValue->s, &gd->tabmode_key);
+	else if (strcasecmp (optionName, "change_tab_left_key") == 0)
+		updateKey (optionValue->s, &gd->change_tab_left_key);
+	else if (strcasecmp (optionName, "change_tab_right_key") == 0)
+		updateKey (optionValue->s, &gd->change_tab_right_key);
+	else if (strcasecmp (optionName, "change_color_key") == 0)
+		updateKey (optionValue->s, &gd->change_color_key);
+}
+
 static Bool
 groupInit (CompPlugin *p)
 {
-    groupDisplayPrivateIndex = allocateDisplayPrivateIndex ();
-    if (groupDisplayPrivateIndex < 0)
-	return FALSE;
+	if (getCoreABI() != CORE_ABIVERSION)
+	{
+		compLogMessage ("group", CompLogLevelError,
+		                "ABI mismatch\n"
+		                "\tPlugin was compiled with ABI: %d\n"
+		                "\tFusilli Core was compiled with ABI: %d\n",
+		                CORE_ABIVERSION, getCoreABI());
 
-    return TRUE;
+		return FALSE;
+	}
+
+	displayPrivateIndex = allocateDisplayPrivateIndex ();
+
+	if (displayPrivateIndex < 0)
+		return FALSE;
+
+	bananaIndex = bananaLoadPlugin ("group");
+
+	if (bananaIndex == -1)
+		return FALSE;
+
+	bananaAddChangeNotifyCallBack (bananaIndex, groupChangeNotify);
+
+	return TRUE;
 }
 
-/*
- * groupFini
- *
- */
 static void
 groupFini (CompPlugin *p)
 {
-    freeDisplayPrivateIndex (groupDisplayPrivateIndex);
+	freeDisplayPrivateIndex (displayPrivateIndex);
+
+	bananaUnloadPlugin (bananaIndex);
 }
 
-static CompBool
-groupInitObject (CompPlugin *p,
-		 CompObject *o)
-{
-    static InitPluginObjectProc dispTab[] = {
-	(InitPluginObjectProc) 0, /* InitCore */
-	(InitPluginObjectProc) groupInitDisplay,
-	(InitPluginObjectProc) groupInitScreen,
-	(InitPluginObjectProc) groupInitWindow
-    };
-
-    RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
-}
-
-static void
-groupFiniObject (CompPlugin *p,
-		 CompObject *o)
-{
-    static FiniPluginObjectProc dispTab[] = {
-	(FiniPluginObjectProc) 0, /* FiniCore */
-	(FiniPluginObjectProc) groupFiniDisplay,
-	(FiniPluginObjectProc) groupFiniScreen,
-	(FiniPluginObjectProc) groupFiniWindow
-    };
-
-    DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));
-}
-
-/*
- * groupVTable
- *
- */
-CompPluginVTable groupVTable = {
-    "group",
-    0,
-    groupInit,
-    groupFini,
-    groupInitObject,
-    groupFiniObject,
-    0,
-    0
+static CompPluginVTable groupVTable = {
+	"group",
+	groupInit,
+	groupFini,
+	groupInitDisplay,
+	groupFiniDisplay,
+	groupInitScreen,
+	groupFiniScreen,
+	groupInitWindow,
+	groupFiniWindow
 };
 
-/*
- * getCompPluginInfo
- *
- */
-CompPluginVTable*
-getCompPluginInfo (void)
+CompPluginVTable *
+getCompPluginInfo20141205 (void)
 {
-    return &groupVTable;
+	return &groupVTable;
 }

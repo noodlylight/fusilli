@@ -7,6 +7,17 @@ lib3d_la_SOURCES = 3d.c
 libextrawm_la_LDFLAGS = -module -avoid-version -no-undefined
 libextrawm_la_SOURCES = extrawm.c
 
+libgroup_la_LDFLAGS = -module -avoid-version -no-undefined
+libgroup_la_SOURCES = group-cairo.c \
+                      group-group.c \
+                      group-init.c \
+                      group-paint.c \
+                      group-queues.c \
+                      group-selection.c \
+                      group-tab.c \
+                      group-internal.h \
+                      group_glow.h
+
 libaddhelper_la_LDFLAGS = -module -avoid-version -no-undefined
 libaddhelper_la_SOURCES = addhelper.c
 
@@ -171,6 +182,7 @@ module_LTLIBRARIES =      \
 	libwobbly.la          \
 	libfade.la            \
 	libfirepaint.la       \
+	libgroup.la           \
 	libminimize.la        \
 	libcube.la            \
 	libwall.la            \
