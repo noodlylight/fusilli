@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<compiz>
+  <plugin name="fadedesktop" useBcop="true">
+    <_short>Fade to Desktop</_short>
+	<_long>Easily access your desktop</_long>
+	<category>Desktop</category>
+	<deps>
+		<relation type="before">
+			<plugin>fade</plugin>
+		</relation>
+	</deps>
+    <feature>showdesktop</feature>
+    <screen>
+      <option name="fadetime" type="int">
+        <_short>Fade Time</_short>
+        <_long>Fade time (in ms)</_long>
+        <default>500</default>
+        <min>1</min>
+        <max>5000</max>
+      </option>
+      <option name="window_match" type="match">
+        <_short>Window Match</_short>
+        <_long>Windows that should be faded to desktop</_long>
+        <default>Toolbar | Utility | Dialog | Normal | Unknown</default>
+      </option>
+    </screen>
+  </plugin>
+</compiz>
