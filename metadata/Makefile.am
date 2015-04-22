@@ -15,6 +15,7 @@ xml_in_files =         \
 	decoration.xml.in  \
 	ezoom.xml.in       \
 	fade.xml.in        \
+	fadedesktop.xml.in \
 	firepaint.xml.in   \
 	group.xml.in       \
 	mag.xml.in         \

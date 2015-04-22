@@ -1,28 +1,36 @@
-<?xml version="1.0"?>
-<compiz>
-  <plugin name="fadedesktop" useBcop="true">
-    <_short>Fade to Desktop</_short>
-	<_long>Easily access your desktop</_long>
-	<category>Desktop</category>
-	<deps>
-		<relation type="before">
-			<plugin>fade</plugin>
-		</relation>
-	</deps>
-    <feature>showdesktop</feature>
-    <screen>
-      <option name="fadetime" type="int">
-        <_short>Fade Time</_short>
-        <_long>Fade time (in ms)</_long>
-        <default>500</default>
-        <min>1</min>
-        <max>5000</max>
-      </option>
-      <option name="window_match" type="match">
-        <_short>Window Match</_short>
-        <_long>Windows that should be faded to desktop</_long>
-        <default>Toolbar | Utility | Dialog | Normal | Unknown</default>
-      </option>
-    </screen>
-  </plugin>
-</compiz>
+<?xml version="1.0" encoding="UTF-8"?>
+<fusilli>
+	<plugin name="fadedesktop">
+		<_short>Fade to Desktop</_short>
+		<_long>Easily access your desktop</_long>
+		<category>Desktop</category>
+		<deps>
+			<relation type="before">
+				<plugin>fade</plugin>
+			</relation>
+		</deps>
+
+		<group>
+			<_short>General</_short>
+
+			<subgroup>
+				<_long>&lt;span size="small"&gt;You can trigger the effect of this plugin by using the Show Desktop binding defined in core, section Key Bindings&lt;/span&gt;</_long>
+
+				<option name="fade_time" type="int" per_screen="true">
+					<_short>Fade Time</_short>
+					<_long>Fade time (in ms)</_long>
+					<default>500</default>
+					<min>1</min>
+					<max>5000</max>
+				</option>
+
+				<option name="window_match" type="string" per_screen="true">
+					<_short>Window Match</_short>
+					<_long>Windows that should be faded to desktop</_long>
+					<hint>match</hint>
+					<default>Toolbar | Utility | Dialog | Normal | Unknown</default>
+				</option>
+			</subgroup>
+		</group>
+	</plugin>
+</fusilli>

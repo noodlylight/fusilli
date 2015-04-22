@@ -34,6 +34,9 @@ libexpo_la_LIBADD =  @FUSILLI_LIBS@ -lGLU
 libfade_la_LDFLAGS = -module -avoid-version -no-undefined
 libfade_la_SOURCES = fade.c
 
+libfadedesktop_la_LDFLAGS = -module -avoid-version -no-undefined
+libfadedesktop_la_SOURCES = fadedesktop.c
+
 libfirepaint_la_LDFLAGS = -module -avoid-version -no-undefined
 libfirepaint_la_SOURCES = firepaint.c firepaint_tex.h
 
@@ -181,6 +184,7 @@ module_LTLIBRARIES =      \
 	libezoom.la           \
 	libwobbly.la          \
 	libfade.la            \
+	libfadedesktop.la     \
 	libfirepaint.la       \
 	libgroup.la           \
 	libminimize.la        \
