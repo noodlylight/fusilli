@@ -1,0 +1,744 @@
+<compiz>
+  <!-- animation metadata -->
+  <plugin name="animation">
+    <_short>Animations</_short>
+    <_long>Use various animations as window effects</_long>
+    <feature>windowanimations</feature>
+    <category>Effects</category>
+    <deps>
+      <requirement>
+	<plugin>regex</plugin>
+      </requirement>
+      <relation type="after">
+	<plugin>decoration</plugin>
+	<plugin>regex</plugin>
+      </relation>
+      <relation type="before">
+	<plugin>fade</plugin>
+      </relation>
+    </deps>
+
+    <display>
+      <option name="abi" type="int" read_only="true"/>
+      <option name="index" type="int" read_only="true"/>
+    </display>
+
+    <screen>
+
+      <group>
+	<_short>Open Animation</_short>
+
+	<subgroup>
+	  <_short>Animation Selection</_short>
+	  <option name="open_effects" type="list">
+	    <_short>Open Effect</_short>
+	    <_long>The animation effect shown when creating a window.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	      <value>animation:Zoom</value>
+	      <value>animation:Fade</value>
+	      <value>animation:Fade</value>
+	    </default>
+	  </option>
+	  <option name="open_durations" type="list">
+	    <_short>Duration</_short>
+	    <_long>Animation duration in milliseconds for open effect.</_long>
+	    <type>int</type>
+	    <min>50</min>
+	    <max>4000</max>
+	    <default>
+	      <value>200</value>
+	      <value>150</value>
+	      <value>150</value>
+	    </default>
+	  </option>
+	  <option name="open_matches" type="list">
+	    <_short>Window Match</_short>
+	    <_long>The windows that will be animated.</_long>
+	    <type>match</type>
+	    <default>
+	      <value>(type=Normal | Dialog | ModalDialog | Unknown) &amp; !(name=gnome-screensaver)</value>
+	      <value>(type=Menu | PopupMenu | DropdownMenu)</value>
+	      <value>(type=Tooltip | Notification | Utility) &amp; !(name=compiz) &amp; !(title=notify-osd)</value>
+	    </default>
+	  </option>
+	  <option name="open_options" type="list">
+	    <_short>Options</_short>
+	    <_long>Comma separated list of option value assignments to override effect settings, e.g.: fire_color=#0080ffff, fire_particles=700, fire_smoke=1</_long>
+	    <type>string</type>
+	    <default>
+	      <value></value>
+	      <value></value>
+	      <value></value>
+	    </default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Random Effects</_short>
+	  <option name="open_random_effects" type="list">
+	    <_short>Pool</_short>
+	    <_long>Pool of effects to be chosen from if Random effect is selected. Click reset to use all effects.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	    </default>
+	  </option>
+	</subgroup>
+
+      </group>
+
+      <group>
+	<_short>Close Animation</_short>
+
+	<subgroup>
+	  <_short>Animation Selection</_short>
+	  <option name="close_effects" type="list">
+	    <_short>Close Effect</_short>
+	    <_long>The animation effect shown when closing a window.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	      <value>animation:Zoom</value>
+	      <value>animation:Fade</value>
+	      <value>animation:Fade</value>
+	    </default>
+	  </option>
+	  <option name="close_durations" type="list">
+	    <_short>Duration</_short>
+	    <_long>Animation duration in milliseconds for close effect.</_long>
+	    <type>int</type>
+	    <min>50</min>
+	    <max>4000</max>
+	    <default>
+	      <value>200</value>
+	      <value>150</value>
+	      <value>150</value>
+	    </default>
+	  </option>
+	  <option name="close_matches" type="list">
+	    <_short>Window Match</_short>
+	    <_long>The windows that will be animated.</_long>
+	    <type>match</type>
+	    <default>
+	      <value>(type=Normal | Dialog | ModalDialog | Unknown) &amp; !(name=gnome-screensaver)</value>
+	      <value>(type=Menu | PopupMenu | DropdownMenu)</value>
+	      <value>(type=Tooltip | Notification | Utility) &amp; !(name=compiz) &amp; !(title=notify-osd)</value>
+	    </default>
+	  </option>
+	  <option name="close_options" type="list">
+	    <_short>Options</_short>
+	    <_long>Comma separated list of option value assignments to override effect settings, e.g.: fire_color=#0080ffff, fire_particles=700, fire_smoke=1</_long>
+	    <type>string</type>
+	    <default>
+	      <value></value>
+	      <value></value>
+	      <value></value>
+	    </default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Random Effects</_short>
+	  <option name="close_random_effects" type="list">
+	    <_short>Pool</_short>
+	    <_long>Pool of effects to be chosen from if Random effect is selected. Click reset to use all effects.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	    </default>
+	  </option>
+	</subgroup>
+
+      </group>
+
+      <group>
+	<_short>Minimize Animation</_short>
+
+	<subgroup>
+	  <_short>Animation Selection</_short>
+	  <option name="minimize_effects" type="list">
+	    <_short>Minimize Effect</_short>
+	    <_long>The animation effect shown when minimizing a window.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	      <value>animation:Magic Lamp</value>
+	    </default>
+	  </option>
+	  <option name="minimize_durations" type="list">
+	    <_short>Duration</_short>
+	    <_long>Animation duration in milliseconds for minimize effect.</_long>
+	    <type>int</type>
+	    <min>50</min>
+	    <max>4000</max>
+	    <default>
+	      <value>300</value>
+	    </default>
+	  </option>
+	  <option name="minimize_matches" type="list">
+	    <_short>Window Match</_short>
+	    <_long>The windows that will be animated.</_long>
+	    <type>match</type>
+	    <default>
+	      <value>(type=Normal | Dialog | ModalDialog | Unknown)</value>
+	    </default>
+	  </option>
+	  <option name="minimize_options" type="list">
+	    <_short>Options</_short>
+	    <_long>Comma separated list of option value assignments to override effect settings, e.g.: fire_color=#0080ffff, fire_particles=700, fire_smoke=1</_long>
+	    <type>string</type>
+	    <default>
+	      <value></value>
+	    </default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Random Effects</_short>
+	  <option name="minimize_random_effects" type="list">
+	    <_short>Pool</_short>
+	    <_long>Pool of effects to be chosen from if Random effect is selected. Click reset to use all effects.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	    </default>
+	  </option>
+	</subgroup>
+
+      </group>
+
+      <group>
+	<_short>Shade Animation</_short>
+
+	<subgroup>
+	  <_short>Animation Selection</_short>
+	  <option name="shade_effects" type="list">
+	    <_short>Shade Effect</_short>
+	    <_long>The animation effect shown when shading a window.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	      <value>animation:Roll Up</value>
+	    </default>
+	  </option>
+	  <option name="shade_durations" type="list">
+	    <_short>Duration</_short>
+	    <_long>Animation duration in milliseconds for shade effect.</_long>
+	    <type>int</type>
+	    <min>50</min>
+	    <max>4000</max>
+	    <default>
+	      <value>300</value>
+	    </default>
+	  </option>
+	  <option name="shade_matches" type="list">
+	    <_short>Window Match</_short>
+	    <_long>Window that should animate with this effect when shaded.</_long>
+	    <type>match</type>
+	    <default>
+	      <value>(type=Normal | Dialog | ModalDialog | Utility | Unknown)</value>
+	    </default>
+	  </option>
+	  <option name="shade_options" type="list">
+	    <_short>Options</_short>
+	    <_long>Comma separated list of option value assignments to override effect settings, e.g.: fire_color=#0080ffff, fire_particles=700, fire_smoke=1</_long>
+	    <type>string</type>
+	    <default>
+	      <value></value>
+	    </default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Random Effects</_short>
+	  <option name="shade_random_effects" type="list">
+	    <_short>Pool</_short>
+	    <_long>Pool of effects to be chosen from if Random effect is selected. Click reset to use all effects.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="2"/>
+	    <default>
+	    </default>
+	  </option>
+	</subgroup>
+
+      </group>
+
+      <group>
+	<_short>Focus Animation</_short>
+	<subgroup>
+	  <_short>Animation Selection</_short>
+	  <option name="focus_effects" type="list">
+	    <_short>Focus Effect</_short>
+	    <_long>The animation effect shown when focusing a window.</_long>
+	    <type>string</type>
+	    <extensible/>
+	    <sort start="1"/>
+	    <default>
+	      <value>animation:None</value>
+	    </default>
+	  </option>
+	  <option name="focus_durations" type="list">
+	    <_short>Duration</_short>
+	    <_long>Animation duration in milliseconds for focus effect.</_long>
+	    <type>int</type>
+	    <min>50</min>
+	    <max>4000</max>
+	    <default>
+	      <value>300</value>
+	    </default>
+	  </option>
+	  <option name="focus_matches" type="list">
+	    <_short>Window Match</_short>
+	    <_long>Window that should animate with this effect when focused.</_long>
+	    <type>match</type>
+	    <default>
+	      <value>(type=Normal | Dialog | ModalDialog | Utility | Unknown) &amp; !(name=compiz)</value>
+	    </default>
+	  </option>
+	  <option name="focus_options" type="list">
+	    <_short>Options</_short>
+	    <_long>Comma separated list of option value assignments to override effect settings, e.g.: fire_color=#0080ffff, fire_particles=700, fire_smoke=1</_long>
+	    <type>string</type>
+	    <default>
+	      <value></value>
+	    </default>
+	  </option>
+        </subgroup>
+      </group>
+
+      <group>
+	<_short>Effect Settings</_short>
+	<extensible/>
+
+	<subgroup>
+	  <_short>Curved Fold</_short>
+	  <option name="curved_fold_amp_mult" type="float">
+	    <_short>Curved Fold Amplitude Multiplier</_short>
+	    <_long>Fold amplitude (size) is multiplied by this number. Negative values fold outward.</_long>
+	    <default>1.0</default>
+	    <min>-1.5</min>
+	    <max>2</max>
+	    <precision>0.05</precision>
+	  </option>
+	  <option name="curved_fold_zoom_to_taskbar" type="bool">
+	    <_short>Zoom to TaskBar on Minimize</_short>
+	    <_long>Whether the window should zoom to taskbar when minimized with Curved Fold effect.</_long>
+	    <default>true</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Dodge</_short>
+	  <option name="dodge_gap_ratio" type="float">
+	    <_short>Dodge Gap Ratio</_short>
+	    <_long>Ratio of gaps between dodge start times to focus duration.</_long>
+	    <default>0.5</default>
+	    <min>0</min>
+	    <max>1</max>
+	    <precision>0.01</precision>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Dream</_short>
+	  <option name="dream_zoom_to_taskbar" type="bool">
+	    <_short>Zoom to TaskBar on Minimize</_short>
+	    <_long>Whether the window should zoom to taskbar when minimized with Dream effect.</_long>
+	    <default>true</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Glide 1</_short>
+	  <option name="glide1_away_position" type="float">
+	    <_short>Away Position</_short>
+	    <_long>Closeness of window to camera at the end of the animation (1.0: Close to camera, -2.0: Away from camera).</_long>
+	    <default>1</default>
+	    <min>-2</min>
+	    <max>1</max>
+	    <precision>0.05</precision>
+	  </option>
+	  <option name="glide1_away_angle" type="float">
+	    <_short>Away Angle</_short>
+	    <_long>Angle of window at the end of the animation.</_long>
+	    <default>0</default>
+	    <min>-540</min>
+	    <max>540</max>
+	    <precision>5</precision>
+	  </option>
+	  <option name="glide1_zoom_to_taskbar" type="bool">
+	    <_short>Zoom to TaskBar on Minimize</_short>
+	    <_long>Whether the window should zoom to taskbar when minimized with Glide 1 effect.</_long>
+	    <default>false</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Glide 2</_short>
+	  <option name="glide2_away_position" type="float">
+	    <_short>Away Position</_short>
+	    <_long>Closeness of window to camera at the end of the animation (1.0: Close to camera, -2.0: Away from camera).</_long>
+	    <default>-0.4</default>
+	    <min>-2</min>
+	    <max>1</max>
+	    <precision>0.05</precision>
+	  </option>
+	  <option name="glide2_away_angle" type="float">
+	    <_short>Away Angle</_short>
+	    <_long>Angle of window at the end of the animation.</_long>
+	    <default>-45</default>
+	    <min>-540</min>
+	    <max>540</max>
+	    <precision>5</precision>
+	  </option>
+	  <option name="glide2_zoom_to_taskbar" type="bool">
+	    <_short>Zoom to TaskBar on Minimize</_short>
+	    <_long>Whether the window should zoom to taskbar when minimized with Glide 2 effect.</_long>
+	    <default>true</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Horizontal Folds</_short>
+	  <option name="horizontal_folds_amp_mult" type="float">
+	    <_short>Horizontal Folds Amplitude Multiplier</_short>
+	    <_long>Fold amplitude (size) is multiplied by this number. Negative values fold outward.</_long>
+	    <default>1.0</default>
+	    <min>-1</min>
+	    <max>3</max>
+	    <precision>0.05</precision>
+	  </option>
+	  <option name="horizontal_folds_num_folds" type="int">
+	    <_short>Number of Horizontal Folds</_short>
+	    <_long>The number of horizontal folds that occur in the Horizontal Fold animation.</_long>
+	    <default>3</default>
+	    <min>1</min>
+	    <max>50</max>
+	  </option>
+	  <option name="horizontal_folds_zoom_to_taskbar" type="bool">
+	    <_short>Zoom to TaskBar on Minimize</_short>
+	    <_long>Whether the window should zoom to taskbar when minimized with Horizontal Folds effect.</_long>
+	    <default>true</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Magic Lamp</_short>
+	  <option name="magic_lamp_moving_end" type="bool">
+	    <_short>Magic Lamp Open/Close Moving End</_short>
+	    <_long>On open/close, move magic lamp ending point with the mouse pointer.</_long>
+	    <default>true</default>
+	  </option>
+	  <option name="magic_lamp_grid_res" type="int">
+	    <_short>Magic Lamp Grid Y Resolution</_short>
+	    <_long>Vertex grid resolution for Magic Lamp (Y dimension only). This is the number of points used to define the curves. The higher the number, the smoother the curves. However there will be a loss of performance (CPU usage increases).</_long>
+	    <default>100</default>
+	    <min>4</min>
+	    <max>200</max>
+	  </option>
+	  <option name="magic_lamp_max_waves" type="int">
+	    <_short>Magic Lamp Max Waves</_short>
+	    <_long>The maximum number of waves for Magic Lamp.</_long>
+	    <default>3</default>
+	    <min>3</min>
+	    <max>20</max>
+	  </option>
+	  <option name="magic_lamp_amp_min" type="float">
+	    <_short>Magic Lamp Min Wave Amplitude</_short>
+	    <_long>The minimum amplitude (size of the waves) Magic Lamp will have.</_long>
+	    <default>200</default>
+	    <min>200</min>
+	    <max>2000</max>
+	    <precision>5</precision>
+	  </option>
+	  <option name="magic_lamp_amp_max" type="float">
+	    <_short>Magic Lamp Max Wave Amplitude</_short>
+	    <_long>The maximum amplitude (size of the waves) Magic Lamp will have.</_long>
+	    <default>300</default>
+	    <min>200</min>
+	    <max>2000</max>
+	    <precision>5</precision>
+	  </option>
+	  <option name="magic_lamp_open_start_width" type="int">
+	    <_short>Magic Lamp Open Start Width</_short>
+	    <_long>Starting width of open effect and ending width of close effect for Magic Lamp.</_long>
+	    <default>30</default>
+	    <min>0</min>
+	    <max>500</max>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Roll Up</_short>
+	  <option name="rollup_fixed_interior" type="bool">
+	    <_short>Rollup Fixed Interior</_short>
+	    <_long>Fixed window interior during the Rollup animation.</_long>
+	    <default>false</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Sidekick</_short>
+	  <option name="sidekick_num_rotations" type="float">
+	    <_short>Sidekick Number of Rotations</_short>
+	    <_long>Number of rotations for Sidekick (plus or minus 10% for randomness).</_long>
+	    <default>0.5</default>
+	    <min>0</min>
+	    <max>5</max>
+	    <precision>0.01</precision>
+	  </option>
+	  <option name="sidekick_springiness" type="float">
+	    <_short>Sidekick Springiness</_short>
+	    <_long>How spring-like the Sidekick animation should be.</_long>
+	    <default>0.0</default>
+	    <min>0</min>
+	    <max>1</max>
+	    <precision>0.01</precision>
+	  </option>
+	  <option name="sidekick_zoom_from_center" type="int">
+	    <_short>Zoom from Center</_short>
+	    <_long>Zoom from center when playing the Sidekick animation.</_long>
+	    <default>0</default>
+	    <min>0</min>
+	    <max>3</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Off</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Minimize/Unminimize Only</_name>
+	    </desc>
+	    <desc>
+	      <value>2</value>
+	      <_name>Open/Close Only</_name>
+	    </desc>
+	    <desc>
+	      <value>3</value>
+	      <_name>On</_name>
+	    </desc>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Vacuum</_short>
+	  <option name="vacuum_moving_end" type="bool">
+	    <_short>Vacuum Open/Close Moving End</_short>
+	    <_long>On open/close, move vacuum ending point with the mouse pointer.</_long>
+	    <default>true</default>
+	  </option>
+	  <option name="vacuum_grid_res" type="int">
+	    <_short>Vacuum Grid Y Resolution</_short>
+	    <_long>Vertex grid resolution for Vacuum (Y dimension only). This is the number of points used to define the curves. The higher the number, the smoother the curves. However there will be a loss of performance (CPU usage increases).</_long>
+	    <default>100</default>
+	    <min>2</min>
+	    <max>200</max>
+	  </option>
+	  <option name="vacuum_open_start_width" type="int">
+	    <_short>Vacuum Open Start Width</_short>
+	    <_long>Starting width of open effect and ending width of close effect for Vacuum.</_long>
+	    <default>30</default>
+	    <min>0</min>
+	    <max>500</max>
+	  </option>
+	</subgroup>
+	
+	<subgroup>
+	  <_short>Wave</_short>
+	  <option name="wave_width" type="float">
+	    <_short>Wave Width</_short>
+	    <_long>The width of the wave relative to the window height.</_long>
+	    <default>0.7</default>
+	    <min>0.02</min>
+	    <max>3</max>
+	    <precision>0.01</precision>
+	  </option>
+	  <option name="wave_amp_mult" type="float">
+	    <_short>Wave Amplitude Multiplier</_short>
+	    <_long>Wave amplitude (size) is multiplied by this number. Negative values fold outward.</_long>
+	    <default>1.0</default>
+	    <min>-20</min>
+	    <max>20</max>
+	    <precision>0.1</precision>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Zoom</_short>
+	  <option name="zoom_from_center" type="int">
+	    <_short>Zoom from Center</_short>
+	    <_long>Zoom from center when playing the Zoom animation.</_long>
+	    <default>0</default>
+	    <min>0</min>
+	    <max>3</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Off</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Minimize/Unminimize Only</_name>
+	    </desc>
+	    <desc>
+	      <value>2</value>
+	      <_name>Open/Close Only</_name>
+	    </desc>
+	    <desc>
+	      <value>3</value>
+	      <_name>On</_name>
+	    </desc>
+	  </option>
+	  <option name="zoom_springiness" type="float">
+	    <_short>Zoom Springiness</_short>
+	    <_long>How spring-like the Zoom animation should be.</_long>
+	    <default>0.0</default>
+	    <min>0</min>
+	    <max>1</max>
+	    <precision>0.01</precision>
+	  </option>
+	</subgroup>
+
+	<option name="all_random" type="bool">
+	  <_short>Random Animations For All Events</_short>
+	  <_long>All effects are chosen randomly, ignoring the selected effect. If None is selected for an event, that event won't be animated.</_long>
+	  <default>false</default>
+	</option>
+	<option name="time_step" type="int">
+	  <_short>Animation Time Step</_short>
+	  <_long>The amount of time in milliseconds between each render of the animation. The higher the number, the jerkier the movements become.</_long>
+	  <default>10</default>
+	  <min>1</min>
+	  <max>400</max>
+	</option>
+      </group> 
+
+    </screen>
+
+    <extension base_plugin="animation" screen="true">
+      <base_option>open_effects</base_option>
+      <base_option>close_effects</base_option>
+      <base_option>minimize_effects</base_option>
+      <base_option>shade_effects</base_option>
+      <restriction>
+	<value>animation:None</value>
+	<_name>None</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Random</value>
+	<_name>Random</_name>
+      </restriction>
+    </extension>
+
+    <extension base_plugin="animation" screen="true">
+      <base_option>open_effects</base_option>
+      <base_option>open_random_effects</base_option>
+      <base_option>close_effects</base_option>
+      <base_option>close_random_effects</base_option>
+      <base_option>minimize_effects</base_option>
+      <base_option>minimize_random_effects</base_option>
+      <base_option>shade_effects</base_option>
+      <base_option>shade_random_effects</base_option>
+      <restriction>
+	<value>animation:Curved Fold</value>
+	<_name>Curved Fold</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Horizontal Folds</value>
+	<_name>Horizontal Folds</_name>
+      </restriction>
+    </extension>
+
+    <extension base_plugin="animation">
+      <base_option>shade_effects</base_option>
+      <base_option>shade_random_effects</base_option>
+      <restriction>
+	<value>animation:Roll Up</value>
+	<_name>Roll Up</_name>
+      </restriction>
+    </extension>
+
+    <extension base_plugin="animation">
+      <base_option>open_effects</base_option>
+      <base_option>open_random_effects</base_option>
+      <base_option>close_effects</base_option>
+      <base_option>close_random_effects</base_option>
+      <base_option>minimize_effects</base_option>
+      <base_option>minimize_random_effects</base_option>
+      <restriction>
+	<value>animation:Dream</value>
+	<_name>Dream</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Fade</value>
+	<_name>Fade</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Glide 1</value>
+	<_name>Glide 1</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Glide 2</value>
+	<_name>Glide 2</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Magic Lamp</value>
+	<_name>Magic Lamp</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Sidekick</value>
+	<_name>Sidekick</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Zoom</value>
+	<_name>Zoom</_name>
+      </restriction>
+    </extension>
+
+    <extension base_plugin="animation">
+      <base_option>open_effects</base_option>
+      <base_option>open_random_effects</base_option>
+      <base_option>close_effects</base_option>
+      <base_option>close_random_effects</base_option>
+      <restriction>
+	<value>animation:Vacuum</value>
+	<_name>Vacuum</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Wave</value>
+	<_name>Wave</_name>
+      </restriction>
+    </extension>
+
+    <extension base_plugin="animation">
+      <base_option>focus_effects</base_option>
+      <restriction>
+	<value>animation:None</value>
+	<_name>None</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Dodge</value>
+	<_name>Dodge</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Focus Fade</value>
+	<_name>Fade</_name>
+      </restriction>
+      <restriction>
+	<value>animation:Wave</value>
+	<_name>Wave</_name>
+      </restriction>
+    </extension>
+    
+  </plugin>
+</compiz>
+
