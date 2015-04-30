@@ -7,6 +7,21 @@ lib3d_la_SOURCES = 3d.c
 libextrawm_la_LDFLAGS = -module -avoid-version -no-undefined
 libextrawm_la_SOURCES = extrawm.c
 
+libanimation_la_LDFLAGS = -module -avoid-version -no-undefined -lGLU
+libanimation_la_SOURCES = animation.c \
+                          animation-internal.h \
+                          animation-curvedfold.c \
+                          animation-dodge.c \
+                          animation-dream.c \
+                          animation-fade.c \
+                          animation-focusfade.c \
+                          animation-glide.c \
+                          animation-horizontalfold.c \
+                          animation-magiclamp.c \
+                          animation-rollup.c \
+                          animation-wave.c \
+                          animation-zoomside.c
+
 libgroup_la_LDFLAGS = -module -avoid-version -no-undefined
 libgroup_la_SOURCES = group-cairo.c \
                       group-group.c \
@@ -174,6 +189,7 @@ AM_CPPFLAGS =                           \
 moduledir = $(plugindir)
 
 module_LTLIBRARIES =      \
+	libanimation.la       \
 	libcolorfilter.la     \
 	lib3d.la              \
 	libaddhelper.la       \

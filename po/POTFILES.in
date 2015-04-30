@@ -3,6 +3,7 @@ fsm/fsm.desktop.in
 gtk/window-decorator/fusilli-decorator-gtk.c
 metadata/3d.xml.in
 metadata/addhelper.xml.in
+metadata/animation.xml.in
 metadata/annotate.xml.in
 metadata/blur.xml.in
 metadata/clone.xml.in

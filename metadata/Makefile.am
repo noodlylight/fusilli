@@ -3,6 +3,7 @@ xml_in_files =         \
 	3d.xml.in          \
 	core.xml.in        \
 	addhelper.xml.in   \
+	animation.xml.in   \
 	annotate.xml.in    \
 	blur.xml.in        \
 	clone.xml.in       \

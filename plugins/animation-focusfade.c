@@ -33,7 +33,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
+#include <fusilli-core.h>
+#include <fusilli-animation.h>
 #include "animation-internal.h"
 
 // =====================  Effect: Focus Fade  =========================
@@ -43,54 +44,54 @@
 static GLushort
 fxFocusFadeComputeOpacity (CompWindow *w, float progress, GLushort opacityInt)
 {
-    ANIM_WINDOW(w);
+	ANIM_WINDOW (w);
 
-    float opacity = opacityInt / (float)OPAQUE;
-    float multiplier;
+	float opacity = opacityInt / (float)OPAQUE;
+	float multiplier;
 
-    // for one side of the cross-fade
-    if (!aw->walkerOverNewCopy)
-        progress = 1 - progress;
+	// for one side of the cross-fade
+	if (!aw->walkerOverNewCopy)
+		progress = 1 - progress;
 
-    Bool newCopy = aw->walkerOverNewCopy;
+	Bool newCopy = aw->walkerOverNewCopy;
 
-    // Reverse behavior if lowering (i.e. not raising)
-    Bool lowering = aw->restackInfo && !aw->restackInfo->raised;
-    if (lowering)
-        newCopy = !newCopy;
+	// Reverse behavior if lowering (i.e. not raising)
+	Bool lowering = aw->restackInfo && !aw->restackInfo->raised;
+	if (lowering)
+		newCopy = !newCopy;
 
-    if (w->alpha || (newCopy && opacity >= 0.91f))
-	multiplier = decelerateProgress(progress);
-    else if (opacity > 0.94f)
-	multiplier = decelerateProgressCustom(progress, 0.55, 1.32);
-    else if (opacity >= 0.91f && opacity < 0.94f)
-	multiplier = decelerateProgressCustom(progress, 0.62, 0.92);
-    else if (opacity >= 0.89f && opacity < 0.91f)
-	multiplier = decelerateProgress(progress);
-    else if (opacity >= 0.84f && opacity < 0.89f)
-	multiplier = decelerateProgressCustom(progress, 0.64, 0.80);
-    else if (opacity >= 0.79f && opacity < 0.84f)
-	multiplier = decelerateProgressCustom(progress, 0.67, 0.77);
-    else if (opacity >= 0.54f && opacity < 0.79f)
-	multiplier = decelerateProgressCustom(progress, 0.61, 0.69);
-    else
-	multiplier = progress;
+	if (w->alpha || (newCopy && opacity >= 0.91f))
+		multiplier = decelerateProgress (progress);
+	else if (opacity > 0.94f)
+		multiplier = decelerateProgressCustom (progress, 0.55, 1.32);
+	else if (opacity >= 0.91f && opacity < 0.94f)
+		multiplier = decelerateProgressCustom (progress, 0.62, 0.92);
+	else if (opacity >= 0.89f && opacity < 0.91f)
+		multiplier = decelerateProgress (progress);
+	else if (opacity >= 0.84f && opacity < 0.89f)
+		multiplier = decelerateProgressCustom (progress, 0.64, 0.80);
+	else if (opacity >= 0.79f && opacity < 0.84f)
+		multiplier = decelerateProgressCustom (progress, 0.67, 0.77);
+	else if (opacity >= 0.54f && opacity < 0.79f)
+		multiplier = decelerateProgressCustom (progress, 0.61, 0.69);
+	else
+		multiplier = progress;
 
-    multiplier = 1 - multiplier;
-    float finalOpacity = opacity * multiplier;
-    finalOpacity = MIN(finalOpacity, 1);
-    finalOpacity = MAX(finalOpacity, 0);
+	multiplier = 1 - multiplier;
+	float finalOpacity = opacity * multiplier;
+	finalOpacity = MIN (finalOpacity, 1);
+	finalOpacity = MAX (finalOpacity, 0);
 
-    return (GLushort)(finalOpacity * OPAQUE);
+	return (GLushort)(finalOpacity * OPAQUE);
 }
 
 void
 fxFocusFadeUpdateWindowAttrib(CompWindow * w,
-			      WindowPaintAttrib * wAttrib)
+                              WindowPaintAttrib * wAttrib)
 {
-    float forwardProgress = defaultAnimProgress (w);
+	float forwardProgress = defaultAnimProgress (w);
 
-    wAttrib->opacity =
-	fxFocusFadeComputeOpacity (w, forwardProgress, wAttrib->opacity);
+	wAttrib->opacity =
+	        fxFocusFadeComputeOpacity (w, forwardProgress, wAttrib->opacity);
 }
 

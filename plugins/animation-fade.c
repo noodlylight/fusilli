@@ -33,20 +33,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
+#include <fusilli-core.h>
+#include <fusilli-animation.h>
 #include "animation-internal.h"
 
 // =====================  Effect: Fade  =========================
 
 void
-fxFadeUpdateWindowAttrib(CompWindow * w,
-			 WindowPaintAttrib * wAttrib)
+fxFadeUpdateWindowAttrib (CompWindow        *w,
+                          WindowPaintAttrib *wAttrib)
 {
-    ANIM_WINDOW(w);
+	ANIM_WINDOW (w);
 
-    float forwardProgress = defaultAnimProgress (w);
+	float forwardProgress = defaultAnimProgress (w);
 
-    wAttrib->opacity = (GLushort) (aw->com.storedOpacity * (1 - forwardProgress));
+	wAttrib->opacity = (GLushort) (aw->com.storedOpacity * (1 - forwardProgress));
 }
 
 
