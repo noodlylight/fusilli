@@ -21,9 +21,16 @@
 			<subgroup multilist="true" collapsible="true">
 				<_short>Open Animation</_short>
 
+				<_long>&lt;span size="small"&gt;Effects available: curvedfold, dream, fade, glide1, glide2, horizontalfolds, magiclamp, sidekick, vacuum, wave, zoom&lt;/span&gt;</_long>
+
 				<option name="open_effects" type="list_string" per_screen="true">
 					<_short>Open Effect</_short>
 					<_long>The animation effect shown when creating a window.</_long>
+					<default>
+						<item>zoom</item>
+						<item>fade</item>
+						<item>fade</item>
+					</default>
 				</option>
 
 				<option name="open_durations" type="list_int" per_screen="true">
@@ -31,21 +38,38 @@
 					<_long>Animation duration in milliseconds for open effect.</_long>
 					<min>50</min>
 					<max>4000</max>
+					<default>
+						<item>200</item>
+						<item>150</item>
+						<item>150</item>
+					</default>
 				</option>
 
 				<option name="open_matches" type="list_string" per_screen="true">
 					<_short>Window Match</_short>
 					<_long>The windows that will be animated.</_long>
 					<hint>match</hint>
+					<default>
+						<item>(type=Normal | Dialog | ModalDialog | Unknown) &amp; !(name=gnome-screensaver) &amp; !(name=mate-screensaver)</item>
+						<item>(type=Menu | PopupMenu | DropdownMenu)</item>
+						<item>(type=Tooltip | Notification | Utility) &amp; !(name=fusilli) &amp; !(title=notify-osd)</item>
+					</default>
 				</option>
 			</subgroup>
 
 			<subgroup multilist="true" collapsible="true">
 				<_short>Close Animation</_short>
 
+				<_long>&lt;span size="small"&gt;Effects available: curvedfold, dream, fade, glide1, glide2, horizontalfolds, magiclamp, sidekick, vacuum, wave, zoom&lt;/span&gt;</_long>
+
 				<option name="close_effects" type="list_string" per_screen="true">
 					<_short>Close Effect</_short>
 					<_long>The animation effect shown when closing a window.</_long>
+					<default>
+						<item>zoom</item>
+						<item>fade</item>
+						<item>fade</item>
+					</default>
 				</option>
 
 				<option name="close_durations" type="list_int" per_screen="true">
@@ -53,21 +77,36 @@
 					<_long>Animation duration in milliseconds for close effect.</_long>
 					<min>50</min>
 					<max>4000</max>
+					<default>
+						<item>200</item>
+						<item>150</item>
+						<item>150</item>
+					</default>
 				</option>
 
 				<option name="close_matches" type="list_string" per_screen="true">
 					<_short>Window Match</_short>
 					<_long>The windows that will be animated.</_long>
 					<hint>match</hint>
+					<default>
+						<item>(type=Normal | Dialog | ModalDialog | Unknown) &amp; !(name=gnome-screensaver) &amp; !(name=mate-screensaver)</item>
+						<item>(type=Menu | PopupMenu | DropdownMenu)</item>
+						<item>(type=Tooltip | Notification | Utility) &amp; !(name=fusilli) &amp; !(title=notify-osd)</item>
+					</default>
 				</option>
 			</subgroup>
 
 			<subgroup multilist="true" collapsible="true">
 				<_short>Minimize Animation</_short>
 
+				<_long>&lt;span size="small"&gt;Effects available: curvedfold, dream, fade, glide1, glide2, horizontalfolds, magiclamp, sidekick, zoom&lt;/span&gt;</_long>
+
 				<option name="minimize_effects" type="list_string" per_screen="true">
 					<_short>Minimize Effect</_short>
 					<_long>The animation effect shown when minimizing a window.</_long>
+					<default>
+						<item>magiclamp</item>
+					</default>
 				</option>
 
 				<option name="minimize_durations" type="list_int" per_screen="true">
@@ -75,21 +114,32 @@
 					<_long>Animation duration in milliseconds for minimize effect.</_long>
 					<min>50</min>
 					<max>4000</max>
+					<default>
+						<item>300</item>
+					</default>
 				</option>
 
 				<option name="minimize_matches" type="list_string" per_screen="true">
 					<_short>Window Match</_short>
 					<_long>The windows that will be animated.</_long>
 					<hint>match</hint>
+					<default>
+						<item>(type=Normal | Dialog | ModalDialog | Unknown)</item>
+					</default>
 				</option>
 			</subgroup>
 
 			<subgroup multilist="true" collapsible="true">
 				<_short>Shade Animation</_short>
 
+				<_long>&lt;span size="small"&gt;Effects available: curvedfold, horizontalfolds, rollup&lt;/span&gt;</_long>
+
 				<option name="shade_effects" type="list_string" per_screen="true">
 					<_short>Shade Effect</_short>
 					<_long>The animation effect shown when shading a window.</_long>
+					<default>
+						<item>rollup</item>
+					</default>
 				</option>
 
 				<option name="shade_durations" type="list_int" per_screen="true">
@@ -105,15 +155,23 @@
 				<option name="shade_matches" type="list_string" per_screen="true">
 					<_short>Window Match</_short>
 					<_long>Window that should animate with this effect when shaded.</_long>
+					<default>
+						<item>(type=Normal | Dialog | ModalDialog | Utility | Unknown)</item>
+					</default>
 				</option>
 			</subgroup>
 
 			<subgroup multilist="true" collapsible="true">
 				<_short>Focus Animation</_short>
 
+				<_long>&lt;span size="small"&gt;Effects available: dodge, fade, wave&lt;/span&gt;</_long>
+
 				<option name="focus_effects" type="list_string" per_screen="true">
 					<_short>Focus Effect</_short>
 					<_long>The animation effect shown when focusing a window.</_long>
+					<default>
+						<item>None</item>
+					</default>
 				</option>
 
 				<option name="focus_durations" type="list_int" per_screen="true">
@@ -121,12 +179,18 @@
 					<_long>Animation duration in milliseconds for focus effect.</_long>
 					<min>50</min>
 					<max>4000</max>
+					<default>
+						<item>300</item>
+					</default>
 				</option>
 
 				<option name="focus_matches" type="list_string" per_screen="true">
 					<_short>Window Match</_short>
 					<_long>Window that should animate with this effect when focused.</_long>
 					<hint>match</hint>
+					<default>
+						<item>(type=Normal | Dialog | ModalDialog | Utility | Unknown) &amp; !(name=fusilli)</item>
+					</default>
 				</option>
 			</subgroup>
 		</group>
