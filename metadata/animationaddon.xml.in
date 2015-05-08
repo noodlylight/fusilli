@@ -1,0 +1,526 @@
+<compiz>
+  <!-- animationaddon metadata -->
+  <plugin name="animationaddon">
+    <_short>Animations Add-On</_short>
+    <_long>Extra window animations and animation engines</_long>
+    <category>Effects</category>
+    <deps>
+      <requirement>
+	<plugin>animation</plugin>
+      </requirement>
+      <relation type="after">
+	<plugin>animation</plugin>
+      </relation>
+    </deps>
+
+    <display>
+      <option name="abi" type="int" read_only="true"/>
+      <option name="index" type="int" read_only="true"/>
+    </display>
+
+    <screen>
+
+      <group>
+	<_short>Effect Settings</_short>
+
+	<subgroup>
+	  <_short>Airplane</_short>
+	  <option name="airplane_path_length" type="float">
+	    <_short>Airplane Flying Path Length</_short>
+	    <_long>Length of airplane's flying path.</_long>
+	    <default>1</default>
+	    <min>0.5</min>
+	    <max>3</max>
+	    <precision>0.1</precision>
+	  </option>
+	  <option name="airplane_fly_to_taskbar" type="bool">
+	    <_short>Fly to TaskBar on Minimize</_short>
+	    <_long>Whether the window should fly to taskbar when minimized with Airplane effect.</_long>
+	    <default>true</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Beam</_short>
+	  <option name="beam_size" type="float">
+	    <_short>Beam Width</_short>
+	    <_long>Beam width.</_long>
+	    <default>8</default>
+	    <min>0.1</min>
+	    <max>20</max>
+	    <precision>0.1</precision>
+	  </option>
+	  <option name="beam_spacing" type="int">
+	    <_short>Beam Spacing</_short>
+	    <_long>Spacing between beams.</_long>
+	    <default>5</default>
+	    <min>1</min>
+	    <max>20</max>
+	  </option>
+	  <option name="beam_color" type="color">
+	    <_short>Beam Color</_short>
+	    <_long>Beam color.</_long>
+	    <default>
+	      <red>0x7fff</red>
+	      <green>0x7fff</green>
+	      <blue>0x7fff</blue>
+	      <alpha>0xffff</alpha>
+	    </default>
+	  </option>
+	  <option name="beam_slowdown" type="float">
+	    <_short>Beam Slowdown</_short>
+	    <_long>Beam slowdown.</_long>
+	    <default>1</default>
+	    <min>0.1</min>
+	    <max>10</max>
+	    <precision>0.1</precision>
+	  </option>
+	  <option name="beam_life" type="float">
+	    <_short>Beam Life</_short>
+	    <_long>Beam life.</_long>
+	    <default>0.7</default>
+	    <min>0.1</min>
+	    <max>1</max>
+	    <precision>0.1</precision>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Burn</_short>
+	  <option name="fire_particles" type="int">
+	    <_short>Number Of Fire Particles</_short>
+	    <_long>Number of fire particles.</_long>
+	    <default>1000</default>
+	    <min>100</min>
+	    <max>10000</max>
+	  </option>
+	  <option name="fire_size" type="float">
+	    <_short>Fire Particle Size</_short>
+	    <_long>Fire particle size.</_long>
+	    <default>5</default>
+	    <min>0.1</min>
+	    <max>20</max>
+	    <precision>0.1</precision>
+	  </option>
+	  <option name="fire_slowdown" type="float">
+	    <_short>Fire Particle Slowdown</_short>
+	    <_long>Fire particle slowdown.</_long>
+	    <default>0.5</default>
+	    <min>0.1</min>
+	    <max>10</max>
+	    <precision>0.1</precision>
+	  </option>
+	  <option name="fire_life" type="float">
+	    <_short>Fire Particle Life</_short>
+	    <_long>Fire particle life.</_long>
+	    <default>0.7</default>
+	    <min>0.1</min>
+	    <max>1</max>
+	    <precision>0.1</precision>
+	  </option>
+	  <option name="fire_color" type="color">
+	    <_short>Fire Particle Color</_short>
+	    <_long>Fire particle color.</_long>
+	    <default>
+	      <red>0xffff</red>
+	      <green>0x3333</green>
+	      <blue>0x0555</blue>
+	      <alpha>0xffff</alpha>
+	    </default>
+	  </option>
+	  <option name="fire_direction" type="int">
+	    <_short>Fire direction</_short>
+	    <_long>Fire direction.</_long>
+	    <default>0</default>
+	    <min>0</min>
+	    <max>5</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Down</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Up</_name>
+	    </desc>
+	    <desc>
+	      <value>2</value>
+	      <_name>Left</_name>
+	    </desc>
+	    <desc>
+	      <value>3</value>
+	      <_name>Right</_name>
+	    </desc>
+	    <desc>
+	      <value>4</value>
+	      <_name>Random</_name>
+	    </desc>
+	    <desc>
+	      <value>5</value>
+	      <_name>Automatic</_name>
+	    </desc>
+	  </option>
+	  <option name="fire_constant_speed" type="bool">
+	    <_short>Fire constant speed</_short>
+	    <_long>Make fire effect duration be dependent on window height.</_long>
+	    <default>false</default>
+	  </option>
+	  <option name="fire_smoke" type="bool">
+	    <_short>Fire Smoke</_short>
+	    <_long>Fire smoke.</_long>
+	    <default>false</default>
+	  </option>
+	  <option name="fire_mystical" type="bool">
+	    <_short>Randomly Colored Fire</_short>
+	    <_long>Have random colors for the fire effect, also known as Mystical Fire.</_long>
+	    <default>false</default>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Domino</_short>
+	  <option name="domino_direction" type="int">
+	    <_short>Domino Piece Falling Direction</_short>
+	    <_long>Falling direction for Domino pieces.</_long>
+	    <default>5</default>
+	    <min>0</min>
+	    <max>5</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Down</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Up</_name>
+	    </desc>
+	    <desc>
+	      <value>2</value>
+	      <_name>Left</_name>
+	    </desc>
+	    <desc>
+	      <value>3</value>
+	      <_name>Right</_name>
+	    </desc>
+	    <desc>
+	      <value>4</value>
+	      <_name>Random</_name>
+	    </desc>
+	    <desc>
+	      <value>5</value>
+	      <_name>Automatic</_name>
+	    </desc>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Explode</_short>
+	  <option name="explode_gridx" type="int">
+	    <_short>Window Grid Width</_short>
+	    <_long>The exploding window will be split into pieces along a grid. Specify the number of grid cells along the width of the window.</_long>
+	    <default>13</default>
+	    <min>1</min>
+	    <max>200</max>
+	  </option>
+	  <option name="explode_gridy" type="int">
+	    <_short>Window Grid Height</_short>
+	    <_long>The exploding window will be split into pieces along a grid. Specify the number of grid cells along the height of the window.</_long>
+	    <default>10</default>
+	    <min>1</min>
+	    <max>200</max>
+	  </option>
+	  <option name="explode_spokes" type="int">
+	    <_short>Shatter Number of Spokes</_short>
+	    <_long>The exploding window with the shatter animation will be split into pieces radially from the center. Specify the number of radial spokes the animation will have.</_long>
+	    <default>2</default>
+	    <min>1</min>
+	    <max>100</max>
+	  </option>
+	  <option name="explode_tiers" type="int">
+	    <_short>Shatter Number of Tiers</_short>
+	    <_long>The exploding window will be split into pieces along concentric circles. Specify the number of concentric circles the shatter tessellation will have.</_long>
+	    <default>3</default>
+	    <min>1</min>
+	    <max>100</max>
+	  </option>
+	  <option name="explode_thickness" type="float">
+	    <_short>Thickness of Exploding Polygons</_short>
+	    <_long>Thickness of exploding window pieces (in pixels).</_long>
+	    <default>15</default>
+	    <min>0</min>
+	    <max>100</max>
+	    <precision>1</precision>
+	  </option>
+	  <option name="explode_tessellation" type="int">
+	    <_short>Tessellation Type</_short>
+	    <_long>Tessellation type for exploding window pieces.</_long>
+	    <default>0</default>
+	    <min>0</min>
+	    <max>2</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Rectangular</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Hexagonal</_name>
+	    </desc>
+	    <desc>
+	      <value>2</value>
+	      <_name>Glass</_name>
+	    </desc>	
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Fold</_short>
+	  <option name="fold_gridx" type="int">
+	    <_short>Window Grid Width</_short>
+	    <_long>The animated window will be split into pieces along a grid. Specify the number of grid cells along the width of the window.</_long>
+	    <default>3</default>
+	    <min>1</min>
+	    <max>100</max>
+	  </option>
+	  <option name="fold_gridy" type="int">
+	    <_short>Window Grid Height</_short>
+	    <_long>The animated window will be split into pieces along a grid. Specify the number of grid cells along the height of the window.</_long>
+	    <default>3</default>
+	    <min>1</min>
+	    <max>100</max>
+	  </option>
+	  <option name="fold_dir" type="int">
+	    <_short>Fold Direction</_short>
+	    <_long>Window folding direction.</_long>
+	    <default>1</default>
+	    <min>0</min>
+	    <max>1</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>In</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Out</_name>
+	    </desc>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Glide 3</_short>
+	  <option name="glide3_away_position" type="float">
+	    <_short>Away Position</_short>
+	    <_long>Closeness of window to camera at the end of the animation (1.0: Close to camera, -2.0: Away from camera).</_long>
+	    <default>-0.4</default>
+	    <min>-2</min>
+	    <max>1</max>
+	    <precision>0.05</precision>
+	  </option>
+	  <option name="glide3_away_angle" type="float">
+	    <_short>Away Angle</_short>
+	    <_long>Angle of window at the end of the animation.</_long>
+	    <default>45</default>
+	    <min>-540</min>
+	    <max>540</max>
+	    <precision>5</precision>
+	  </option>
+	  <option name="glide3_thickness" type="float">
+	    <_short>Thickness</_short>
+	    <_long>Window thickness in pixels. Setting this to larger than 0 will disable shadow, blur, and reflection during the animation.</_long>
+	    <default>0</default>
+	    <min>0</min>
+	    <max>100</max>
+	    <precision>1</precision>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Razr</_short>
+	  <option name="razr_direction" type="int">
+	    <_short>Razr Fold Opening Direction</_short>
+	    <_long>Fold opening direction for pieces in Razr effect.</_long>
+	    <default>5</default>
+	    <min>0</min>
+	    <max>5</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Down</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Up</_name>
+	    </desc>
+	    <desc>
+	      <value>2</value>
+	      <_name>Left</_name>
+	    </desc>
+	    <desc>
+	      <value>3</value>
+	      <_name>Right</_name>
+	    </desc>
+	    <desc>
+	      <value>4</value>
+	      <_name>Random</_name>
+	    </desc>
+	    <desc>
+	      <value>5</value>
+	      <_name>Automatic</_name>
+	    </desc>
+	  </option>
+	</subgroup>
+
+	<subgroup>
+	  <_short>Skewer</_short>
+	  <option name="skewer_direction" type="int">
+	    <_short>Skewer Direction</_short>
+	    <_long>Movement direction(s) for window pieces.</_long>
+	    <default>8</default>
+	    <min>0</min>
+	    <max>9</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Left</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Right</_name>
+	    </desc>
+	    <desc>
+	      <value>2</value>
+	      <_name>Left-right</_name>
+	    </desc>
+	    <desc>
+	      <value>3</value>
+	      <_name>Up</_name>
+	    </desc>
+	    <desc>
+	      <value>4</value>
+	      <_name>Down</_name>
+	    </desc>
+	    <desc>
+	      <value>5</value>
+	      <_name>Up-down</_name>
+	    </desc>
+	    <desc>
+	      <value>6</value>
+	      <_name>In</_name>
+	    </desc>
+	    <desc>
+	      <value>7</value>
+	      <_name>Out</_name>
+	    </desc>
+	    <desc>
+	      <value>8</value>
+	      <_name>In-out</_name>
+	    </desc>
+	    <desc>
+	      <value>9</value>
+	      <_name>Random</_name>
+	    </desc>
+	  </option>
+	  <option name="skewer_tessellation" type="int">
+	    <_short>Tessellation Type</_short>
+	    <_long>Tessellation type for window pieces.</_long>
+	    <default>0</default>
+	    <min>0</min>
+	    <max>1</max>
+	    <desc>
+	      <value>0</value>
+	      <_name>Rectangular</_name>
+	    </desc>
+	    <desc>
+	      <value>1</value>
+	      <_name>Hexagonal</_name>
+	    </desc>
+	  </option>
+ 	  <option name="skewer_gridx" type="int">
+	    <_short>Window Grid Width</_short>
+	    <_long>The animated window will be split into pieces along a grid. Specify the number of grid cells along the width of the window.</_long>
+	    <default>6</default>
+	    <min>1</min>
+	    <max>100</max>
+	  </option>
+	  <option name="skewer_gridy" type="int">
+	    <_short>Window Grid Height</_short>
+	    <_long>The animated window will be split into pieces along a grid. Specify the number of grid cells along the height of the window.</_long>
+	    <default>4</default>
+	    <min>1</min>
+	    <max>100</max>
+	  </option>
+	  <option name="skewer_thickness" type="float">
+	    <_short>Thickness of Animated Polygons</_short>
+            <_long>Thickness of animated window pieces (in pixels).</_long>
+	    <default>0</default>
+	    <min>0</min>
+	    <max>100</max>
+	    <precision>1</precision>
+	  </option>
+	  <option name="skewer_rotation" type="int">
+	    <_short>Rotation Angle</_short>
+	    <_long>Rotation angle of animated window pieces (in degrees).</_long>
+	    <default>0</default>
+	    <min>-720</min>
+	    <max>720</max>
+	    <precision>10</precision>
+	  </option>
+	</subgroup>
+
+	<option name="time_step_intense" type="int">
+	  <_short>Animation Time Step For Intense Effects</_short>
+	  <_long>The amount of time in milliseconds between each render of the intense animation (Ex. Burn, Beam). The higher the number, the jerkier the movements become.</_long>
+	  <default>30</default>
+	  <min>1</min>
+	  <max>400</max>
+	</option>
+      </group> 
+
+    </screen>
+
+    <extension base_plugin="animation">
+      <base_option>open_effects</base_option>
+      <base_option>open_random_effects</base_option>
+      <base_option>close_effects</base_option>
+      <base_option>close_random_effects</base_option>
+      <base_option>minimize_effects</base_option>
+      <base_option>minimize_random_effects</base_option>
+      <restriction>
+	<value>animationaddon:Airplane</value>
+	<_name>Airplane</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Beam Up</value>
+	<_name>Beam Up</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Burn</value>
+	<_name>Burn</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Domino</value>
+	<_name>Domino</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Explode</value>
+	<_name>Explode</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Fold</value>
+	<_name>Fold</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Glide 3</value>
+	<_name>Glide 3</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Leaf Spread</value>
+	<_name>Leaf Spread</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Razr</value>
+	<_name>Razr</_name>
+      </restriction>
+      <restriction>
+	<value>animationaddon:Skewer</value>
+	<_name>Skewer</_name>
+      </restriction>
+    </extension>
+
+  </plugin>
+</compiz>
