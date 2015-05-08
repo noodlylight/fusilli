@@ -809,28 +809,36 @@ class Banana():
             if len(defaultElement) == 1 and defaultElement[0].text != None:
                 items = defaultElement[0].findall("item")
                 for item in items:
-                    if item.text != None:
+                    if item.text == None:
+                        default.append(False)
+                    else:
                         default.append(True if item.text == "true" else False)
         elif option.attrib.get("type") == "list_int":
             default = []
             if len(defaultElement) == 1 and defaultElement[0].text != None:
                 items = defaultElement[0].findall("item")
                 for item in items:
-                    if item.text != None:
+                    if item.text == None:
+                        default.append(int(0))
+                    else:
                         default.append(int(item.text))
         elif option.attrib.get("type") == "list_float":
             default = []
             if len(defaultElement) == 1 and defaultElement[0].text != None:
                 items = defaultElement[0].findall("item")
                 for item in items:
-                    if item.text != None:
+                    if item.text == None:
+                        default.append(float(0.0))
+                    else:
                         default.append(float(item.text))
         elif option.attrib.get("type") == "list_string":
             default = []
             if len(defaultElement) == 1 and defaultElement[0].text != None:
                 items = defaultElement[0].findall("item")
                 for item in items:
-                    if item.text != None:
+                    if item.text == None:
+                        default.append("") #<item></item> -- empty string
+                    else:
                         default.append(item.text)
 
         #<hint></hint>
