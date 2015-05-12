@@ -20,7 +20,18 @@ libanimation_la_SOURCES = animation.c \
                           animation-magiclamp.c \
                           animation-rollup.c \
                           animation-wave.c \
-                          animation-zoomside.c
+                          animation-zoomside.c \
+                          animation-airplane3d.c \
+                          animation-beamup.c \
+                          animation-burn.c \
+                          animation-domino.c \
+                          animation-explode3d.c \
+                          animation-fold3d.c \
+                          animation-glide3.c \
+                          animation-leafspread.c \
+                          animation-particle.c \
+                          animation-polygon.c \
+                          animation-skewer.c
 
 libgroup_la_LDFLAGS = -module -avoid-version -no-undefined
 libgroup_la_SOURCES = group-cairo.c \

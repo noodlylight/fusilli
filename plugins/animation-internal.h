@@ -48,7 +48,18 @@ extern AnimEffect AnimEffectVacuum;
 extern AnimEffect AnimEffectWave;
 extern AnimEffect AnimEffectZoom;
 
-#define NUM_EFFECTS 16
+extern AnimEffect AnimEffectAirplane;
+extern AnimEffect AnimEffectBeamUp;
+extern AnimEffect AnimEffectBurn;
+extern AnimEffect AnimEffectDomino;
+extern AnimEffect AnimEffectExplode;
+extern AnimEffect AnimEffectFold;
+extern AnimEffect AnimEffectGlide3;
+extern AnimEffect AnimEffectLeafSpread;
+extern AnimEffect AnimEffectRazr;
+extern AnimEffect AnimEffectSkewer;
+
+#define NUM_EFFECTS 26
 
 typedef struct _AnimDisplay
 {
@@ -112,6 +123,7 @@ typedef struct _AnimScreen
 	                     // animations that require walker (dodge & focus fade)
 
 	CompOutput *output;
+	CompOutput *animaddon_output;
 
 	CompMatch open_match[MAX_MATCHES];
 	int open_count;
@@ -132,6 +144,7 @@ typedef struct _AnimScreen
 typedef struct _AnimWindow
 {
 	AnimWindowCommon com;
+	AnimWindowEngineData eng;
 
 	unsigned int state;
 	unsigned int newState;
@@ -183,6 +196,16 @@ typedef struct _AnimWindow
 	int dodgeOrder;         // dodge order (used temporarily)
 	Bool dodgeDirection;    // 0: up, down, left, right
 
+	// for burn
+	int animFireDirection;
+
+	// for polygon engine
+	int nDrawGeometryCalls;
+	Bool deceleratingMotion; // For effects that have decel. motion
+	int nClipsPassed;       /* # of clips passed to animAddWindowGeometry so far
+	                           in this draw step */
+	Bool clipsUpdated;      // whether stored clips are updated in this anim step
+
 	CompWindow *dodgeChainStart;// for the subject window
 	CompWindow *dodgeChainPrev; // for dodging windows
 	CompWindow *dodgeChainNext; // for dodging windows
@@ -229,7 +252,53 @@ typedef struct _AnimWindow
 
 #define DREAM_PERCEIVED_T 0.6f
 #define ROLLUP_PERCEIVED_T 0.6f
+#define DOMINO_PERCEIVED_T 0.8f
+#define EXPLODE_PERCEIVED_T 0.7f
+#define FOLD_PERCEIVED_T 0.55f
+#define LEAFSPREAD_PERCEIVED_T 0.6f
+#define SKEWER_PERCEIVED_T 0.6f
 
+typedef struct _AirplaneEffectParameters
+{
+	/// added for airplane folding and flying
+	// airplane fold phase.
+
+	Vector3d rotAxisA;              // Rotation axis vector A
+	Vector3d rotAxisB;              // Rotation axis vector B
+
+	Point3d rotAxisOffsetA;         // Rotation axis translate amount A
+	Point3d rotAxisOffsetB;         // Rotation axis translate amount B
+
+	float rotAngleA;                // Rotation angle A
+	float finalRotAngA;             // Final rotation angle A
+
+	float rotAngleB;                // Rotation angle B
+	float finalRotAngB;             // Final rotation angle B
+
+	// airplane fly phase:
+
+	Vector3d centerPosFly;  // center position (offset) during the flying phases
+
+	Vector3d flyRotation;   // airplane rotation during the flying phases
+	Vector3d flyFinalRotation; // airplane rotation during the flying phases
+
+	float flyScale;         // Scale for airplane flying effect
+	float flyFinalScale;    // Final Scale for airplane flying effect
+
+	float flyTheta;         // Theta parameter for fly rotations and positions
+
+	float moveStartTime2;           // Movement starts at this time ([0-1] range)
+	float moveDuration2;            // Movement lasts this long     ([0-1] range)
+
+	float moveStartTime3;           // Movement starts at this time ([0-1] range)
+	float moveDuration3;            // Movement lasts this long     ([0-1] range)
+
+	float moveStartTime4;           // Movement starts at this time ([0-1] range)
+	float moveDuration4;            // Movement lasts this long     ([0-1] range)
+
+	float moveStartTime5;           // Movement starts at this time ([0-1] range)
+	float moveDuration5;            // Movement lasts this long     ([0-1] range)
+} AirplaneEffectParameters;
 
 /*
  * Function prototypes
@@ -507,4 +576,199 @@ void
 getZoomCenterScale (CompWindow *w,
                     Point      *pCurCenter,
                     Point      *pCurScale);
+
+/* airplane3d.c */
+
+Bool
+fxAirplaneInit (CompWindow *w);
+
+void
+fxAirplaneAnimStep (CompWindow *w,
+                    float      time);
+
+void
+fxAirplaneLinearAnimStepPolygon (CompWindow    *w,
+                                 PolygonObject *p,
+                                 float         forwardProgress);
+
+void
+fxAirplaneDrawCustomGeometry (CompWindow *w);
+
+void
+AirplaneExtraPolygonTransformFunc (PolygonObject *p);
+
+
+/* beamup.c */
+
+void
+fxBeamupUpdateWindowAttrib (CompWindow        *w,
+                            WindowPaintAttrib *wAttrib);
+
+void
+fxBeamUpAnimStep (CompWindow *w,
+                  float      time);
+
+Bool
+fxBeamUpInit (CompWindow *w);
+
+
+/* burn.c */
+
+void
+fxBurnAnimStep (CompWindow *w,
+                float      time);
+
+Bool
+fxBurnInit (CompWindow *w);
+
+/* domino.c */
+
+Bool
+fxDominoInit (CompWindow *w);
+
+/* explode3d.c */
+
+Bool
+fxExplodeInit (CompWindow *w);
+
+/* fold3d.c */
+
+Bool
+fxFoldInit (CompWindow *w);
+
+void
+fxFoldAnimStepPolygon (CompWindow    *w,
+                       PolygonObject *p,
+                       float         forwardProgress);
+
+/* glide3.c */
+
+Bool
+fxGlide3Init (CompWindow *w);
+
+/* leafspread.c */
+
+Bool
+fxLeafSpreadInit (CompWindow *w);
+
+/* particle.c */
+
+void
+initParticles (int            numParticles,
+               ParticleSystem *ps);
+
+void
+drawParticles (CompWindow     *w,
+               ParticleSystem *ps);
+
+void
+updateParticles (ParticleSystem *ps,
+                 float          time);
+
+void
+finiParticles (ParticleSystem *ps);
+
+void
+drawParticleSystems (CompWindow *w);
+
+void
+particlesUpdateBB (CompOutput *output,
+                   CompWindow *w,
+                   Box        *BB);
+
+void
+particlesCleanup (CompWindow *w);
+
+Bool
+particlesPrePrepPaintScreen (CompWindow *w,
+                             int        msSinceLastPaint);
+
+/* polygon.c */
+
+Bool
+tessellateIntoRectangles (CompWindow *w,
+                          int        gridSizeX,
+                          int        gridSizeY,
+                          float      thickness);
+
+Bool
+tessellateIntoHexagons (CompWindow *w,
+                        int        gridSizeX,
+                        int        gridSizeY,
+                        float      thickness);
+
+Bool
+tessellateIntoGlass (CompWindow *w,
+                     int        spoke_num,
+                     int        tier_num,
+                     float      thickness);
+
+void
+polygonsStoreClips (CompWindow *w,
+                    int        nClip,
+                    BoxPtr     pClip,
+                    int        nMatrix,
+                    CompMatrix *matrix);
+
+void
+polygonsDrawCustomGeometry (CompWindow *w);
+
+void
+polygonsPrePaintWindow (CompWindow *w);
+
+void
+polygonsPostPaintWindow (CompWindow *w);
+
+void
+freePolygonSet (AnimWindow *aw);
+
+void
+freePolygonObjects (PolygonSet *pset);
+
+void
+polygonsLinearAnimStepPolygon (CompWindow    *w,
+                               PolygonObject *p,
+                               float         forwardProgress);
+
+void
+polygonsDeceleratingAnimStepPolygon (CompWindow    *w,
+                                     PolygonObject *p,
+                                     float         forwardProgress);
+
+void
+polygonsUpdateBB (CompOutput *output,
+                  CompWindow *w,
+                  Box        *BB);
+
+void
+polygonsAnimStep (CompWindow *w,
+                  float      time);
+
+Bool
+polygonsPrePreparePaintScreen (CompWindow *w,
+                               int        msSinceLastPaint);
+
+void
+polygonsCleanup (CompWindow *w);
+
+Bool
+polygonsAnimInit (CompWindow *w);
+
+void
+polygonsPrePaintOutput (CompScreen *s,
+                        CompOutput *output);
+
+void
+polygonsRefresh (CompWindow *w,
+                 Bool       animInitialized);
+
+/* skewer.c */
+
+Bool
+fxSkewerInit (CompWindow *w);
+
+void
+fxSkewerAnimStepPolygon (CompWindow    *w,
+                         PolygonObject *p,
+                         float         forwardProgress);
 

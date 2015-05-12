@@ -13,6 +13,8 @@ It is a fork of Compiz (0.8)
 minimize, move, neg, obs, opacify, place, resize, ring, rotate, scale, screenshot, shift, showmouse, snow, splash,
 staticswitcher, svg, switcher, thumbnail, titleinfo, trailfocus, wall, wallpaper, water, winrules, wobbly, workarounds, wsnames
 
+The effects that used to be in animationaddon, are now included in animation.
+
 Plugins png, imgjpeg, text, regex, inotify, mousepoll were consolidated into core.
 
 ## Option System

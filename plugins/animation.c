@@ -2,6 +2,7 @@
  * Animation plugin for compiz/beryl
  *
  * animation.c
+ * animationaddon.c was merged with this file.
  *
  * Copyright : (C) 2006 Erkin Bahceci
  * E-mail    : erkinbah@gmail.com
@@ -309,6 +310,34 @@ getMatchingAnimSelection (CompWindow *w,
 
 		else if (strcasecmp (option_effects->list.item[i].s, "zoom") == 0)
 			return AnimEffectZoom;
+
+		//animationaddon
+		else if (strcasecmp (option_effects->list.item[i].s, "airplane") == 0)
+			return AnimEffectAirplane;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "beamup") == 0)
+			return AnimEffectBeamUp;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "burn") == 0)
+			return AnimEffectBurn;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "domino") == 0)
+			return AnimEffectDomino;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "explode") == 0)
+			return AnimEffectExplode;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "fold") == 0)
+			return AnimEffectFold;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "glide3") == 0)
+			return AnimEffectGlide3;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "leafspread") == 0)
+			return AnimEffectLeafSpread;
+
+		else if (strcasecmp (option_effects->list.item[i].s, "skewer") == 0)
+			return AnimEffectSkewer;
 	}
 
 	return AnimEffectNone;
@@ -4161,7 +4190,11 @@ animPaintOutput (CompScreen              *s,
 	ANIM_SCREEN (s);
 
 	if (as->animInProgress)
+	{
+		polygonsPrePaintOutput (s, output); //from animationaddon
+
 		mask |= PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS_MASK;
+	}
 
 	as->output = output;
 
@@ -4199,6 +4232,14 @@ getAnimWindowCommon (CompWindow *w)
 	return &aw->com;
 }
 
+static AnimWindowEngineData *
+getAnimWindowEngineData (CompWindow *w)
+{
+	ANIM_WINDOW (w);
+
+	return &aw->eng;
+}
+
 AnimBaseFunctions animBaseFunctions =
 {
 	.getMousePointerXY          = getMousePointerXY,
@@ -4222,6 +4263,50 @@ AnimBaseFunctions animBaseFunctions =
 	.returnTrue                 = returnTrue,
 	.postAnimationCleanup       = postAnimationCleanup,
 	.fxZoomUpdateWindowAttrib   = fxZoomUpdateWindowAttrib
+};
+
+AnimAddonFunctions animAddonFunctions =
+{
+	.getAnimWindowEngineData            = getAnimWindowEngineData,
+
+	.initParticles                      = initParticles,
+	.finiParticles                      = finiParticles,
+	.drawParticleSystems                = drawParticleSystems,
+	.particlesUpdateBB                  = particlesUpdateBB,
+	.particlesCleanup                   = particlesCleanup,
+	.particlesPrePrepPaintScreen        = particlesPrePrepPaintScreen,
+
+	.polygonsAnimInit                   = polygonsAnimInit,
+	.polygonsAnimStep                   = polygonsAnimStep,
+	.polygonsPrePaintWindow             = polygonsPrePaintWindow,
+	.polygonsPostPaintWindow            = polygonsPostPaintWindow,
+	.polygonsStoreClips                 = polygonsStoreClips,
+	.polygonsDrawCustomGeometry         = polygonsDrawCustomGeometry,
+	.polygonsUpdateBB                   = polygonsUpdateBB,
+	.polygonsPrePreparePaintScreen      = polygonsPrePreparePaintScreen,
+	.polygonsCleanup                    = polygonsCleanup,
+	.polygonsRefresh                    = polygonsRefresh,
+	.polygonsDeceleratingAnimStepPolygon= polygonsDeceleratingAnimStepPolygon,
+	.freePolygonObjects                 = freePolygonObjects,
+	.tessellateIntoRectangles           = tessellateIntoRectangles,
+	.tessellateIntoHexagons             = tessellateIntoHexagons,
+	.tessellateIntoGlass                = tessellateIntoGlass
+};
+
+AnimAddonEffectProperties fxAirplaneExtraProp = {
+	.animStepPolygonFunc = fxAirplaneLinearAnimStepPolygon
+};
+
+AnimAddonEffectProperties fxSkewerExtraProp = {
+	.animStepPolygonFunc = fxSkewerAnimStepPolygon
+};
+
+AnimAddonEffectProperties fxFoldExtraProp = {
+	.animStepPolygonFunc = fxFoldAnimStepPolygon
+};
+
+AnimAddonEffectProperties fxGlide3ExtraProp = {
+	.animStepPolygonFunc = polygonsDeceleratingAnimStepPolygon
 };
 
 static Bool
@@ -4430,6 +4515,143 @@ AnimEffect AnimEffectZoom = &(AnimEffectInfo)
       .updateBBFunc             = compTransformUpdateBB,
       .zoomToIconFunc           = returnTrue}};
 
+AnimEffect AnimEffectAirplane   = &(AnimEffectInfo)
+{"animation:Airplane",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+      .postPaintWindowFunc          = polygonsPostPaintWindow,
+      .animStepFunc                 = fxAirplaneAnimStep,
+      .initFunc                     = fxAirplaneInit,
+      .addCustomGeometryFunc        = polygonsStoreClips,
+      .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+      .updateBBFunc                 = updateBBScreen,
+      .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+      .cleanupFunc                  = polygonsCleanup,
+      .refreshFunc                  = polygonsRefresh,
+      .extraProperties              = &fxAirplaneExtraProp}};
+
+AnimEffect AnimEffectBeamUp     = &(AnimEffectInfo)
+{"animation:Beam Up",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .updateWindowAttribFunc       = fxBeamupUpdateWindowAttrib,
+      .postPaintWindowFunc          = drawParticleSystems,
+      .animStepFunc                 = fxBeamUpAnimStep,
+      .initFunc                     = fxBeamUpInit,
+      .updateBBFunc                 = particlesUpdateBB,
+      .prePrepPaintScreenFunc       = particlesPrePrepPaintScreen,
+      .cleanupFunc                  = particlesCleanup}};
+
+AnimEffect AnimEffectBurn       = &(AnimEffectInfo)
+{"animation:Burn",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .postPaintWindowFunc          = drawParticleSystems,
+      .animStepFunc                 = fxBurnAnimStep,
+      .initFunc                     = fxBurnInit,
+      .updateBBFunc                 = particlesUpdateBB,
+      .prePrepPaintScreenFunc       = particlesPrePrepPaintScreen,
+      .cleanupFunc                  = particlesCleanup}};
+
+AnimEffect AnimEffectDomino     = &(AnimEffectInfo)
+{"animation:Domino",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+      .postPaintWindowFunc          = polygonsPostPaintWindow,
+      .animStepFunc                 = polygonsAnimStep,
+      .initFunc                     = fxDominoInit,
+      .addCustomGeometryFunc        = polygonsStoreClips,
+      .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+      .updateBBFunc                 = polygonsUpdateBB,
+      .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+      .cleanupFunc                  = polygonsCleanup,
+      .refreshFunc                  = polygonsRefresh}};
+
+AnimEffect AnimEffectExplode    = &(AnimEffectInfo)
+{"animation:Explode",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+      .postPaintWindowFunc          = polygonsPostPaintWindow,
+      .animStepFunc                 = polygonsAnimStep,
+      .initFunc                     = fxExplodeInit,
+      .addCustomGeometryFunc        = polygonsStoreClips,
+      .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+      .updateBBFunc                 = polygonsUpdateBB,
+      .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+      .cleanupFunc                  = polygonsCleanup,
+      .refreshFunc                  = polygonsRefresh}};
+
+AnimEffect AnimEffectFold       = &(AnimEffectInfo)
+{"animation:Fold",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+      .postPaintWindowFunc          = polygonsPostPaintWindow,
+      .animStepFunc                 = polygonsAnimStep,
+      .initFunc                     = fxFoldInit,
+      .addCustomGeometryFunc        = polygonsStoreClips,
+      .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+      .updateBBFunc                 = polygonsUpdateBB,
+      .extraProperties              = &fxFoldExtraProp,
+      .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+      .cleanupFunc                  = polygonsCleanup,
+      .refreshFunc                  = polygonsRefresh}};
+
+AnimEffect AnimEffectGlide3     = &(AnimEffectInfo)
+{"animation:Glide 3",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+	  .postPaintWindowFunc          = polygonsPostPaintWindow,
+	  .animStepFunc                 = polygonsAnimStep,
+	  .initFunc                     = fxGlide3Init,
+	  .addCustomGeometryFunc        = polygonsStoreClips,
+	  .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+	  .updateBBFunc                 = polygonsUpdateBB,
+	  .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+	  .cleanupFunc                  = polygonsCleanup,
+	  .refreshFunc                  = polygonsRefresh,
+	  .extraProperties              = &fxGlide3ExtraProp}};
+
+AnimEffect AnimEffectLeafSpread = &(AnimEffectInfo)
+{"animation:Leaf Spread",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+      .postPaintWindowFunc          = polygonsPostPaintWindow,
+      .animStepFunc                 = polygonsAnimStep,
+      .initFunc                     = fxLeafSpreadInit,
+      .addCustomGeometryFunc        = polygonsStoreClips,
+      .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+      .updateBBFunc                 = polygonsUpdateBB,
+      .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+      .cleanupFunc                  = polygonsCleanup,
+      .refreshFunc                  = polygonsRefresh}};
+
+AnimEffect AnimEffectRazr       = &(AnimEffectInfo)
+{"animation:Razr",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+      .postPaintWindowFunc          = polygonsPostPaintWindow,
+      .animStepFunc                 = polygonsAnimStep,
+      .initFunc                     = fxDominoInit,
+      .addCustomGeometryFunc        = polygonsStoreClips,
+      .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+      .updateBBFunc                 = polygonsUpdateBB,
+      .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+      .cleanupFunc                  = polygonsCleanup,
+      .refreshFunc                  = polygonsRefresh}};
+
+AnimEffect AnimEffectSkewer     = &(AnimEffectInfo)
+{"animation:Skewer",
+ {TRUE, TRUE, TRUE, FALSE, FALSE},
+ {    .prePaintWindowFunc           = polygonsPrePaintWindow,
+      .postPaintWindowFunc          = polygonsPostPaintWindow,
+      .animStepFunc                 = polygonsAnimStep,
+      .initFunc                     = fxSkewerInit,
+      .addCustomGeometryFunc        = polygonsStoreClips,
+      .drawCustomGeometryFunc       = polygonsDrawCustomGeometry,
+      .updateBBFunc                 = polygonsUpdateBB,
+      .extraProperties              = &fxSkewerExtraProp,
+      .prePrepPaintScreenFunc       = polygonsPrePreparePaintScreen,
+      .cleanupFunc                  = polygonsCleanup,
+      .refreshFunc                  = polygonsRefresh}};
+
 AnimEffect animEffects[NUM_EFFECTS];
 
 static Bool
@@ -4456,6 +4678,8 @@ animInitScreen (CompPlugin *p,
 
 	as->animInProgress = FALSE;
 
+	as->animaddon_output = &s->fullscreenOutput;
+
 	AnimEffect animEffectsTmp[NUM_EFFECTS] =
 	{
 		AnimEffectNone,
@@ -4473,7 +4697,17 @@ animInitScreen (CompPlugin *p,
 		AnimEffectSidekick,
 		AnimEffectVacuum,
 		AnimEffectWave,
-		AnimEffectZoom
+		AnimEffectZoom,
+		AnimEffectAirplane,
+		AnimEffectBeamUp,
+		AnimEffectBurn,
+		AnimEffectDomino,
+		AnimEffectExplode,
+		AnimEffectFold,
+		AnimEffectGlide3,
+		AnimEffectLeafSpread,
+		AnimEffectRazr,
+		AnimEffectSkewer
 	};
 
 	memcpy (animEffects,
@@ -4681,6 +4915,10 @@ animInitWindow (CompPlugin *p,
 	{
 		aw->state = aw->newState = animGetWindowState (w);
 	}
+
+	aw->eng.polygonSet = NULL;
+	aw->eng.numPs = 0;
+	aw->eng.ps = NULL;
 
 	w->privates[as->windowPrivateIndex].ptr = aw;
 
