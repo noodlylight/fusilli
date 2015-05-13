@@ -274,7 +274,7 @@ if test "x$use_kde4" = "xyes"; then
 
   if test -d "$kde4libs"; then
     PKG_CHECK_MODULES(FUSILLI_DECORATOR_KDE4,
-                      dbus-1 xdamage xext xcomposite QtCore >= 4.5.0 QtGui QtDBus,
+                      dbus-1 x11 xdamage xext xcomposite QtCore >= 4.5.0 QtGui QtDBus,
                       [use_kde4=yes], [use_kde4=no])
 
     KDE4_CFLAGS="-I$kde4incs"
