@@ -39,15 +39,15 @@ static int bananaIndex;
 
 static int displayPrivateIndex;
 
-static CompKeyBinding    clear_key;
-static CompButtonBinding initiate_button, erase_button, clear_button;
-
 static int annoLastPointerX = 0;
 static int annoLastPointerY = 0;
 
 typedef struct _AnnoDisplay {
 	int             screenPrivateIndex;
 	HandleEventProc handleEvent;
+
+	CompKeyBinding    clear_key;
+	CompButtonBinding initiate_button, erase_button, clear_button;
 } AnnoDisplay;
 
 typedef struct _AnnoScreen {
@@ -437,18 +437,9 @@ annoDraw (CompDisplay     *d,
 
 
 static Bool
-annoInitiate (BananaArgument     *arg,
-              int                nArg)
+annoInitiate (Window     xid)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s = findScreenAtDisplay (xid);
 	if (s)
@@ -471,18 +462,9 @@ annoInitiate (BananaArgument     *arg,
 }
 
 static Bool
-annoTerminate (BananaArgument     *arg,
-               int                nArg)
+annoTerminate (Window xid)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	for (s = display.screens; s; s = s->next)
 	{
@@ -502,18 +484,9 @@ annoTerminate (BananaArgument     *arg,
 }
 
 static Bool
-annoEraseInitiate (BananaArgument     *arg,
-                   int                nArg)
+annoEraseInitiate (Window     xid)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s = findScreenAtDisplay (xid);
 	if (s)
@@ -536,18 +509,9 @@ annoEraseInitiate (BananaArgument     *arg,
 }
 
 static Bool
-annoClear (BananaArgument     *arg,
-           int                nArg)
+annoClear (Window     xid)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s = findScreenAtDisplay (xid);
 	if (s)
@@ -702,45 +666,27 @@ annoHandleEvent (XEvent      *event)
 		if (s)
 			annoHandleMotionEvent (s, pointerX, pointerY);
 	case KeyPress:
-		if (isKeyPressEvent (event, &clear_key))
-		{
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xkey.root;
-			annoClear (&arg, 1);
-		}
+		if (isKeyPressEvent (event, &ad->clear_key))
+			annoClear (event->xkey.root);
+
 		break;
 	case KeyRelease:
 		break;
 	case ButtonPress:
-		if (isButtonPressEvent (event, &initiate_button))
-		{
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xbutton.root;
-			annoInitiate (&arg, 1);
-		}
+		if (isButtonPressEvent (event, &ad->initiate_button))
+			annoInitiate (event->xbutton.root);
 
-		if (isButtonPressEvent (event, &erase_button))
-		{
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xbutton.root;
-			annoEraseInitiate (&arg, 1);
-		}
+		else if (isButtonPressEvent (event, &ad->erase_button))
+			annoEraseInitiate (event->xbutton.root);
+
+		else if (isButtonPressEvent (event, &ad->clear_button))
+			annoClear (event->xbutton.root);
 		break;
 	case ButtonRelease:
-		if (initiate_button.button == event->xbutton.button ||
-		    erase_button.button == event->xbutton.button)
+		if (ad->initiate_button.button == event->xbutton.button ||
+		    ad->erase_button.button == event->xbutton.button)
 		{
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xbutton.root;
-			annoTerminate (&arg, 1);
+			annoTerminate (event->xbutton.root);
 		}
 		break;
 
@@ -769,6 +715,28 @@ annoInitDisplay (CompPlugin  *p,
 		free (ad);
 		return FALSE;
 	}
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button", -1);
+
+	const BananaValue *
+	option_erase_button = bananaGetOption (bananaIndex,
+	                                       "erase_button", -1);
+
+	const BananaValue *
+	option_clear_button = bananaGetOption (bananaIndex,
+	                                       "clear_button", -1);
+
+	const BananaValue *
+	option_clear_key = bananaGetOption (bananaIndex,
+	                                    "clear_key", -1);
+
+	registerButton (option_initiate_button->s, &ad->initiate_button);
+	registerButton (option_erase_button->s, &ad->erase_button);
+	registerButton (option_clear_button->s, &ad->clear_button);
+
+	registerKey (option_clear_key->s, &ad->clear_key);
 
 	WRAP (ad, d, handleEvent, annoHandleEvent);
 
@@ -845,17 +813,19 @@ annoChangeNotify (const char        *optionName,
                   const BananaValue *optionValue,
                   int               screenNum)
 {
+	ANNO_DISPLAY (&display);
+
 	if (strcasecmp (optionName, "initiate_button") == 0)
-		updateButton (optionValue->s, &initiate_button);
+		updateButton (optionValue->s, &ad->initiate_button);
 
 	else if (strcasecmp (optionName, "erase_button") == 0)
-		updateButton (optionValue->s, &erase_button);
+		updateButton (optionValue->s, &ad->erase_button);
 
 	else if (strcasecmp (optionName, "clear_button") == 0)
-		updateButton (optionValue->s, &clear_button);
+		updateButton (optionValue->s, &ad->clear_button);
 
 	else if (strcasecmp (optionName, "clear_key") == 0)
-		updateKey (optionValue->s, &clear_key);
+		updateKey (optionValue->s, &ad->clear_key);
 }
 
 static Bool
@@ -883,28 +853,6 @@ annoInit (CompPlugin *p)
 		return FALSE;
 
 	bananaAddChangeNotifyCallBack (bananaIndex, annoChangeNotify);
-
-	const BananaValue *
-	option_initiate_button = bananaGetOption (bananaIndex,
-	                                          "initiate_button", -1);
-
-	const BananaValue *
-	option_erase_button = bananaGetOption (bananaIndex,
-	                                       "erase_button", -1);
-
-	const BananaValue *
-	option_clear_button = bananaGetOption (bananaIndex,
-	                                       "clear_button", -1);
-
-	const BananaValue *
-	option_clear_key = bananaGetOption (bananaIndex,
-	                                    "clear_key", -1);
-
-	registerButton (option_initiate_button->s, &initiate_button);
-	registerButton (option_erase_button->s, &erase_button);
-	registerButton (option_clear_button->s, &clear_button);
-
-	registerKey (option_clear_key->s, &clear_key);
 
 	return TRUE;
 }
