@@ -4870,7 +4870,7 @@ animInitWindow (CompPlugin *p,
 		return FALSE;
 
 	aw->com.model = 0;
-	aw->com.animRemainingTime = 0;
+	aw->com.animRemainingTime = 0.0;
 	aw->com.animTotalTime = 0;
 	aw->com.timestep = 0;
 	aw->animInitialized = FALSE;
@@ -4878,6 +4878,19 @@ animInitWindow (CompPlugin *p,
 	aw->com.curWindowEvent = WindowEventNone;
 	aw->com.animOverrideProgressDir = 0;
 	aw->curAnimSelectionRow = -1;
+	aw->winPassingThrough = NULL;
+	aw->com.transformProgress = 0.0;
+
+	int i;
+	for (i = 0; i <= 15; i++)
+		aw->com.transform.m[i] = 0.0;
+
+	aw->dodgeMaxAmount = 0;
+	aw->dodgeSubjectWin = NULL;
+	aw->dodgeChainStart = NULL;
+	aw->dodgeChainPrev = NULL;
+	aw->dodgeChainNext = NULL;
+	aw->dodgeDirection = 0;
 
 	w->indexCount = 0;
 
@@ -4892,6 +4905,8 @@ animInitWindow (CompPlugin *p,
 	aw->moreToBePaintedPrev = NULL;
 	aw->winThisIsPaintedBefore = NULL;
 
+	aw->created = FALSE;
+
 	aw->grabbed = FALSE;
 
 	aw->com.useDrawRegion = FALSE;
@@ -4899,6 +4914,9 @@ animInitWindow (CompPlugin *p,
 
 	aw->BB.x1 = aw->BB.y1 = MAXSHORT;
 	aw->BB.x2 = aw->BB.y2 = MINSHORT;
+
+	aw->lastBB.x1 = aw->lastBB.y1 = MAXSHORT;
+	aw->lastBB.x2 = aw->lastBB.y2 = MINSHORT;
 
 	aw->nowShaded = FALSE;
 
