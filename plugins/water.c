@@ -62,11 +62,7 @@ typedef struct _WaterFunction {
 
 static int bananaIndex;
 
-static int initiate_key_modifiers;
-
 static int displayPrivateIndex;
-
-static CompKeyBinding toggle_rain_key, toggle_wiper_key;
 
 static int waterLastPointerX = 0;
 static int waterLastPointerY = 0;
@@ -77,6 +73,10 @@ typedef struct _WaterDisplay {
 	HandleEventProc handleEvent;
 
 	float           offsetScale;
+
+	CompKeyBinding toggle_rain_key, toggle_wiper_key;
+
+	int initiate_key_modifiers;
 } WaterDisplay;
 
 typedef struct _WaterScreen {
@@ -1238,8 +1238,7 @@ waterHandleMotionEvent (CompDisplay *d,
 }
 
 static Bool
-waterInitiate (BananaArgument     *arg,
-               int                nArg)
+waterInitiate (void)
 {
 	CompScreen   *s;
 	unsigned int ui;
@@ -1274,8 +1273,7 @@ waterInitiate (BananaArgument     *arg,
 }
 
 static Bool
-waterTerminate (BananaArgument     *arg,
-                int                nArg)
+waterTerminate (void)
 {
 	CompScreen *s;
 
@@ -1294,18 +1292,9 @@ waterTerminate (BananaArgument     *arg,
 }
 
 static Bool
-waterToggleRain (BananaArgument     *arg,
-                 int                nArg)
+waterToggleRain (Window xid)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s = findScreenAtDisplay (xid);
 	if (s)
@@ -1336,18 +1325,9 @@ waterToggleRain (BananaArgument     *arg,
 }
 
 static Bool
-waterToggleWiper (BananaArgument     *arg,
-                  int                nArg)
+waterToggleWiper (Window xid)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s = findScreenAtDisplay (xid);
 	if (s)
@@ -1369,18 +1349,9 @@ waterToggleWiper (BananaArgument     *arg,
 }
 
 static Bool
-waterTitleWave (BananaArgument     *arg,
-                int                nArg)
+waterTitleWave (Window xid)
 {
 	CompWindow *w;
-	int        xid;
-
-	BananaValue *window = getArgNamed ("window", arg, nArg);
-
-	if (window != NULL)
-		xid = window->i;
-	else
-		xid = display.activeWindow;
 
 	w = findWindowAtDisplay (xid);
 	if (w)
@@ -1472,22 +1443,12 @@ waterHandleEvent (XEvent      *event)
 
 	switch (event->type) {
 	case KeyPress:
-		if (isKeyPressEvent (event, &toggle_wiper_key))
-		{
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xkey.root;
-			waterToggleWiper (&arg, 1);
-		}
-		else if (isKeyPressEvent (event, &toggle_rain_key))
-		{
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xkey.root;
-			waterToggleRain (&arg, 1);
-		}
+		if (isKeyPressEvent (event, &wd->toggle_wiper_key))
+			waterToggleWiper (event->xkey.root);
+
+		else if (isKeyPressEvent (event, &wd->toggle_rain_key))
+			waterToggleRain (event->xkey.root);
+
 		break;
 	case ButtonPress:
 		s = findScreenAtDisplay (event->xbutton.root);
@@ -1527,22 +1488,20 @@ waterHandleEvent (XEvent      *event)
 					unsigned int    modMask = REAL_MOD_MASK & ~display.ignoredModMask;
 
 					unsigned int bindMods = virtualToRealModMask ( 
-					                           initiate_key_modifiers);
+					                           wd->initiate_key_modifiers);
 
 					if ((stateEvent->mods & modMask & bindMods) == bindMods)
-					{
-						waterInitiate (NULL, 0);
-					}
+						waterInitiate ();
 				}
 				else
 				{
 					unsigned int    modMask = REAL_MOD_MASK & ~display.ignoredModMask;
 
 					unsigned int bindMods = virtualToRealModMask ( 
-					                           initiate_key_modifiers);
+					                           wd->initiate_key_modifiers);
 
 					if ((stateEvent->mods & modMask & bindMods) != bindMods)
-						waterTerminate (NULL, 0);
+						waterTerminate ();
 				}
 			}
 			else if (xkbEvent->xkb_type == XkbBellNotify)
@@ -1553,15 +1512,7 @@ waterHandleEvent (XEvent      *event)
 				                                     -1);
 
 				if (option_title_wave->b)
-				{
-					BananaArgument arg;
-
-					arg.name = "window";
-					arg.type = BananaInt;
-					arg.value.i = display.activeWindow;
-
-					waterTitleWave (&arg, 1);
-				}
+					waterTitleWave (display.activeWindow);
 			}
 		}
 	}
@@ -1598,6 +1549,27 @@ waterInitDisplay (CompPlugin  *p,
 	wd->offsetScale = option_offset_scale->f * 50.0f;
 
 	WRAP (wd, d, handleEvent, waterHandleEvent);
+
+	const BananaValue *
+	option_toggle_rain_key = bananaGetOption (bananaIndex,
+	                                          "toggle_rain_key",
+	                                          -1);
+
+	const BananaValue *
+	option_toggle_wiper_key = bananaGetOption (bananaIndex,
+	                                           "toggle_wiper_key",
+	                                           -1);
+
+	registerKey (option_toggle_rain_key->s, &wd->toggle_rain_key);
+	registerKey (option_toggle_wiper_key->s, &wd->toggle_wiper_key);
+
+	//initiate key is not a passive grab key
+	const BananaValue *
+	option_initiate_key = bananaGetOption (bananaIndex,
+	                                       "initiate_key",
+	                                       -1);
+
+	wd->initiate_key_modifiers = stringToModifiers (option_initiate_key->s);
 
 	d->privates[displayPrivateIndex].ptr = wd;
 
@@ -1695,14 +1667,16 @@ waterChangeNotify (const char        *optionName,
                    const BananaValue *optionValue,
                    int               screenNum)
 {
+	WATER_DISPLAY (&display);
+
 	if (strcasecmp (optionName, "initiate_key") == 0)
-		initiate_key_modifiers = stringToModifiers (optionValue->s);
+		wd->initiate_key_modifiers = stringToModifiers (optionValue->s);
 
 	else if (strcasecmp (optionName, "toggle_rain_key") == 0)
-		updateKey (optionValue->s, &toggle_rain_key);
+		updateKey (optionValue->s, &wd->toggle_rain_key);
 
 	else if (strcasecmp (optionName, "toggle_wiper_key") == 0)
-		updateKey (optionValue->s, &toggle_wiper_key);
+		updateKey (optionValue->s, &wd->toggle_wiper_key);
 
 	else if (strcasecmp (optionName, "offset_scale") == 0)
 	{
@@ -1756,27 +1730,6 @@ waterInit (CompPlugin *p)
 		return FALSE;
 
 	bananaAddChangeNotifyCallBack (bananaIndex, waterChangeNotify);
-
-	const BananaValue *
-	option_toggle_rain_key = bananaGetOption (bananaIndex,
-	                                          "toggle_rain_key",
-	                                          -1);
-
-	const BananaValue *
-	option_toggle_wiper_key = bananaGetOption (bananaIndex,
-	                                           "toggle_wiper_key",
-	                                           -1);
-
-	registerKey (option_toggle_rain_key->s, &toggle_rain_key);
-	registerKey (option_toggle_wiper_key->s, &toggle_wiper_key);
-
-	//initiate key is not a passive grab key
-	const BananaValue *
-	option_initiate_key = bananaGetOption (bananaIndex,
-	                                       "initiate_key",
-	                                       -1);
-
-	initiate_key_modifiers = stringToModifiers (option_initiate_key->s);
 
 	return TRUE;
 }
