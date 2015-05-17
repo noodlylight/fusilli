@@ -33,11 +33,11 @@ static int bananaIndex;
 
 static int displayPrivateIndex;
 
-static CompKeyBinding    run_command_key[NUM_COMMANDS];
-static CompButtonBinding run_command_button[NUM_COMMANDS];
-
 typedef struct _CommandsDisplay {
 	HandleEventProc handleEvent;
+
+	CompKeyBinding    run_command_key[NUM_COMMANDS];
+	CompButtonBinding run_command_button[NUM_COMMANDS];
 } CommandsDisplay;
 
 #define GET_COMMANDS_DISPLAY(d) \
@@ -52,19 +52,21 @@ commandsChangeNotify (const char        *optionName,
                       const BananaValue *optionValue,
                       int               screenNum)
 {
+	COMMANDS_DISPLAY (&display);
+
 	if (strstr (optionName, "run_command_key"))
 	{
 		int i = strlen ("run_command_key");
 		int index = atoi (&optionName[i]);
 
-		updateKey (optionValue->s, &run_command_key[index]);
+		updateKey (optionValue->s, &cd->run_command_key[index]);
 	}
 	else if (strstr (optionName, "run_command_button"))
 	{
 		int i = strlen ("run_command_button");
 		int index = atoi (&optionName[i]);
 
-		updateButton (optionValue->s, &run_command_button[index]);
+		updateButton (optionValue->s, &cd->run_command_button[index]);
 	}
 	//else if (strstr (optionName, "run_command_edge"))
 	//{
@@ -74,7 +76,7 @@ commandsChangeNotify (const char        *optionName,
 }
 
 static void
-commandsHandleEvent (XEvent      *event)
+commandsHandleEvent (XEvent *event)
 {
 	CompScreen *s;
 
@@ -87,7 +89,7 @@ commandsHandleEvent (XEvent      *event)
 		s = findScreenAtDisplay (event->xkey.root);
 		for (i = 0; i <= NUM_COMMANDS - 1; i++)
 		{
-			if (isKeyPressEvent (event, &run_command_key[i]))
+			if (isKeyPressEvent (event, &cd->run_command_key[i]))
 			{
 				char optionName[50];
 
@@ -104,7 +106,7 @@ commandsHandleEvent (XEvent      *event)
 		s = findScreenAtDisplay (event->xbutton.root);
 		for (i = 0; i <= NUM_COMMANDS - 1; i++)
 		{
-			if (isButtonPressEvent (event, &run_command_button[i]))
+			if (isButtonPressEvent (event, &cd->run_command_button[i]))
 			{
 				char optionName[50];
 
@@ -145,6 +147,21 @@ commandsInitDisplay (CompPlugin  *p,
 		return FALSE;
 
 	WRAP (cd, d, handleEvent, commandsHandleEvent);
+
+	int i;
+	for (i = 0; i <= NUM_COMMANDS - 1; i++)
+	{
+		char optionName[50];
+		const BananaValue *option;
+
+		sprintf (optionName, "run_command_key%d", i);
+		option = bananaGetOption (bananaIndex, optionName, -1);
+		registerKey (option->s, &cd->run_command_key[i]);
+
+		sprintf (optionName, "run_command_button%d", i);
+		option = bananaGetOption (bananaIndex, optionName, -1);
+		registerButton (option->s, &cd->run_command_button[i]);
+	}
 
 	d->privates[displayPrivateIndex].ptr = cd;
 
@@ -187,21 +204,6 @@ commandsInit (CompPlugin *p)
 		return FALSE;
 
 	bananaAddChangeNotifyCallBack (bananaIndex, commandsChangeNotify);
-
-	int i;
-	for (i = 0; i <= NUM_COMMANDS - 1; i++)
-	{
-		char optionName[50];
-		const BananaValue *option;
-
-		sprintf (optionName, "run_command_key%d", i);
-		option = bananaGetOption (bananaIndex, optionName, -1);
-		registerKey (option->s, &run_command_key[i]);
-
-		sprintf (optionName, "run_command_button%d", i);
-		option = bananaGetOption (bananaIndex, optionName, -1);
-		registerButton (option->s, &run_command_button[i]);
-	}
 
 	return TRUE;
 }
