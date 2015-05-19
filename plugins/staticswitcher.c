@@ -39,8 +39,6 @@
 
 static int bananaIndex;
 
-static CompKeyBinding next_key, prev_key, next_all_key, prev_all_key;
-
 static int displayPrivateIndex;
 
 typedef struct _SwitchDisplay {
@@ -51,6 +49,8 @@ typedef struct _SwitchDisplay {
 
 	Atom selectWinAtom;
 	Atom selectFgColorAtom;
+
+	CompKeyBinding next_key, prev_key, next_all_key, prev_all_key;
 } SwitchDisplay;
 
 typedef enum {
@@ -758,18 +758,10 @@ switchInitiate (CompScreen            *s,
 }
 
 static Bool
-switchTerminate (BananaArgument     *arg,
-                 int                nArg)
+switchTerminate (Window xid,
+                 Bool   cancel)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	for (s = display.screens; s; s = s->next)
 	{
@@ -807,11 +799,8 @@ switchTerminate (BananaArgument     *arg,
 			display.activeWindow = sd->lastActiveWindow;
 
 			//check if ESC was pressed
-			BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
-			if (cancel != NULL && cancel->b)
-			{
+			if (cancel)
 				ss->selectedWindow = NULL;
-			}
 
 			if (ss->selectedWindow && !ss->selectedWindow->destroyed)
 				sendWindowActivationRequest (s, ss->selectedWindow->id);
@@ -832,21 +821,12 @@ switchTerminate (BananaArgument     *arg,
 }
 
 static Bool
-switchInitiateCommon (BananaArgument        *arg,
-                      int                   nArg,
+switchInitiateCommon (Window                xid,
                       SwitchWindowSelection selection,
                       Bool                  showPopup,
                       Bool                  nextWindow)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s = findScreenAtDisplay (xid);
 
@@ -912,13 +892,7 @@ switchWindowRemove (CompWindow  *w)
 
 		if (ss->nWindows == 0)
 		{
-			BananaArgument arg;
-
-			arg.type    = BananaInt;
-			arg.name    = "root";
-			arg.value.i = w->screen->root;
-
-			switchTerminate (&arg, 1);
+			switchTerminate (w->screen->root, FALSE);
 			return;
 		}
 
@@ -1092,7 +1066,7 @@ switchFindWindowAt (CompScreen *s,
 }
 
 static void
-switchHandleEvent (XEvent      *event)
+switchHandleEvent (XEvent *event)
 {
 	CompWindow *w = NULL;
 	CompScreen *s;
@@ -1101,67 +1075,44 @@ switchHandleEvent (XEvent      *event)
 
 	switch (event->type) {
 	case KeyPress:
-		if (isKeyPressEvent (event, &next_key))
+		if (isKeyPressEvent (event, &sd->next_key))
 		{
 			const BananaValue *
 			option_show_popup = bananaGetOption (bananaIndex,
 			                                     "show_popup",
 			                                     -1);
 
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xkey.root;
-			switchInitiateCommon (&arg, 1, CurrentViewport,
+			switchInitiateCommon (event->xkey.root, CurrentViewport,
 			                      option_show_popup->b, TRUE);
 		}
-		else if (isKeyPressEvent (event, &prev_key))
+		else if (isKeyPressEvent (event, &sd->prev_key))
 		{
 			const BananaValue *
 			option_show_popup = bananaGetOption (bananaIndex, "show_popup", -1);
 
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xkey.root;
-			switchInitiateCommon (&arg, 1, CurrentViewport,
+			switchInitiateCommon (event->xkey.root, CurrentViewport,
 			                      option_show_popup->b, FALSE);
 		}
-		else if (isKeyPressEvent (event, &next_all_key))
+		else if (isKeyPressEvent (event, &sd->next_all_key))
 		{
 			const BananaValue *
 			option_show_popup = bananaGetOption (bananaIndex, "show_popup", -1);
 
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xkey.root;
 
-			switchInitiateCommon (&arg, 1, AllViewports,
+			switchInitiateCommon (event->xkey.root, AllViewports,
 			                      option_show_popup->b, TRUE);
 		}
-		else if (isKeyPressEvent (event, &prev_all_key))
+		else if (isKeyPressEvent (event, &sd->prev_all_key))
 		{
 			const BananaValue *
 			option_show_popup = bananaGetOption (bananaIndex, "show_popup", -1);
 
-			BananaArgument arg;
-			arg.name = "root";
-			arg.type = BananaInt;
-			arg.value.i = event->xkey.root;
-
-			switchInitiateCommon (&arg, 1, AllViewports,
+			switchInitiateCommon (event->xkey.root, AllViewports,
 			                      option_show_popup->b, FALSE);
 		}
 		if (event->xkey.keycode == display.escapeKeyCode)
 		{
-			BananaArgument arg;
-
-			arg.name = "cancel";
-			arg.type = BananaBool;
-			arg.value.b = TRUE;
-
-			switchTerminate (&arg, 1);
+			switchTerminate (w->screen->root, TRUE);
 		}
 		break;
 	case MapNotify:
@@ -1202,7 +1153,7 @@ switchHandleEvent (XEvent      *event)
 					//unsigned int modMask = REAL_MOD_MASK & ~d->ignoredModMask;
 					//unsigned int bindMods = virtualToRealModMask (d, next_key.modifiers);
 					//if ((stateEvent->mods & modMask & bindMods) != bindMods)
-						switchTerminate (NULL, 0);
+						switchTerminate (0, FALSE);
 
 				}
 			}
@@ -1253,13 +1204,7 @@ switchHandleEvent (XEvent      *event)
 				{
 					ss->selectedWindow = selected;
 
-					BananaArgument arg;
-
-					arg.type    = BananaInt;
-					arg.name    = "root";
-					arg.value.i = s->root;
-
-					switchTerminate (&arg, 1);
+					switchTerminate (s->root, FALSE);
 				}
 			}
 		}
@@ -2017,6 +1962,23 @@ switchInitDisplay (CompPlugin  *p,
 
 	sd->lastActiveWindow = None;
 
+	const BananaValue *
+	option_next_key = bananaGetOption (bananaIndex, "next_key", -1);
+
+	const BananaValue *
+	option_prev_key = bananaGetOption (bananaIndex, "prev_key", -1);
+
+	const BananaValue *
+	option_next_all_key = bananaGetOption (bananaIndex, "next_all_key", -1);
+
+	const BananaValue *
+	option_prev_all_key = bananaGetOption (bananaIndex, "prev_all_key", -1);
+
+	registerKey (option_next_key->s, &sd->next_key);
+	registerKey (option_prev_key->s, &sd->prev_key);
+	registerKey (option_next_all_key->s, &sd->next_all_key);
+	registerKey (option_prev_all_key->s, &sd->prev_all_key);
+
 	WRAP (sd, d, handleEvent, switchHandleEvent);
 
 	d->privates[displayPrivateIndex].ptr = sd;
@@ -2127,6 +2089,8 @@ switchChangeNotify (const char        *optionName,
                     const BananaValue *optionValue,
                     int               screenNum)
 {
+	SWITCH_DISPLAY (&display);
+
 	if (strcasecmp (optionName, "window_match") == 0)
 	{
 		CompScreen *screen;
@@ -2141,16 +2105,16 @@ switchChangeNotify (const char        *optionName,
 		matchUpdate (&ss->window_match);
 	}
 	else if (strcasecmp (optionName, "next_key") == 0)
-		updateKey (optionValue->s, &next_key);
+		updateKey (optionValue->s, &sd->next_key);
 
 	else if (strcasecmp (optionName, "prev_key") == 0)
-		updateKey (optionValue->s, &prev_key);
+		updateKey (optionValue->s, &sd->prev_key);
 
 	else if (strcasecmp (optionName, "next_all_key") == 0)
-		updateKey (optionValue->s, &next_all_key);
+		updateKey (optionValue->s, &sd->next_all_key);
 
 	else if (strcasecmp (optionName, "prev_all_key") == 0)
-		updateKey (optionValue->s, &prev_all_key);
+		updateKey (optionValue->s, &sd->prev_all_key);
 
 }
 
@@ -2179,23 +2143,6 @@ switchInit (CompPlugin *p)
 		return FALSE;
 
 	bananaAddChangeNotifyCallBack (bananaIndex, switchChangeNotify);
-
-	const BananaValue *
-	option_next_key = bananaGetOption (bananaIndex, "next_key", -1);
-
-	const BananaValue *
-	option_prev_key = bananaGetOption (bananaIndex, "prev_key", -1);
-
-	const BananaValue *
-	option_next_all_key = bananaGetOption (bananaIndex, "next_all_key", -1);
-
-	const BananaValue *
-	option_prev_all_key = bananaGetOption (bananaIndex, "prev_all_key", -1);
-
-	registerKey (option_next_key->s, &next_key);
-	registerKey (option_prev_key->s, &prev_key);
-	registerKey (option_next_all_key->s, &next_all_key);
-	registerKey (option_prev_all_key->s, &prev_all_key);
 
 	return TRUE;
 }
