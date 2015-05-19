@@ -34,9 +34,6 @@
 
 static int bananaIndex;
 
-static CompKeyBinding initiate_key;
-static CompButtonBinding initiate_button;
-
 struct _MoveKeys {
 	char *name;
 	int  dx;
@@ -74,6 +71,9 @@ typedef struct _MoveDisplay {
 	int releaseButton;
 
 	GLushort moveOpacity;
+
+	CompKeyBinding initiate_key;
+	CompButtonBinding initiate_button;
 } MoveDisplay;
 
 typedef struct _MoveScreen {
@@ -103,8 +103,7 @@ typedef struct _MoveScreen {
 
 
 static Bool
-moveTerminate (BananaArgument     *arg,
-              int                 nArg)
+moveTerminate (Bool cancel)
 {
 	MOVE_DISPLAY (&display);
 
@@ -112,9 +111,7 @@ moveTerminate (BananaArgument     *arg,
 	{
 		MOVE_SCREEN (md->w->screen);
 
-		BananaValue *cancel = getArgNamed ("cancel", arg, nArg);
-
-		if (cancel != NULL && cancel->b)
+		if (cancel)
 			moveWindow (md->w,
 			            md->savedX - md->w->attrib.x,
 			            md->savedY - md->w->attrib.y,
@@ -146,67 +143,32 @@ moveTerminate (BananaArgument     *arg,
 }
 
 static Bool
-moveInitiate (BananaArgument     *arg,
-              int                nArg)
+moveInitiate (Window       xid,
+              unsigned int mods,
+              int          x,
+              int          y,
+              int          button,
+              Bool         cursor_at_center,
+              Bool         sourceExternalApp,
+              Bool         constrain_y)
 {
 	CompWindow *w;
-	Window     xid;
 
 	MOVE_DISPLAY (&display);
-
-	BananaValue *window = getArgNamed ("window", arg, nArg);
-
-	if (window != NULL)
-		xid = window->i;
-	else
-		xid = 0;
 
 	w = findWindowAtDisplay (xid);
 	if (w && (w->actions & CompWindowActionMoveMask))
 	{
 		XRectangle   workArea;
-		unsigned int mods;
-		int          x, y, button;
-		Bool         sourceExternalApp;
 
 		MOVE_SCREEN (w->screen);
-
-		BananaValue *modifiers = getArgNamed ("modifiers", arg, nArg);
-		if (modifiers != NULL)
-			mods = modifiers->i;
-		else
-			mods = 0;
-
-		BananaValue *arg_x = getArgNamed ("x", arg, nArg);
-		if (arg_x != NULL)
-			x = arg_x->i;
-		else
-			x = w->attrib.x + (w->width / 2);
-
-		BananaValue *arg_y = getArgNamed ("y", arg, nArg);
-		if (arg_y != NULL)
-			y = arg_y->i;
-		else
-			y = w->attrib.y + (w->height / 2);
-
-		BananaValue *arg_button = getArgNamed ("button", arg, nArg);
-		if (arg_button != NULL)
-			button = arg_button->i;
-		else
-			button = -1;
 
 		if (otherScreenGrabExist (w->screen, "move", NULL))
 			return FALSE;
 
 		if (md->w)
 		{
-			BananaArgument arg;
-
-			arg.name = "cancel";
-			arg.type = BananaBool;
-			arg.value.b = FALSE;
-
-			moveTerminate (&arg, 1);
+			moveTerminate (FALSE);
 			return FALSE;
 		}
 
@@ -232,17 +194,7 @@ moveInitiate (BananaArgument     *arg,
 		md->x = 0;
 		md->y = 0;
 
-		BananaValue *arg_external = getArgNamed ("external", arg, nArg);
-
-		if (arg_external != NULL)
-			sourceExternalApp = arg_external->b;
-		else
-			sourceExternalApp = FALSE;
-
-		const BananaValue *
-		option_constrain_y = bananaGetOption (bananaIndex, "constrain_y", -1);
-
-		md->constrainY = sourceExternalApp && option_constrain_y->b;
+		md->constrainY = sourceExternalApp && constrain_y;
 
 		lastPointerX = x;
 		lastPointerY = y;
@@ -280,10 +232,7 @@ moveInitiate (BananaArgument     *arg,
 				updateWindowAttributes (w,
 				                  CompStackingUpdateModeAboveFullscreen);
 
-			BananaValue *arg_cursor_at_center = getArgNamed ("cursor_at_center",
-			                                                 arg, nArg);
-
-			if (arg_cursor_at_center != NULL && arg_cursor_at_center->b)
+			if (cursor_at_center)
 			{
 				int xRoot, yRoot;
 
@@ -614,31 +563,16 @@ moveHandleEvent (XEvent      *event)
 
 	switch (event->type) {
 	case ButtonPress:
-		if (isButtonPressEvent (event, &initiate_button))
+		if (isButtonPressEvent (event, &md->initiate_button))
 		{
-			BananaArgument arg[5];
-
-			arg[0].name = "window";
-			arg[0].type = BananaInt;
-			arg[0].value.i = event->xbutton.window;
-
-			arg[1].name = "modifiers";
-			arg[1].type = BananaInt;
-			arg[1].value.i = event->xbutton.state;
-
-			arg[2].name = "x";
-			arg[2].type = BananaInt;
-			arg[2].value.i = event->xbutton.x_root;
-
-			arg[3].name = "y";
-			arg[3].type = BananaInt;
-			arg[3].value.i = event->xbutton.y_root;
-
-			arg[4].name = "button";
-			arg[4].type = BananaInt;
-			arg[4].value.i = event->xbutton.button;
-
-			moveInitiate (&arg[0], 5);
+			moveInitiate (event->xbutton.window,
+			              event->xbutton.state,
+			              event->xbutton.x_root,
+			              event->xbutton.y_root,
+			              event->xbutton.button,
+			              FALSE,
+			              FALSE,
+			              FALSE);
 		}
 		break;
 	case ButtonRelease:
@@ -650,45 +584,24 @@ moveHandleEvent (XEvent      *event)
 			if (ms->grabIndex)
 			{
 				if (md->releaseButton == -1 ||
-				    initiate_button.button == event->xbutton.button)
+				    md->initiate_button.button == event->xbutton.button)
 				{
-					BananaArgument arg;
-
-					arg.name = "cancel";
-					arg.type = BananaBool;
-					arg.value.b = FALSE;
-
-					moveTerminate (&arg, 1);
+					moveTerminate (FALSE);
 				}
 			}
 		}
 		break;
 	case KeyPress:
-		if (isKeyPressEvent (event, &initiate_key))
+		if (isKeyPressEvent (event, &md->initiate_key))
 		{
-			BananaArgument arg[5];
-
-			arg[0].name = "window";
-			arg[0].type = BananaInt;
-			arg[0].value.i = display.activeWindow;
-
-			arg[1].name = "modifiers";
-			arg[1].type = BananaInt;
-			arg[1].value.i = event->xkey.state;
-
-			arg[2].name = "x";
-			arg[2].type = BananaInt;
-			arg[2].value.i = event->xkey.x_root;
-
-			arg[3].name = "y";
-			arg[3].type = BananaInt;
-			arg[3].value.i = event->xkey.y_root;
-
-			arg[4].name = "cursor_at_center";
-			arg[4].type = BananaBool;
-			arg[4].value.b = TRUE;
-
-			moveInitiate (&arg[0], 5);
+			moveInitiate (display.activeWindow,
+			              event->xkey.state,
+			              event->xkey.x_root,
+			              event->xkey.y_root,
+			              -1,
+			              TRUE,
+			              FALSE,
+			              FALSE);
 		}
 		s = findScreenAtDisplay (event->xkey.root);
 		if (s)
@@ -711,23 +624,11 @@ moveHandleEvent (XEvent      *event)
 				}
 				if (event->xkey.keycode == display.escapeKeyCode)
 				{
-					BananaArgument arg;
-
-					arg.name = "cancel";
-					arg.type = BananaBool;
-					arg.value.b = TRUE;
-
-					moveTerminate (&arg, 1);
+					moveTerminate (TRUE);
 				}
 				else if (event->xkey.keycode == display.returnKeyCode)
 				{
-					BananaArgument arg;
-
-					arg.name = "cancel";
-					arg.type = BananaBool;
-					arg.value.b = FALSE;
-
-					moveTerminate (&arg, 1);
+					moveTerminate (FALSE);
 				}
 			}
 		}
@@ -756,17 +657,14 @@ moveHandleEvent (XEvent      *event)
 				{
 					if (event->xclient.data.l[2] == WmMoveResizeMoveKeyboard)
 					{
-						BananaArgument arg[2];
-
-						arg[0].name = "window";
-						arg[0].type = BananaInt;
-						arg[0].value.i = event->xclient.window;
-
-						arg[1].name = "external";
-						arg[1].type = BananaBool;
-						arg[1].value.b = TRUE;
-
-						moveInitiate (&arg[0], 1);
+						moveInitiate (event->xclient.window,
+						              0,
+						              w->attrib.x + (w->width / 2),
+						              w->attrib.y + (w->height / 2),
+						              -1,
+						              FALSE,
+						              TRUE,
+						              FALSE);
 					}
 					else
 					{
@@ -783,34 +681,19 @@ moveHandleEvent (XEvent      *event)
 
 						if (mods & Button1Mask)
 						{
-							BananaArgument arg[6];
-
-							arg[0].name = "window";
-							arg[0].type = BananaInt;
-							arg[0].value.i = event->xclient.window;
-
-							arg[1].name = "external";
-							arg[1].type = BananaBool;
-							arg[1].value.b = TRUE;
-
-							arg[2].name    = "modifiers";
-							arg[2].type    = BananaInt;
-							arg[2].value.i = mods;
-
-							arg[3].name    = "x";
-							arg[3].type    = BananaInt;
-							arg[3].value.i = event->xclient.data.l[0];
-
-							arg[4].name    = "y";
-							arg[4].type    = BananaInt;
-							arg[4].value.i = event->xclient.data.l[1];
-
 							//arg[5].name    = "button";
 							//arg[5].type    = BananaInt;
 							//arg[5].value.i = event->xclient.data.l[3] ?
 							//           event->xclient.data.l[3] : -1;
 
-							moveInitiate (&arg[0], 5);
+							moveInitiate (event->xclient.window,
+							              mods,
+							              event->xclient.data.l[0],
+							              event->xclient.data.l[1],
+							              -1,
+							              FALSE,
+							              TRUE,
+							              FALSE);
 
 							moveHandleMotionEvent (w->screen, xRoot, yRoot);
 						}
@@ -821,24 +704,18 @@ moveHandleEvent (XEvent      *event)
 			{
 				if (md->w->id == event->xclient.window)
 				{
-					BananaArgument arg;
-
-					arg.name = "cancel";
-					arg.type = BananaBool;
-					arg.value.b = TRUE;
-
-					moveTerminate (&arg, 1);
+					moveTerminate (TRUE);
 				}
 			}
 		}
 		break;
 	case DestroyNotify:
 		if (md->w && md->w->id == event->xdestroywindow.window)
-			moveTerminate (NULL, 0);
+			moveTerminate (FALSE);
 		break;
 	case UnmapNotify:
 		if (md->w && md->w->id == event->xunmap.window)
-			moveTerminate (NULL, 0);
+			moveTerminate (FALSE);
 		break;
 	default:
 		break;
@@ -894,9 +771,9 @@ moveChangeNotify (const char        *optionName,
 	if (strcasecmp (optionName, "opacity") == 0)
 		md->moveOpacity = (optionValue->i * OPAQUE) / 100;
 	else if (strcasecmp (optionName, "initiate_button") == 0)
-		updateButton (optionValue->s, &initiate_button);
+		updateButton (optionValue->s, &md->initiate_button);
 	else if (strcasecmp (optionName, "initiate_key") == 0)
-		updateKey (optionValue->s, &initiate_key);
+		updateKey (optionValue->s, &md->initiate_key);
 }
 
 static Bool
@@ -931,6 +808,19 @@ moveInitDisplay (CompPlugin  *p,
 	for (i = 0; i < NUM_KEYS; i++)
 		md->key[i] = XKeysymToKeycode (d->display,
 		                           XStringToKeysym (mKeys[i].name));
+
+	const BananaValue *
+	option_initiate_button = bananaGetOption (bananaIndex,
+	                                          "initiate_button",
+	                                          -1);
+
+	const BananaValue *
+	option_initiate_key = bananaGetOption (bananaIndex,
+	                                       "initiate_key",
+	                                       -1);
+
+	registerKey (option_initiate_key->s, &md->initiate_key);
+	registerButton (option_initiate_button->s, &md->initiate_button);
 
 	WRAP (md, d, handleEvent, moveHandleEvent);
 
@@ -1017,19 +907,6 @@ moveInit (CompPlugin *p)
 		return FALSE;
 
 	bananaAddChangeNotifyCallBack (bananaIndex, moveChangeNotify);
-
-	const BananaValue *
-	option_initiate_button = bananaGetOption (bananaIndex,
-	                                          "initiate_button",
-	                                          -1);
-
-	const BananaValue *
-	option_initiate_key = bananaGetOption (bananaIndex,
-	                                       "initiate_key",
-	                                       -1);
-
-	registerKey (option_initiate_key->s, &initiate_key);
-	registerButton (option_initiate_button->s, &initiate_button);
 
 	return TRUE;
 }
