@@ -31,17 +31,17 @@ static int bananaIndex;
 
 static int displayPrivateIndex;
 
-static CompKeyBinding main_menu_key;
-static CompKeyBinding run_key;
-static CompKeyBinding run_command_screenshot_key;
-static CompKeyBinding run_command_window_screenshot_key;
-static CompKeyBinding run_command_terminal_key;
-
 typedef struct _MateDisplay {
 	Atom panelActionAtom;
 	Atom panelMainMenuAtom;
 	Atom panelRunDialogAtom;
 	HandleEventProc handleEvent;
+
+	CompKeyBinding main_menu_key;
+	CompKeyBinding run_key;
+	CompKeyBinding run_command_screenshot_key;
+	CompKeyBinding run_command_window_screenshot_key;
+	CompKeyBinding run_command_terminal_key;
 } MateDisplay;
 
 #define GET_MATE_DISPLAY(d) \
@@ -56,79 +56,52 @@ mateChangeNotify (const char        *optionName,
                   const BananaValue *optionValue,
                   int               screenNum)
 {
+	MATE_DISPLAY (&display);
+
 	if (strcasecmp (optionName, "main_menu_key") == 0)
-		updateKey (optionValue->s, &main_menu_key);
+		updateKey (optionValue->s, &md->main_menu_key);
 
 	else if (strcasecmp (optionName, "run_key") == 0)
-		updateKey (optionValue->s, &run_key);
+		updateKey (optionValue->s, &md->run_key);
 
 	else if (strcasecmp (optionName, "run_command_screenshot_key") == 0)
-		updateKey (optionValue->s, &run_command_screenshot_key);
+		updateKey (optionValue->s, &md->run_command_screenshot_key);
 
 	else if (strcasecmp (optionName, "run_command_window_screenshot_key") == 0)
-		updateKey (optionValue->s, &run_command_screenshot_key);
+		updateKey (optionValue->s, &md->run_command_screenshot_key);
 
 	else if (strcasecmp (optionName, "run_command_terminal_key") == 0)
-		updateKey (optionValue->s, &run_command_terminal_key);
+		updateKey (optionValue->s, &md->run_command_terminal_key);
 }
 
 static Bool
-runDispatch (BananaArgument     *arg,
-             int                nArg)
+runDispatch (Window     xid,
+             const char *command)
 {
 	CompScreen *s;
-	Window     xid;
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s   = findScreenAtDisplay (xid);
 
-	if (s)
-	{
-		BananaValue *command = getArgNamed ("command", arg, nArg);
-
-		if (command != NULL && command->s != NULL)
-			runCommand (s, command->s);
-	}
+	if (s && command != NULL)
+		runCommand (s, command);
 
 	return TRUE;
 }
 
 static void
-panelAction (BananaArgument     *arg,
-             int                nArg,
+panelAction (Window             xid,
+             Time               time,
              Atom               actionAtom)
 {
-	Window     xid;
 	CompScreen *s;
 	XEvent     event;
-	Time       time;
 
 	MATE_DISPLAY (&display);
-
-	BananaValue *root = getArgNamed ("root", arg, nArg);
-
-	if (root != NULL)
-		xid = root->i;
-	else
-		xid = 0;
 
 	s   = findScreenAtDisplay (xid);
 
 	if (!s)
 		return;
-
-	BananaValue *arg_time = getArgNamed ("time", arg, nArg);
-
-	if (arg_time != NULL)
-		time = CurrentTime;
-	else
-		time = 0;
 
 	/* we need to ungrab the keyboard here, otherwise the panel main
 	   menu won't popup as it wants to grab the keyboard itself */
@@ -149,115 +122,65 @@ panelAction (BananaArgument     *arg,
 }
 
 static Bool
-showMainMenu (BananaArgument     *arg,
-              int                nArg)
+showMainMenu (Window xid,
+              Time   time)
 {
 	MATE_DISPLAY (&display);
 
-	panelAction (arg, nArg, md->panelMainMenuAtom);
+	panelAction (xid, time, md->panelMainMenuAtom);
 
 	return TRUE;
 }
 
 static Bool
-showRunDialog (BananaArgument     *arg,
-               int                nArg)
+showRunDialog (Window xid,
+               Time   time)
 {
 	MATE_DISPLAY (&display);
 
-	panelAction (arg, nArg, md->panelRunDialogAtom);
+	panelAction (xid, time, md->panelRunDialogAtom);
 
 	return TRUE;
 }
 
 static void
-mateHandleEvent (XEvent      *event)
+mateHandleEvent (XEvent *event)
 {
 	MATE_DISPLAY (&display);
 
 	switch (event->type) {
 	case KeyPress:
-		if (isKeyPressEvent (event, &main_menu_key))
+		if (isKeyPressEvent (event, &md->main_menu_key))
 		{
-			BananaArgument arg[2];
-
-			arg[0].name = "root";
-			arg[0].type = BananaInt;
-			arg[0].value.i = event->xkey.root;
-
-			arg[1].name = "time";
-			arg[1].type = BananaInt;
-			arg[1].value.i = event->xkey.time;
-
-			showMainMenu (&arg[0], 2);
+			showMainMenu (event->xkey.root, event->xkey.time);
 		}
-		else if (isKeyPressEvent (event, &run_key))
+		else if (isKeyPressEvent (event, &md->run_key))
 		{
-			BananaArgument arg[2];
-
-			arg[0].name = "root";
-			arg[0].type = BananaInt;
-			arg[0].value.i = event->xkey.root;
-
-			arg[1].name = "time";
-			arg[1].type = BananaInt;
-			arg[1].value.i = event->xkey.time;
-
-			showRunDialog (&arg[0], 2);
+			showRunDialog (event->xkey.root, event->xkey.time);
 		}
-		else if (isKeyPressEvent (event, &run_command_screenshot_key))
+		else if (isKeyPressEvent (event, &md->run_command_screenshot_key))
 		{
-			BananaArgument arg[2];
-
-			arg[0].name = "root";
-			arg[0].type = BananaInt;
-			arg[0].value.i = event->xkey.root;
-
 			const BananaValue *
 			option_command_screenshot = bananaGetOption (
 			      bananaIndex, "command_screenshot", -1);
 
-			arg[1].name = "command";
-			arg[1].type = BananaString;
-			arg[1].value.s = option_command_screenshot->s;
-
-			runDispatch (&arg[0], 2);
+			runDispatch (event->xkey.root, option_command_screenshot->s);
 		}
-		else if (isKeyPressEvent (event, &run_command_window_screenshot_key))
+		else if (isKeyPressEvent (event, &md->run_command_window_screenshot_key))
 		{
-			BananaArgument arg[2];
-
-			arg[0].name = "root";
-			arg[0].type = BananaInt;
-			arg[0].value.i = event->xkey.root;
-
 			const BananaValue *
 			option_command_window_screenshot = 
 			     bananaGetOption (bananaIndex, "command_window_screenshot", -1);
 
-			arg[1].name = "command";
-			arg[1].type = BananaString;
-			arg[1].value.s = option_command_window_screenshot->s;
-
-			runDispatch (&arg[0], 2);
+			runDispatch (event->xkey.root, option_command_window_screenshot->s);
 		}
-		else if (isKeyPressEvent (event, &run_command_terminal_key))
+		else if (isKeyPressEvent (event, &md->run_command_terminal_key))
 		{
-			BananaArgument arg[2];
-
-			arg[0].name = "root";
-			arg[0].type = BananaInt;
-			arg[0].value.i = event->xkey.root;
-
 			const BananaValue *
 			option_command_terminal = bananaGetOption (
 			      bananaIndex, "command_terminal", -1);
 
-			arg[1].name = "command";
-			arg[1].type = BananaString;
-			arg[1].value.s = option_command_terminal->s;
-
-			runDispatch (&arg[0], 2);
+			runDispatch (event->xkey.root, option_command_terminal->s);
 		}
 
 	default:
@@ -285,6 +208,37 @@ mateInitDisplay (CompPlugin  *p,
 	    XInternAtom (d->display, "_MATE_PANEL_ACTION_MAIN_MENU", FALSE);
 	md->panelRunDialogAtom =
 	    XInternAtom (d->display, "_MATE_PANEL_ACTION_RUN_DIALOG", FALSE);
+
+	const BananaValue *
+	option_main_menu_key = bananaGetOption (bananaIndex, "main_menu_key", -1);
+
+	const BananaValue *
+	option_run_key = bananaGetOption (bananaIndex, "run_key", -1);
+
+	const BananaValue *
+	option_run_command_screenshot_key = 
+	     bananaGetOption (bananaIndex, "run_command_screenshot_key", -1);
+
+	const BananaValue *
+	option_run_command_window_screenshot_key = 
+	     bananaGetOption (bananaIndex, "run_command_window_screenshot_key", -1);
+
+	const BananaValue *
+	option_run_command_terminal_key = 
+	     bananaGetOption (bananaIndex, "run_command_terminal_key", -1);
+
+	registerKey (option_main_menu_key->s, &md->main_menu_key);
+
+	registerKey (option_run_key->s, &md->run_key);
+
+	registerKey (option_run_command_screenshot_key->s,
+	             &md->run_command_screenshot_key);
+
+	registerKey (option_run_command_window_screenshot_key->s,
+	             &md->run_command_window_screenshot_key);
+
+	registerKey (option_run_command_terminal_key->s,
+	             &md->run_command_terminal_key);
 
 	WRAP (md, d, handleEvent, mateHandleEvent);
 
@@ -329,37 +283,6 @@ mateInit (CompPlugin *p)
 		return FALSE;
 
 	bananaAddChangeNotifyCallBack (bananaIndex, mateChangeNotify);
-
-	const BananaValue *
-	option_main_menu_key = bananaGetOption (bananaIndex, "main_menu_key", -1);
-
-	const BananaValue *
-	option_run_key = bananaGetOption (bananaIndex, "run_key", -1);
-
-	const BananaValue *
-	option_run_command_screenshot_key = 
-	     bananaGetOption (bananaIndex, "run_command_screenshot_key", -1);
-
-	const BananaValue *
-	option_run_command_window_screenshot_key = 
-	     bananaGetOption (bananaIndex, "run_command_window_screenshot_key", -1);
-
-	const BananaValue *
-	option_run_command_terminal_key = 
-	     bananaGetOption (bananaIndex, "run_command_terminal_key", -1);
-
-	registerKey (option_main_menu_key->s, &main_menu_key);
-
-	registerKey (option_run_key->s, &run_key);
-
-	registerKey (option_run_command_screenshot_key->s,
-	             &run_command_screenshot_key);
-
-	registerKey (option_run_command_window_screenshot_key->s,
-	             &run_command_window_screenshot_key);
-
-	registerKey (option_run_command_terminal_key->s,
-	             &run_command_terminal_key);
 
 	return TRUE;
 }
