@@ -47,3 +47,21 @@ make
 make install
 
 ```
+
+## Running
+
+The window manager can be started with:
+
+./fusilli --replace
+
+The gtk2-based window decorator:
+
+./fusilli-decorator-gtk --replace
+
+The window decorator for KDE4:
+
+./fusilli-decorator-kde4 --replace
+
+fsm, the configuration manager (fusilli settings manager):
+
+./fsm
