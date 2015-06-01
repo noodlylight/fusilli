@@ -466,6 +466,8 @@ typedef struct _GroupScreen {
 	CompTexture glowTexture;
 
 	CompMatch window_match;
+	CompMatch *autotab;
+	int        autotabCount;
 } GroupScreen;
 
 /*

@@ -338,6 +338,23 @@ groupInitScreen (CompPlugin *p,
 	matchAddFromString (&gs->window_match, option_window_match->s);
 	matchUpdate (&gs->window_match);
 
+	const BananaValue *
+	option_autotab_windows = bananaGetOption (bananaIndex,
+	                                          "autotab_windows",
+	                                          s->screenNum);
+
+	gs->autotabCount = option_autotab_windows->list.nItem;
+	gs->autotab = malloc (gs->autotabCount * sizeof (CompMatch));
+
+	int i;
+	for (i = 0; i <= gs->autotabCount - 1; i++)
+	{
+		matchInit (&gs->autotab[i]);
+		matchAddFromString (&gs->autotab[i],
+		                    option_autotab_windows->list.item[i].s);
+		matchUpdate (&gs->autotab[i]);
+	}
+
 	return TRUE;
 }
 
@@ -664,6 +681,31 @@ groupChangeNotify (const char        *optionName,
 		updateKey (optionValue->s, &gd->change_tab_right_key);
 	else if (strcasecmp (optionName, "change_color_key") == 0)
 		updateKey (optionValue->s, &gd->change_color_key);
+	else if (strcasecmp (optionName, "autotab_windows") == 0)
+	{
+		CompScreen *s = getScreenFromScreenNum (screenNum);
+
+		GROUP_SCREEN (s);
+
+		int i;
+		if (gs->autotab && gs->autotabCount != 0)
+		{
+			for (i = 0; i <= gs->autotabCount - 1; i++)
+				matchFini (&gs->autotab[i]);
+
+			free (gs->autotab);
+		}
+
+		gs->autotabCount = optionValue->list.nItem;
+		gs->autotab = malloc (gs->autotabCount * sizeof (CompMatch));
+
+		for (i = 0; i <= gs->autotabCount - 1; i++)
+		{
+			matchInit (&gs->autotab[i]);
+			matchAddFromString (&gs->autotab[i], optionValue->list.item[i].s);
+			matchUpdate (&gs->autotab[i]);
+		}
+	}
 }
 
 static Bool

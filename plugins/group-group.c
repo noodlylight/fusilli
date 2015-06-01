@@ -2056,6 +2056,18 @@ groupWindowUngrabNotify (CompWindow *w)
 	WRAP ( gs, s, windowUngrabNotify, groupWindowUngrabNotify);
 }
 
+/*
+ * A request was made to damage everything in this window.
+ *
+ * If this window just appeared (initial) then add it to an autotabbed
+ * group if we are doing that. Or it might be the case that the window
+ * was just unshaded or unminimized (initial as well) so apply
+ * those actions to the group too
+ *
+ * Otherwise, damage the stretch rectangle for the window, damage
+ * the slot (since the group was just updated)
+ */
+
 Bool
 groupDamageWindowRect (CompWindow *w,
                        Bool       initial,
@@ -2082,8 +2094,49 @@ groupDamageWindowRect (CompWindow *w,
 		{
 			if (!gw->group && (gw->windowState == WindowNormal))
 			{
-				groupAddWindowToGroup (w, NULL, 0);
-				groupTabGroup (w);
+				/* First check if this window should be added to an
+				 * existing group */
+				GroupSelection *g = NULL;
+				int i;
+				for (i = 0; i <= gs->autotabCount - 1; i++)
+				{
+					if (matchEval (&gs->autotab[i], w))
+					{
+						Bool foundGroup = FALSE;
+						GroupSelection *tg;
+
+						for (tg = gs->groups; tg; tg = tg->next)
+						{
+							int i;
+							for (i = 0; i <= tg->nWins - 1; i++)
+							{
+								if (matchEval (&gs->autotab[i], tg->windows[i]))
+								{
+									foundGroup = TRUE;
+									g = tg;
+									break;
+								}
+							}
+
+							if (foundGroup)
+								break;
+						}
+
+						if (foundGroup)
+							break;
+					}
+				}
+
+				if (g)
+				{
+					groupAddWindowToGroup (w, g, 0);
+					//groupTabGroup (w);
+				}
+				else
+				{
+					groupAddWindowToGroup (w, NULL, 0);
+					//groupTabGroup (w);
+				}
 			}
 		}
 
