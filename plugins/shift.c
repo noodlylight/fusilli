@@ -321,6 +321,10 @@ shiftRenderWindowTitle (CompScreen *s)
 	option_title_back_color = bananaGetOption (bananaIndex,
 	                                           "title_back_color",
 	                                           s->screenNum);
+	const BananaValue *
+	option_title_font_family = bananaGetOption (bananaIndex,
+	                                          "title_font_family",
+	                                          s->screenNum);
 
 	unsigned short back_color[] = { 0, 0, 0, 0 };
 
@@ -330,7 +334,7 @@ shiftRenderWindowTitle (CompScreen *s)
 	tA.maxWidth = (ox2 - ox1) * 3 / 4;
 	tA.maxHeight = 100;
 
-	tA.family = "Sans";
+	tA.family = option_title_font_family->s;
 	tA.size = option_title_font_size->i;
 	tA.color[0] = font_color[0];
 	tA.color[1] = font_color[1];

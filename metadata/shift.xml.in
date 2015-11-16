@@ -315,6 +315,13 @@
 					<default>false</default>
 				</option>
 
+				<option name="title_font_family" type="string" per_screen="true">
+					<_short>Font Family</_short>
+					<_long>Font family for the text display (Don't leave this blank!)</_long>
+					<hint>font</hint>
+					<default>Sans</default>
+				</option>
+
 				<option name="title_font_size" type="int" per_screen="true">
 					<_short>Font Size</_short>
 					<_long>Font size for the window title</_long>

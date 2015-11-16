@@ -287,7 +287,12 @@ wsnamesRenderNameText (CompScreen *s)
 	                                    "font_size",
 	                                    s->screenNum);
 
-	attrib.family = "Sans";
+	const BananaValue *
+	option_font_family = bananaGetOption(bananaIndex,
+	                                     "font_family",
+	                                     s->screenNum);
+
+	attrib.family = option_font_family->s;
 	attrib.size = option_font_size->i;
 
 	const BananaValue *
