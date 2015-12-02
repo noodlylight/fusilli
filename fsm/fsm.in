@@ -454,6 +454,8 @@ class BananaOption():
                     red = blue = green = alpha = 65535
                 self.GTKColorButton.set_color(gtk.gdk.Color(red, blue, green))
                 self.GTKColorButton.set_alpha(alpha)
+            elif self.Hint == "font":
+                self.GTKEntry.set_text(self.GetValue())
             elif self.Hint == "button":
                 self.GTKEntry.set_text(self.GetValue())
             elif self.Hint == "key":

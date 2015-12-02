@@ -167,7 +167,11 @@ renderThumbText (CompScreen *s,
 	if (option_font_bold->b)
 		tA.flags |= CompTextFlagStyleBold;
 
-	tA.family     = "Sans";
+	const BananaValue *
+	option_font_family = bananaGetOption(bananaIndex,
+	                                     "font_family",
+	                                     s->screenNum);
+	tA.family     = option_font_family->s;
 
 	t->textData = textRenderWindowTitle (s, t->win, FALSE, &tA);
 }

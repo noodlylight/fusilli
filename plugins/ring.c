@@ -255,6 +255,11 @@ ringRenderWindowTitle (CompScreen *s)
 	                                           "title_font_color",
 	                                           s->screenNum);
 
+	const BananaValue *
+	option_title_font_family = bananaGetOption (bananaIndex,
+	                                          "title_font_family",
+	                                          s->screenNum);
+
 	stringToColor (option_title_font_color->s, color);
 
 	attrib.color[0] = color[0];
@@ -271,7 +276,7 @@ ringRenderWindowTitle (CompScreen *s)
 	if (option_title_font_bold->b)
 		attrib.flags |= CompTextFlagStyleBold;
 
-	attrib.family = "Sans";
+	attrib.family = option_title_font_family->s;
 	attrib.bgHMargin = 15;
 	attrib.bgVMargin = 15;
 

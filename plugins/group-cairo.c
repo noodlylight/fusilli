@@ -730,6 +730,11 @@ groupRenderWindowTitle (GroupSelection *group)
 		                                            "tabbar_font_color",
 		                                            s->screenNum);
 
+		const BananaValue *
+		option_tabbar_font_family = bananaGetOption (bananaIndex,
+		                                            "tabbar_font_family",
+		                                            s->screenNum);
+
 		unsigned short tabbar_font_color[] = { 0, 0, 0, 0 };
 
 		stringToColor (option_tabbar_font_color->s, tabbar_font_color);
@@ -737,7 +742,7 @@ groupRenderWindowTitle (GroupSelection *group)
 		CompTextData    *data;
 		CompTextAttrib textAttrib;
 
-		textAttrib.family = "Sans";
+		textAttrib.family = option_tabbar_font_family->s;
 		textAttrib.size   = option_tabbar_font_size->i;
 
 		textAttrib.flags = CompTextFlagStyleBold | CompTextFlagEllipsized |
